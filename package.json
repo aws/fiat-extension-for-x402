@@ -1,10 +1,7 @@
 {
-  "name": "@amzn/agentic-pay-x402-sdk-extension-typescript",
+  "name": "@x402/fab",
   "version": "0.1.0",
   "description": "FAB (Federated Application Billing) extension for x402 protocol",
-  "license": "UNLICENSED",
-  "repository": "ssh://git.amazon.com/pkg/AgenticPayX402SDKExtension-Typescript",
-  "homepage": "https://code.amazon.com/packages/AgenticPayX402SDKExtension-Typescript",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -51,24 +48,17 @@
       "require": "./dist/middleware/express.cjs"
     }
   },
-  "engines": {
-    "node": ">=18.0.0"
-  },
   "scripts": {
-    "clean": "rm -rf dist && rm -rf node_modules",
-    "build": "tsup",
     "test": "vitest run",
+    "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:coverage:open": "npm run test:coverage && open coverage/index.html",
+    "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build && npm run test",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "deps:list": "npx license-checker --production --csv | awk -F',' 'NR>1 {gsub(/\"/,\"\"); print $1\"-\"$2}' > deps.txt",
     "deps:licenses": "npx generate-license-file --input package.json --output licenses.txt"
-  },
-  "files": [
-    "dist/"
-  ],
-  "npm-pretty-much": {
-    "runTest": "never"
   },
   "keywords": [
     "x402",
@@ -79,6 +69,11 @@
     "fiat",
     "wallet"
   ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "peerDependencies": {
     "@x402/core": "^2.0.0"
   },
@@ -89,11 +84,21 @@
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
     "@vitest/coverage-v8": "^1.2.0",
     "@x402/core": "^2.0.0",
+    "eslint": "^8.56.0",
     "express": "^4.18.2",
+    "prettier": "^3.2.4",
     "tsup": "^8.0.1",
+    "tsx": "^4.7.0",
     "typescript": "^5.3.3",
     "vitest": "^1.2.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "ssh://git.amazon.com/pkg/AgenticPayX402SDKExtension-Typescript"
+  },
+  "homepage": "https://code.amazon.com/packages/AgenticPayX402SDKExtension-Typescript"
 }
