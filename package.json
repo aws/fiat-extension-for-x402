@@ -1,0 +1,35 @@
+{
+  "name": "@amzn/agentic-pay-x402-sdk-extension-typescript",
+  "version": "0.1.0",
+  "license": "UNLICENSED",
+  "repository": "ssh://git.amazon.com/pkg/AgenticPayX402SDKExtension-Typescript",
+  "homepage": "https://code.amazon.com/packages/AgenticPayX402SDKExtension-Typescript",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "clean": "rm -rf dist && rm -rf node_modules",
+    "build": "tsc",
+    "watch": "tsc -w",
+    "prepublishOnly": "npm run build && npm run test",
+    "test": "vitest run --coverage",
+    "posttest": "generate-coverage-data --language typescript"
+  },
+  "main": "./dist/math.js",
+  "exports": "./dist/math.js",
+  "files": [
+    "dist/",
+    "!/dist/**/__tests__/*"
+  ],
+  "npm-pretty-much": {
+    "runTest": "never"
+  },
+  "devDependencies": {
+    "@amzn/brazil": "^2.0.12",
+    "@tsconfig/node24": "^24.0.4",
+    "@vitest/coverage-v8": "^4.1.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.17"
+  }
+}
