@@ -1,0 +1,32 @@
+sequenceDiagram
+    participant Client as Client (API Consumer)
+    participant Service as Service (API Provider)
+    participant AP as Agentic Pay (Wallet)
+
+    Note over Client,AP: FAB Payment Flow
+
+    Client->>Service: 1. GET /resource
+    Service->>Service: 2. No payment — generate quote token (signed JWT)
+    Service-->>Client: 3. 402 Payment Required<br/>WWW-Authenticate: x402<br/>{ quoteToken, price, network }
+
+    Client->>Client: 4. Extract quoteToken from 402 response
+    Client->>AP: 5. POST /transactions<br/>{ quoteToken, network, amount, currency, walletId }
+    AP->>AP: 6. Verify quote token signature<br/>Authorize transaction
+    AP-->>Client: 7. { paymentToken (signed JWT), transactionId }
+
+    Client->>Service: 8. GET /resource<br/>Authorization: x402 { paymentToken, transactionId }
+
+    Service->>AP: 9. Fetch JWKS from /.well-known/jwks.json
+    AP-->>Service: 10. { public keys }
+    Service->>Service: 11. Verify paymentToken signature (Agentic Pay key)<br/>Verify quoteToken inside paymentToken (own key)<br/>Match amounts
+
+    alt Payment Valid
+        Service-->>Client: 12. 200 OK — resource delivered
+
+        opt Capture (optional — manual mode)
+            Service->>AP: 13. POST /capture<br/>{ transactionId, amount, currency }
+            AP-->>Service: 14. { success, captureId }
+        end
+    else Payment Invalid
+        Service-->>Client: 12. 402 Payment Required — verification failed
+    end

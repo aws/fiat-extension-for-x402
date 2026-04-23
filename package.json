@@ -1,35 +1,99 @@
 {
   "name": "@amzn/agentic-pay-x402-sdk-extension-typescript",
   "version": "0.1.0",
+  "description": "FAB (Federated Application Billing) extension for x402 protocol",
   "license": "UNLICENSED",
   "repository": "ssh://git.amazon.com/pkg/AgenticPayX402SDKExtension-Typescript",
   "homepage": "https://code.amazon.com/packages/AgenticPayX402SDKExtension-Typescript",
   "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "require": "./dist/client.cjs"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "require": "./dist/server.cjs"
+    },
+    "./facilitator": {
+      "types": "./dist/facilitator.d.ts",
+      "import": "./dist/facilitator.js",
+      "require": "./dist/facilitator.cjs"
+    },
+    "./fab/client": {
+      "types": "./dist/fab/client/index.d.ts",
+      "import": "./dist/fab/client/index.js",
+      "require": "./dist/fab/client/index.cjs"
+    },
+    "./fab/server": {
+      "types": "./dist/fab/server/index.d.ts",
+      "import": "./dist/fab/server/index.js",
+      "require": "./dist/fab/server/index.cjs"
+    },
+    "./fab/facilitator": {
+      "types": "./dist/fab/facilitator/index.d.ts",
+      "import": "./dist/fab/facilitator/index.js",
+      "require": "./dist/fab/facilitator/index.cjs"
+    },
+    "./middleware/express": {
+      "types": "./dist/middleware/express.d.ts",
+      "import": "./dist/middleware/express.js",
+      "require": "./dist/middleware/express.cjs"
+    }
+  },
   "engines": {
-    "node": ">=24"
+    "node": ">=18.0.0"
   },
   "scripts": {
     "clean": "rm -rf dist && rm -rf node_modules",
-    "build": "tsc",
-    "watch": "tsc -w",
+    "build": "tsup",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build && npm run test",
-    "test": "vitest run --coverage",
-    "posttest": "generate-coverage-data --language typescript"
+    "deps:list": "npx license-checker --production --csv | awk -F',' 'NR>1 {gsub(/\"/,\"\"); print $1\"-\"$2}' > deps.txt",
+    "deps:licenses": "npx generate-license-file --input package.json --output licenses.txt"
   },
-  "main": "./dist/math.js",
-  "exports": "./dist/math.js",
   "files": [
-    "dist/",
-    "!/dist/**/__tests__/*"
+    "dist/"
   ],
   "npm-pretty-much": {
     "runTest": "never"
   },
+  "keywords": [
+    "x402",
+    "fab",
+    "payment",
+    "billing",
+    "http-402",
+    "fiat",
+    "wallet"
+  ],
+  "peerDependencies": {
+    "@x402/core": "^2.0.0"
+  },
+  "dependencies": {
+    "jose": "^5.2.0",
+    "zod": "^3.22.4"
+  },
   "devDependencies": {
-    "@amzn/brazil": "^2.0.12",
-    "@tsconfig/node24": "^24.0.4",
-    "@vitest/coverage-v8": "^4.1.0",
-    "typescript": "~5.9.3",
-    "vitest": "^4.0.17"
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.0",
+    "@vitest/coverage-v8": "^1.2.0",
+    "@x402/core": "^2.0.0",
+    "express": "^4.18.2",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
   }
 }

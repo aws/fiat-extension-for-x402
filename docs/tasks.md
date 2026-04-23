@@ -1,0 +1,2595 @@
+# Implementation Plan: FAB x402 TypeScript Extension
+
+**Last Updated:** March 3, 2026  
+**Version:** 0.1.0  
+**Status:** ✅ Core Implementation Complete + Authentication + DPoP
+
+---
+
+## Current Status
+
+### Quick Summary
+
+The FAB x402 extension is fully implemented with authentication and DPoP support, tested, and building successfully. All core functionality is in place with working examples and unified logging for complete payment flow visibility.
+
+### Build & Test Status
+
+| Check | Status | Details |
+|-------|--------|---------|
+| TypeScript Compilation | ✅ Pass | No errors |
+| Unit Tests | ✅ Pass | 306/306 passing |
+| Build (ESM) | ✅ Pass | dist/index.js |
+| Build (CJS) | ✅ Pass | dist/index.cjs |
+| Build (Types) | ✅ Pass | dist/index.d.ts |
+| Dependencies | ✅ OK | @x402/core@2.3.1 |
+| Examples | ✅ Working | Complete demo with logging |
+
+### Test Coverage Summary
+
+```
+Test Files:  29 passed (30)
+Tests:       306 passed | 1 skipped | 1 todo (308)
+
+Breakdown by Module:
+- Core Types & Utils:     62 tests ✅
+- FAB Schemes:            23 tests ✅
+- Authentication:         28 tests ✅
+- DPoP:                   33 tests ✅
+- Discovery:              22 tests ✅
+- Signer:                  6 tests ✅
+- Integration:             8 tests ✅ (1 skipped)
+```
+
+### Implementation Progress
+
+#### ✅ Completed Features (100%)
+
+**Core Implementation:**
+- Project setup and configuration
+- Type definitions (all FAB types)
+- Scheme implementations (Client, Server, Facilitator)
+- InProcessFacilitatorClient for demos/testing
+- WalletFacilitatorClient for production
+- JWT utilities (decode, verify, extract)
+- Transaction ID utilities
+- Money parsing utilities
+- Constants and enums
+- Signer interfaces
+- Error classes
+- Build configuration
+- Package exports
+
+**Authentication System (Task 23):**
+- API Key authentication
+- AWS SigV4 authentication (simplified)
+- OAuth2 authentication with token refresh
+- Custom authentication
+- Authentication factory pattern
+- Authentication error types
+- Integration with WalletClient
+- 28 unit tests
+
+**DPoP Implementation (Task 15):**
+- Key generation (ES256, RS256)
+- Proof creation with JWK thumbprints
+- Proof verification with security checks
+- Replay protection via nonce store
+- HTTP method/URL binding
+- Access token hash verification
+- 33 unit tests
+
+**Documentation:**
+- Core documentation (design, requirements, tasks)
+- Authentication guide
+- DPoP guide
+- Wallet discovery guide
+- SDK explanation
+- Working examples with unified logging
+
+**Examples:**
+- Mock wallet server
+- Test service with FAB protection
+- Test client with payment flow
+- Authentication examples
+- DPoP examples
+
+#### ⏳ In Progress (0%)
+
+Currently no tasks in progress.
+
+#### 📋 Planned / TODO
+
+**Short Term:**
+- OIDC discovery implementation (stub exists)
+- Actual settlement logic (placeholder exists)
+- Comprehensive Zod validation schemas
+- Additional integration tests
+- E2E authentication tests (optional)
+
+**Long Term:**
+- Property-based testing with fast-check
+- Performance optimization
+- CI/CD pipeline setup
+- npm package publishing
+- Integration with x402 monorepo
+
+### Known Limitations
+
+1. **AWS SigV4**: Simplified placeholder - production should use @aws-sdk/signature-v4
+2. **OIDC Discovery**: Stub implementation, needs real OIDC client
+3. **Settlement**: Placeholder logic, needs backend integration
+4. **Zod Schemas**: Types exist but Zod schemas not fully implemented
+
+### Dependencies
+
+**Production:**
+- `jose@^5.2.0` - JWT operations
+- `zod@^3.22.4` - Schema validation
+
+**Development:**
+- `@x402/core@2.3.1` - Core x402 types and interfaces
+- `typescript@^5.3.3` - TypeScript compiler
+- `vitest@^1.2.0` - Testing framework
+- `tsup@^8.0.1` - Build tool
+
+**Peer:**
+- `@x402/core@^2.0.0` - Required at runtime
+
+### Changelog
+
+#### 0.1.0 (2026-03-03)
+- ✅ Initial implementation complete
+- ✅ All core features implemented
+- ✅ Authentication system (API Key, AWS SigV4, OAuth2, Custom)
+- ✅ DPoP implementation (key generation, proof creation/verification)
+- ✅ 306 unit tests passing
+- ✅ Build verified (ESM + CJS + Types)
+- ✅ Documentation complete
+- ✅ Working examples with unified logging
+
+---
+
+## Overview
+
+This document outlines the implementation tasks for building the FAB x402 TypeScript extension. The implementation follows Specification-Driven Development (SDD) with Test-Driven Development (TDD), meaning we write tests first based on the specification, then implement the code to make those tests pass.
+
+## Task Completion Legend
+
+- [x] Completed task
+- [ ] Pending task
+- [x]* Completed with optional subtasks remaining
+- ⚠️  Completed with known limitations
+
+---
+
+## Tasks
+- [ ] 1. Project Setup and Infrastructure
+  - Initialize npm package with TypeScript configuration
+  - Set up build tooling (tsup for bundling)
+  - Configure Vitest for testing
+  - Set up fast-check for property-based testing
+  - Configure ESLint and Prettier
+  - Set up CI/CD pipeline (GitHub Actions)
+  - _Requirements: 12.5, 12.6, 12.7, 12.8_
+
+- [ ] 2. Core Type Definitions
+  - [ ] 2.1 Define settlement types (CaptureMode, SettlementMethod, SettlementCycle, FABSettlement)
+    - Create TypeScript interfaces and type aliases
+    - Export from types/settlement.ts
+    - _Requirements: 1.7_
+
+  - [ ] 2.2 Define support and terms types (FABSupport, FABTerms)
+    - Create TypeScript interfaces
+    - Export from types/settlement.ts
+    - _Requirements: 1.8_
+
+  - [ ] 2.3 Define FABPaymentExtra interface
+    - Include all required and optional fields
+    - Export from types/payment.ts
+    - _Requirements: 1.1_
+
+  - [ ] 2.4 Define FABPaymentRequirements interface
+    - Extend PaymentRequirementsV2 from @x402/core
+    - Add typed extra field
+    - Export from types/payment.ts
+    - _Requirements: 1.2_
+
+  - [ ] 2.5 Define FABPaymentRequired and FABPaymentPayload interfaces
+    - Create complete payment flow types
+    - Export from types/payment.ts
+    - _Requirements: 1.3, 1.4, 1.5_
+
+  - [ ] 2.6 Define quote token types (QuoteTokenPayload, QuoteTokenPrice)
+    - Create JWT payload structure
+    - Export from types/quote.ts
+    - _Requirements: 4.1_
+
+  - [ ] 2.7 Define payment token types (PaymentTokenPayload, PaymentContext)
+    - Create JWT payload structure
+    - Export from types/payment.ts
+    - _Requirements: 5.1_
+
+  - [ ] 2.8 Define transaction ID types (TransactionIdComponents)
+    - Create component structure
+    - Export from types/transaction-id.ts
+    - _Requirements: 6.8_
+
+  - [ ] 2.9 Define error types (FABError, ValidationError, SignatureError, ExpiryError, MismatchError)
+    - Create error class hierarchy
+    - Include error codes and details
+    - Export from types/errors.ts
+    - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8_
+
+- [ ] 3. Validation Schemas
+  - [ ] 3.1 Create settlement validation schemas
+    - Implement FABSettlementSchema with method and cycle validation
+    - Implement FABSupportSchema with URL and method validation
+    - Implement FABTermsSchema with description and URL validation
+    - Export from schemas/settlement.ts
+    - _Requirements: 2.4, 2.5, 2.6_
+
+  - [ ]* 3.2 Write property tests for settlement schemas
+    - **Property 1: Schema Validation Round-Trip**
+    - **Validates: Requirements 2.1, 2.2, 2.3**
+
+  - [ ] 3.3 Create FABPaymentExtra validation schema
+    - Require quoteToken as non-empty string
+    - Validate optional fields (capture, reference, settlement, support, terms)
+    - Export from schemas/payment.ts
+    - _Requirements: 2.2, 2.3_
+
+  - [ ]* 3.4 Write property tests for FABPaymentExtra schema
+    - **Property 1: Schema Validation Round-Trip**
+    - **Validates: Requirements 2.1, 2.2, 2.3**
+
+  - [ ] 3.5 Create FABPaymentRequirements validation schema
+    - Extend PaymentRequirementsV2Schema from @x402/core
+    - Enforce scheme literal "fab" and network pattern "fab:*"
+    - Export from schemas/payment.ts
+    - _Requirements: 2.7, 2.8_
+
+  - [ ]* 3.6 Write property tests for FABPaymentRequirements schema
+    - **Property 1: Schema Validation Round-Trip**
+    - **Validates: Requirements 2.1, 2.2, 2.3**
+
+  - [ ] 3.7 Create FABPaymentPayloadData validation schema
+    - Validate paymentToken and transactionId as non-empty strings
+    - Export from schemas/payment.ts
+    - _Requirements: 2.1_
+
+  - [ ]* 3.8 Write unit tests for schema error messages
+    - **Property 8: Validation Error Messages**
+    - **Validates: Requirements 7.1, 7.2**
+
+- [ ] 4. Helper Functions - Extraction
+  - [ ] 4.1 Implement extractFABExtra function
+    - Check scheme is "fab"
+    - Return null for non-FAB schemes
+    - Cast and return extra field
+    - Export from utils/extraction.ts
+    - _Requirements: 3.1, 3.2_
+
+  - [ ]* 4.2 Write property tests for extractFABExtra
+    - **Property 7: Extra Field Extraction**
+    - **Validates: Requirements 3.1, 3.2**
+
+  - [ ] 4.3 Implement isFABScheme function
+    - Check if scheme equals "fab"
+    - Export from utils/extraction.ts
+    - _Requirements: 3.7_
+
+  - [ ]* 4.4 Write property tests for isFABScheme
+    - **Property 6: FAB Scheme Detection**
+    - **Validates: Requirements 3.7**
+
+  - [ ] 4.5 Implement findFABRequirements function
+    - Find first FAB entry in accepts array
+    - Return null if not found
+    - Export from utils/extraction.ts
+    - _Requirements: 3.8_
+
+  - [ ]* 4.6 Write unit tests for findFABRequirements
+    - Test with empty array
+    - Test with no FAB entries
+    - Test with multiple FAB entries (returns first)
+
+- [ ] 5. Helper Functions - Validation
+  - [ ] 5.1 Implement validateFABRequirements function
+    - Use FABPaymentRequirementsSchema.parse
+    - Return boolean (no throwing)
+    - Export from utils/validation.ts
+    - _Requirements: 3.3, 3.4_
+
+  - [ ]* 5.2 Write unit tests for validateFABRequirements
+    - Test valid requirements return true
+    - Test invalid requirements return false
+    - Test various invalid scenarios
+
+- [ ] 6. Helper Functions - Amount Parsing
+  - [ ] 6.1 Implement parseAmount function
+    - Remove "iso4217:" prefix from asset
+    - Parse amount string to number
+    - Return ParsedAmount object
+    - Export from utils/amount.ts
+    - _Requirements: 3.5, 3.6_
+
+  - [ ]* 6.2 Write property tests for parseAmount
+    - **Property 5: Amount Parsing Consistency**
+    - **Validates: Requirements 3.5, 3.6**
+
+- [ ] 7. Helper Functions - Transaction ID
+  - [ ] 7.1 Implement parseTransactionId function
+    - Split on colon delimiter
+    - Validate format and network prefix
+    - Throw ValidationError on invalid format
+    - Export from utils/transaction-id.ts
+    - _Requirements: 6.1, 6.2, 6.3_
+
+  - [ ]* 7.2 Write property tests for parseTransactionId
+    - **Property 4: Transaction ID Format Consistency**
+    - **Validates: Requirements 6.1, 6.2, 6.4**
+
+  - [ ] 7.3 Implement formatTransactionId function
+    - Validate network prefix
+    - Concatenate with colon delimiter
+    - Export from utils/transaction-id.ts
+    - _Requirements: 6.4, 6.5_
+
+  - [ ]* 7.4 Write property tests for formatTransactionId
+    - **Property 4: Transaction ID Format Consistency**
+    - **Validates: Requirements 6.1, 6.2, 6.4**
+
+  - [ ] 7.5 Implement isValidTransactionId function
+    - Call parseTransactionId and catch errors
+    - Return boolean
+    - Export from utils/transaction-id.ts
+    - _Requirements: 6.6_
+
+  - [ ] 7.6 Implement extractNetworkFromTransactionId function
+    - Call parseTransactionId and return network
+    - Export from utils/transaction-id.ts
+    - _Requirements: 6.7_
+
+  - [ ]* 7.7 Write unit tests for transaction ID edge cases
+    - Test various invalid formats
+    - Test network extraction
+    - Test validation function
+
+- [ ] 8. JWT Operations - Quote Token
+  - [ ] 8.1 Implement generateQuoteToken function
+    - Generate JTI using crypto.randomUUID()
+    - Set iat to current timestamp
+    - Sign with RS256 using jose library
+    - Export from jwt/quote.ts
+    - _Requirements: 4.2, 4.3, 4.4_
+
+  - [ ]* 8.2 Write property tests for generateQuoteToken
+    - **Property 2: Quote Token Signature Verification**
+    - **Validates: Requirements 4.3, 4.6**
+
+  - [ ] 8.3 Implement verifyQuoteToken function
+    - Verify signature using jose.jwtVerify
+    - Check expiry timestamp
+    - Throw SignatureError or ExpiryError on failure
+    - Export from jwt/quote.ts
+    - _Requirements: 4.5, 4.6_
+
+  - [ ]* 8.4 Write property tests for verifyQuoteToken
+    - **Property 2: Quote Token Signature Verification**
+    - **Validates: Requirements 4.3, 4.6**
+    - **Property 9: Token Expiry Enforcement**
+    - **Validates: Requirements 7.3, 5.6**
+
+  - [ ] 8.5 Implement decodeQuoteToken function
+    - Use jose.decodeJwt (no verification)
+    - Return payload
+    - Throw descriptive error on malformed JWT
+    - Export from jwt/quote.ts
+    - _Requirements: 4.7, 4.8_
+
+  - [ ]* 8.6 Write unit tests for decodeQuoteToken
+    - Test valid JWT decoding
+    - Test malformed JWT error handling
+
+- [ ] 9. JWT Operations - Payment Token
+  - [ ] 9.1 Implement verifyPaymentToken function
+    - Verify signature using jose.jwtVerify
+    - Check expiry timestamp
+    - Throw SignatureError or ExpiryError on failure
+    - Export from jwt/payment.ts
+    - _Requirements: 5.2, 5.3_
+
+  - [ ]* 9.2 Write property tests for verifyPaymentToken
+    - **Property 3: Payment Token Signature Verification**
+    - **Validates: Requirements 5.2, 5.3, 5.5**
+    - **Property 9: Token Expiry Enforcement**
+    - **Validates: Requirements 7.3, 5.6**
+
+  - [ ] 9.3 Implement extractQuoteFromPayment function
+    - Extract quote_token from payment_context
+    - Export from jwt/payment.ts
+    - _Requirements: 5.4, 5.5_
+
+  - [ ]* 9.4 Write unit tests for extractQuoteFromPayment
+    - Test extraction from valid payment token
+    - Test missing payment_context handling
+
+- [ ] 10. JWT Operations - Combined Verification
+  - [ ] 10.1 Implement verifyPaymentAndQuote function
+    - Verify payment token with wallet key
+    - Extract and verify quote token with service key
+    - Check quote token consistency between accepted and payment JWT
+    - Throw MismatchError on inconsistency
+    - Export from jwt/verification.ts
+    - _Requirements: 5.6, 5.7, 5.8_
+
+  - [ ]* 10.2 Write property tests for verifyPaymentAndQuote
+    - **Property 10: Quote Token Consistency in Payment**
+    - **Validates: Requirements 5.7, 7.5**
+
+  - [ ]* 10.3 Write integration tests for complete verification flow
+    - Test successful verification
+    - Test quote mismatch detection
+    - Test signature failures
+    - Test expiry handling
+
+- [ ] 11. Wallet Client Implementation
+  - [ ] 11.1 Implement WalletClient class constructor
+    - Accept baseUrl and authentication configuration
+    - Support multiple auth methods (API key, AWS SigV4, OAuth2, custom)
+    - Store configuration
+    - Export from client/wallet-client.ts
+    - _Requirements: 8.2_
+
+  - [ ] 11.2 Implement wallet authentication mechanisms
+    - [ ] 11.2.1 Implement API key authentication
+      - Add API key to request headers
+      - Support custom header names
+    - [ ] 11.2.2 Implement AWS SigV4 authentication
+      - Sign requests using AWS Signature Version 4
+      - Support AWS credentials (access key, secret key, session token)
+      - Support credential providers (environment, profile, IAM role)
+      - Use @aws-sdk/signature-v4 or equivalent
+    - [ ] 11.2.3 Implement OAuth2 bearer token authentication
+      - Add bearer token to Authorization header
+      - Support token refresh if needed
+    - [ ] 11.2.4 Support custom authentication handlers
+      - Allow users to provide custom auth function
+      - Function receives request and returns signed/authenticated request
+    - Export authentication utilities from client/auth.ts
+
+  - [ ]* 11.3 Write unit tests for authentication mechanisms
+    - Test API key authentication
+    - Test AWS SigV4 signing (mocked credentials)
+    - Test OAuth2 bearer token
+    - Test custom auth handler
+
+  - [ ] 11.4 Implement createTransaction method
+    - Validate request structure
+    - Apply authentication to request
+    - Make HTTP POST to /transactions
+    - Parse response
+    - Handle errors and throw typed exceptions
+    - _Requirements: 8.3, 8.4, 8.5_
+
+  - [ ]* 11.5 Write unit tests for createTransaction (mocked HTTP)
+    - Test successful transaction creation
+    - Test validation errors
+    - Test wallet error responses
+    - Test network errors
+    - Test with different auth methods
+
+  - [x] 11.6 ~~Implement getTransactionStatus method~~ (NOT NEEDED)
+    - Payment token signature is sufficient proof
+    - Services track processed transaction IDs for idempotency
+    - Wallet state lookup is unnecessary
+
+  - [x]* 11.7 ~~Write unit tests for getTransactionStatus~~ (NOT NEEDED)
+    - Test not found errors
+    - Test network errors
+    - Test with different auth methods
+
+  - [ ] 11.8 Define authentication and request/response interfaces
+    - AuthConfig (union type for different auth methods)
+    - ApiKeyAuth interface
+    - AwsSigV4Auth interface (credentials, region, service)
+    - OAuth2Auth interface (token, refreshToken)
+    - CustomAuth interface (handler function)
+    - TransactionRequest
+    - TransactionResponse
+    - TransactionStatus
+    - Export from client/wallet-client.ts and client/auth.ts
+    - _Requirements: 8.7, 8.8_
+
+- [ ] 12. Service Implementation
+  - [ ] 12.1 Implement FABService class constructor
+    - Accept ServiceConfig (serviceUrl, signingKey, acceptedWallets)
+    - Store configuration
+    - Export from service/fab-service.ts
+    - _Requirements: 9.2_
+
+  - [ ] 12.2 Implement generate402Response method
+    - Generate quote token for each accepted wallet
+    - Build FABPaymentRequired structure
+    - Include all FAB-specific fields in extra
+    - Return complete 402 response
+    - _Requirements: 9.3, 9.4, 9.5_
+
+  - [ ]* 12.3 Write unit tests for generate402Response
+    - Test single wallet scenario
+    - Test multiple wallet scenario
+    - Test with all optional fields
+    - Test with minimal fields
+
+  - [ ] 12.4 Implement verifyPayment method
+    - Call verifyPaymentAndQuote
+    - Check content consistency (amount, currency)
+    - Return verified data
+    - _Requirements: 9.6, 9.7, 9.8_
+
+  - [ ]* 12.5 Write integration tests for verifyPayment
+    - Test successful verification
+    - Test amount mismatch detection
+    - Test signature failures
+
+  - [ ] 12.6 Define service interfaces
+    - ServiceConfig
+    - Generate402Options
+    - Export from service/fab-service.ts
+    - _Requirements: 9.1_
+
+- [ ] 13. Type Guards Implementation
+  - [ ] 13.1 Implement isFABPaymentRequirements type guard
+    - Use schema validation
+    - Return boolean with type predicate
+    - Export from types/index.ts
+    - _Requirements: 1.6_
+
+  - [ ] 13.2 Implement isFABPaymentRequired type guard
+    - Check x402Version and accepts array
+    - Return boolean with type predicate
+    - Export from types/index.ts
+    - _Requirements: 1.6_
+
+  - [ ]* 13.3 Write unit tests for type guards
+    - Test positive cases
+    - Test negative cases
+    - Test edge cases
+
+- [ ] 14. Main Entry Point and Exports
+  - [ ] 14.1 Create main index.ts
+    - Export all types
+    - Export all schemas
+    - Export all utilities
+    - Export all classes
+    - Export DPoP utilities
+    - Organize exports by category
+    - _Requirements: 1.1-1.8, 2.1-2.8, 3.1-3.8, 4.1-4.8, 5.1-5.8, 6.1-6.8, 15.1-15.15_
+
+  - [ ] 14.2 Verify tree-shaking works
+    - Test that unused exports are eliminated
+    - Check bundle size
+    - _Requirements: 13.8_
+
+- [ ] 15. DPoP Implementation
+  - [ ] 15.1 Implement generateDPoPKeyPair function
+    - Support ES256 (EC P-256) and RS256 (RSA 2048)
+    - Return DPoPKeyPair with privateKey and publicKey (JWK)
+    - Export from dpop/key-generation.ts
+    - _Requirements: 15.1, 15.2_
+
+  - [ ]* 15.2 Write unit tests for generateDPoPKeyPair
+    - Test ES256 key generation
+    - Test RS256 key generation
+    - Verify key format and properties
+
+  - [ ] 15.3 Implement createDPoPProof function
+    - Generate jti (nonce) using crypto.randomUUID()
+    - Include htm, htu, iat in payload
+    - Compute ath (access token hash) if accessToken provided
+    - Sign with private key, include public key in header
+    - Set typ: "dpop+jwt" in header
+    - Export from dpop/proof-creation.ts
+    - _Requirements: 15.3, 15.4, 15.5_
+
+  - [ ]* 15.4 Write property tests for createDPoPProof
+    - **Property 11: DPoP Proof Verification Round-Trip**
+    - **Validates: Requirements 15.3, 15.4, 15.6**
+
+  - [ ] 15.5 Implement computeJWKThumbprint function
+    - Use jose.calculateJwkThumbprint with SHA-256
+    - Export from dpop/proof-creation.ts
+    - _Requirements: 15.9_
+
+  - [ ]* 15.6 Write unit tests for computeJWKThumbprint
+    - Test with EC keys
+    - Test with RSA keys
+    - Verify thumbprint format
+
+  - [ ] 15.7 Implement verifyDPoPProof function
+    - Extract and import public key from proof header
+    - Verify signature
+    - Check typ header is "dpop+jwt"
+    - Check freshness (iat within maxAge, default 60 seconds)
+    - Check htm matches request method
+    - Check htu matches request URL
+    - Check ath matches access token hash if provided
+    - Check jti uniqueness if nonce store provided
+    - Throw DPoPError on any failure
+    - Export from dpop/proof-verification.ts
+    - _Requirements: 15.6, 15.7, 15.8_
+
+  - [ ]* 15.8 Write property tests for verifyDPoPProof
+    - **Property 11: DPoP Proof Verification Round-Trip**
+    - **Property 12: DPoP JTI Uniqueness**
+    - **Property 13: DPoP Freshness Enforcement**
+    - **Property 14: DPoP HTTP Binding**
+    - **Validates: Requirements 15.6, 15.7, 15.8**
+
+  - [ ]* 15.9 Write unit tests for DPoP error scenarios
+    - Test invalid typ header
+    - Test missing jwk in header
+    - Test signature verification failure
+    - Test stale proof (iat too old)
+    - Test future proof (iat too new)
+    - Test htm mismatch
+    - Test htu mismatch
+    - Test ath mismatch
+    - Test jti replay
+
+  - [ ] 15.10 Define DPoP types
+    - DPoPKeyPair interface
+    - DPoPProofPayload interface
+    - DPoPProofOptions interface
+    - DPoPVerificationOptions interface
+    - DPoPNonceStore interface
+    - DPoPError class
+    - Export from types/dpop.ts
+    - _Requirements: 15.10, 15.11, 15.12_
+
+  - [ ] 15.11 Update WalletClient to support DPoP
+    - Add optional dpop_jwk parameter to createTransaction
+    - Document DPoP usage in JSDoc
+    - _Requirements: 15.13_
+
+  - [ ] 15.12 Update FABService to support DPoP verification
+    - Add optional dpopProof and request parameters to verifyPayment
+    - Verify DPoP proof if provided
+    - Check cnf claim in payment token matches DPoP key
+    - Document when to require DPoP in JSDoc
+    - _Requirements: 15.6, 15.7, 15.8_
+
+  - [ ]* 15.13 Write integration tests for DPoP flow
+    - Test complete flow: key generation → proof creation → verification
+    - Test with access token binding
+    - Test with nonce store
+    - Test error scenarios
+
+- [ ] 16. Documentation
+  - [ ] 16.1 Write README.md
+    - Overview and introduction
+    - Installation instructions
+    - Quick start guide
+    - DPoP usage section
+    - Link to full documentation
+    - _Requirements: 10.2, 15.14_
+
+  - [ ] 16.2 Add JSDoc comments to all public APIs
+    - Include parameter descriptions
+    - Include return type descriptions
+    - Include usage examples
+    - Include @throws tags for errors
+    - Document DPoP functions
+    - _Requirements: 10.1, 15.14_
+
+  - [ ] 16.3 Create service-side example
+    - Show 402 generation
+    - Show payment verification
+    - Show DPoP verification
+    - Include error handling
+    - _Requirements: 10.3, 10.5, 15.14_
+
+  - [ ] 16.4 Create client-side example
+    - Show 402 parsing
+    - Show wallet interaction
+    - Show DPoP key generation and proof creation
+    - Show payment submission with DPoP
+    - Include error handling
+    - _Requirements: 10.4, 15.14_
+
+  - [ ] 16.5 Document error types and scenarios
+    - List all error classes including DPoPError
+    - Describe when each occurs
+    - Show error handling patterns
+    - _Requirements: 10.6_
+
+  - [ ] 16.6 Add TypeScript usage examples
+    - Show type inference
+    - Show type guards
+    - Show generic usage
+    - Show DPoP types
+    - _Requirements: 10.7_
+
+  - [ ] 16.7 Add reference to FAB protocol spec
+    - Link to fab-x402-payment-structure-proposal.md
+    - Link to wallet-spec.md (Appendix A.3 for DPoP)
+    - Link to fab.md
+    - _Requirements: 10.8_
+
+  - [ ] 16.8 Document DPoP security benefits
+    - Explain token theft prevention
+    - Explain replay attack prevention
+    - Explain when to use DPoP
+    - Provide security recommendations
+    - _Requirements: 15.15_
+
+- [ ] 17. Performance Optimization
+  - [ ] 17.1 Implement schema caching
+    - Cache compiled Zod schemas
+    - Measure validation performance
+    - _Requirements: 13.1, 13.5_
+
+  - [ ] 17.2 Implement key caching
+    - Cache parsed public keys with TTL
+    - Measure verification performance
+    - _Requirements: 13.3, 13.5_
+
+  - [ ] 17.3 Add batch validation support
+    - Support validating multiple requirements at once
+    - Optimize for common case
+    - _Requirements: 13.6_
+
+  - [ ]* 17.4 Run performance benchmarks
+    - Measure validation time (target: < 1ms)
+    - Measure quote generation time (target: < 10ms)
+    - Measure signature verification time (target: < 20ms)
+    - Measure DPoP proof creation/verification time
+    - Measure bundle size (target: < 50KB gzipped)
+    - _Requirements: 13.1, 13.2, 13.3, 13.8_
+
+- [ ] 18. Security Hardening
+  - [ ] 17.1 Implement input validation for all external inputs
+    - Validate URLs to prevent injection
+    - Validate JWT algorithms (whitelist RS256, ES256)
+    - Validate token expiry before processing
+    - _Requirements: 14.1, 14.3, 14.4_
+
+  - [ ] 17.2 Implement constant-time comparison for signatures
+    - Use crypto.timingSafeEqual where applicable
+    - _Requirements: 14.2_
+
+  - [ ] 17.3 Implement secure random for JTI
+    - Use crypto.randomUUID()
+    - _Requirements: 14.6_
+
+  - [ ] 17.4 Add security documentation
+    - Document security considerations
+    - Provide secure usage examples
+    - Warn about common pitfalls
+    - _Requirements: 14.8_
+
+  - [ ]* 17.5 Run security audit
+    - Check for sensitive data logging
+    - Verify no private keys in errors
+    - Test URL validation
+    - Test JWT algorithm validation
+
+- [ ] 18. Build and Distribution
+  - [ ] 18.1 Configure tsup for dual builds
+    - ESM output
+    - CommonJS output
+    - TypeScript declarations
+    - Source maps
+    - _Requirements: 12.8_
+
+  - [ ] 18.2 Set up package.json exports
+    - Main entry point
+    - Module entry point
+    - Types entry point
+    - _Requirements: 12.8_
+
+  - [ ] 18.3 Configure peer dependencies
+    - @x402/core as peer dependency
+    - Specify version range
+    - _Requirements: 12.1_
+
+  - [ ] 18.4 Set up npm publishing workflow
+    - Automated releases
+    - Version bumping
+    - Changelog generation
+    - _Requirements: 15.1, 15.5_
+
+- [ ] 19. CI/CD Pipeline
+  - [ ] 19.1 Set up GitHub Actions for testing
+    - Run tests on push
+    - Run tests on pull request
+    - Test on multiple Node versions
+    - _Requirements: 11.1-11.8_
+
+  - [ ] 19.2 Set up code coverage reporting
+    - Generate coverage reports
+    - Enforce 90% minimum coverage
+    - Upload to coverage service
+    - _Requirements: 11.1_
+
+  - [ ] 19.3 Set up automated dependency updates
+    - Dependabot configuration
+    - Automated security updates
+    - _Requirements: 12.6, 12.7_
+
+  - [ ] 19.4 Set up automated releases
+    - Semantic release configuration
+    - Automated changelog
+    - npm publishing
+    - _Requirements: 15.1, 15.2, 15.3, 15.4_
+
+- [ ] 20. Final Integration Testing
+  - [ ]* 20.1 Write end-to-end integration tests
+    - Complete service-to-client flow
+    - Multiple wallet providers
+    - Error scenarios
+    - Recovery scenarios
+
+  - [ ]* 20.2 Test compatibility with @x402/core
+    - Verify types extend correctly
+    - Verify schemas compose correctly
+    - Test with real x402 SDK
+
+  - [ ] 20.3 Manual testing checklist
+    - Test in Node.js environment
+    - Test in browser environment
+    - Test with real JWT libraries
+    - Test error messages are clear
+
+- [ ] 21. Release Preparation
+  - [ ] 21.1 Write CHANGELOG.md
+    - Document all features
+    - Document breaking changes
+    - Document migration guide
+    - _Requirements: 15.5, 15.6_
+
+  - [ ] 21.2 Update version to 1.0.0
+    - Follow semantic versioning
+    - _Requirements: 15.1_
+
+  - [ ] 21.3 Create GitHub release
+    - Tag version
+    - Include changelog
+    - Include migration guide
+    - _Requirements: 15.5_
+
+  - [ ] 21.4 Publish to npm
+    - Verify package contents
+    - Publish with public access
+    - Verify installation works
+    - _Requirements: 12.8_
+
+- [ ] 22. Implement WalletFacilitatorClient (Replaces InProcessFacilitatorClient)
+  - [ ] 22.1 Create WalletFacilitatorClient class
+    - Implement FacilitatorClient interface from @x402/core/http
+    - Accept walletBaseUrl in constructor
+    - Store base URL for API calls
+    - Export from src/wallet-facilitator-client.ts
+    - _Purpose: Adapter that translates x402 FacilitatorClient interface to wallet provider's API_
+
+  - [ ] 22.2 Implement getSupported() method
+    - Fetch from `${walletBaseUrl}/.well-known/x402-supported`
+    - Parse and return SupportedResponse
+    - Handle network errors gracefully
+    - Cache response with TTL (optional optimization)
+    - _Returns: List of supported payment kinds (schemes/networks) that wallet can facilitate_
+
+  - [ ] 22.3 Implement verify() method
+    - Extract payment token from PaymentPayload
+    - Fetch wallet's JWKS from `${walletBaseUrl}/.well-known/jwks.json`
+    - Verify payment token JWT signature using wallet's public key
+    - Extract quote token from payment token's payment_context
+    - Fetch service's JWKS (from quote token's iss field + /.well-known/jwks.json)
+    - Verify quote token JWT signature using service's public key
+    - Validate quote token matches requirements.extra.quoteToken
+    - Check transaction exists via `GET ${walletBaseUrl}/transactions/${transactionId}`
+    - Validate amounts and currencies match between quote, requirements, and transaction
+    - Return VerifyResponse with valid: true/false and details
+    - _Purpose: Verifies payment token and quote token signatures, checks transaction validity_
+
+  - [ ] 22.4 Implement settle() method
+    - Call this.verify() first to ensure payment is valid
+    - If verification fails, return SettleResponse with settled: false
+    - Extract transactionId and amount/currency from payload
+    - Call `POST ${walletBaseUrl}/capture` with transaction details
+    - Parse capture response
+    - Return SettleResponse with settled: true/false and settlement details
+    - _Purpose: Captures/settles the payment by calling wallet's capture endpoint_
+
+  - [ ]* 22.5 Write unit tests for WalletFacilitatorClient
+    - Mock fetch calls to wallet endpoints
+    - Test getSupported() with valid response
+    - Test getSupported() with network error
+    - Test verify() with valid payment
+    - Test verify() with invalid signature
+    - Test verify() with expired token
+    - Test verify() with amount mismatch
+    - Test verify() with missing transaction
+    - Test settle() with successful capture
+    - Test settle() with failed verification
+    - Test settle() with capture failure
+
+  - [ ] 22.6 Add wallet endpoint: GET /.well-known/x402-supported
+    - Add to mock-wallet-server.ts
+    - Return SupportedResponse with x402Version: 2
+    - Include supported kinds array with fab:test entry
+    - Include walletId in extra field
+    - _Example response:_
+      ```json
+      {
+        "x402Version": 2,
+        "kinds": [{
+          "x402Version": 2,
+          "scheme": "fab",
+          "network": "fab:test",
+          "extra": { "walletId": "test-wallet-provider" }
+        }]
+      }
+      ```
+
+  - [ ]* 22.7 Write integration tests for complete flow
+    - Start mock wallet server
+    - Create WalletFacilitatorClient pointing to mock wallet
+    - Test getSupported() returns fab:test
+    - Create valid payment payload
+    - Test verify() succeeds
+    - Test settle() succeeds
+    - Test end-to-end flow with x402ResourceServer
+
+  - [ ] 22.8 Update examples to use WalletFacilitatorClient
+    - Replace InProcessFacilitatorClient usage in test-service.ts
+    - Update to: `const facilitatorClient = new WalletFacilitatorClient('http://localhost:3001')`
+    - Remove x402Facilitator and FABFacilitatorScheme imports
+    - Simplify example code significantly
+    - Update comments to explain wallet-as-facilitator pattern
+
+  - [ ] 22.9 Deprecate InProcessFacilitatorClient
+    - Add @deprecated JSDoc comment
+    - Update documentation to recommend WalletFacilitatorClient
+    - Keep for backward compatibility but mark as legacy
+    - Add deprecation notice in README
+
+  - [ ] 22.10 Update architecture documentation
+    - Update design.md to explain wallet-as-facilitator pattern
+    - Remove separate facilitator service from architecture diagrams
+    - Update flow diagrams to show direct wallet communication
+    - Explain why FAB doesn't need separate facilitator (unlike crypto schemes)
+    - Document that wallet provider IS the facilitator in FAB
+
+- [x] 23. Client to Wallet Authentication
+  - [x] 23.1 Design authentication architecture
+    - Define authentication flow between client application and wallet provider
+    - Support multiple authentication methods (API key, AWS SigV4, OAuth2, custom)
+    - Design credential management and storage patterns
+    - Document security considerations for each auth method
+    - _Purpose: Enable secure client-to-wallet communication for payment authorization_
+
+  - [x] 23.2 Define authentication interfaces and types
+    - [ ] 23.2.1 Create base AuthConfig type (union of all auth methods)
+      ```typescript
+      type AuthConfig = 
+        | ApiKeyAuthConfig 
+        | AwsSigV4AuthConfig 
+        | OAuth2AuthConfig 
+        | CustomAuthConfig;
+      ```
+    - [ ] 23.2.2 Define ApiKeyAuthConfig interface
+      - apiKey: string (the API key value)
+      - headerName?: string (default: 'X-API-Key')
+      - prefix?: string (optional prefix like 'Bearer ')
+    - [ ] 23.2.3 Define AwsSigV4AuthConfig interface
+      - credentials: AwsCredentials (accessKeyId, secretAccessKey, sessionToken?)
+      - region: string (AWS region, e.g., 'us-east-1')
+      - service: string (AWS service name, default: 'execute-api')
+      - credentialProvider?: () => Promise<AwsCredentials> (for dynamic credentials)
+    - [ ] 23.2.4 Define OAuth2AuthConfig interface
+      - accessToken: string (current access token)
+      - refreshToken?: string (for token refresh)
+      - tokenEndpoint?: string (OAuth2 token endpoint URL)
+      - clientId?: string (OAuth2 client ID)
+      - clientSecret?: string (OAuth2 client secret)
+      - onTokenRefresh?: (newToken: string) => void (callback for token updates)
+    - [ ] 23.2.5 Define CustomAuthConfig interface
+      - authenticate: (request: AuthenticatedRequest) => Promise<AuthenticatedRequest>
+      - Custom function that receives request and returns authenticated request
+    - [ ] 23.2.6 Define AuthenticatedRequest interface
+      - url: string
+      - method: string
+      - headers: Record<string, string>
+      - body?: string
+    - Export all types from src/auth/types.ts
+
+  - [ ] 23.3 Implement API Key authentication
+    - [ ] 23.3.1 Create ApiKeyAuthenticator class
+      - Constructor accepts ApiKeyAuthConfig
+      - Implement authenticate(request) method
+      - Add API key to request headers
+      - Support custom header names
+      - Support optional prefix (e.g., 'Bearer ')
+    - [ ] 23.3.2 Handle edge cases
+      - Validate API key is non-empty
+      - Sanitize header name
+      - Preserve existing headers
+    - [ ]* 23.3.3 Write unit tests
+      - Test with default header name
+      - Test with custom header name
+      - Test with prefix
+      - Test header preservation
+      - Test empty API key error
+    - Export from src/auth/api-key.ts
+
+  - [ ] 23.4 Implement AWS SigV4 authentication
+    - [ ] 23.4.1 Create AwsSigV4Authenticator class
+      - Constructor accepts AwsSigV4AuthConfig
+      - Implement authenticate(request) method
+      - Sign requests using AWS Signature Version 4
+      - Support static credentials
+      - Support credential providers (for IAM roles, environment variables)
+      - Use @aws-sdk/signature-v4 or equivalent library
+    - [ ] 23.4.2 Implement credential resolution
+      - Support explicit credentials (accessKeyId, secretAccessKey, sessionToken)
+      - Support credential provider functions
+      - Support AWS SDK default credential chain (environment, profile, IAM role)
+      - Cache credentials with expiration handling
+    - [ ] 23.4.3 Handle edge cases
+      - Validate region format
+      - Validate service name
+      - Handle credential expiration
+      - Handle signing errors
+    - [ ]* 23.4.4 Write unit tests (with mocked AWS SDK)
+      - Test with static credentials
+      - Test with credential provider
+      - Test signature generation
+      - Test credential caching
+      - Test credential expiration
+      - Test error handling
+    - Export from src/auth/aws-sigv4.ts
+
+  - [ ] 23.5 Implement OAuth2 authentication
+    - [ ] 23.5.1 Create OAuth2Authenticator class
+      - Constructor accepts OAuth2AuthConfig
+      - Implement authenticate(request) method
+      - Add bearer token to Authorization header
+      - Support token refresh flow
+      - Handle token expiration
+    - [ ] 23.5.2 Implement token refresh logic
+      - Detect token expiration (401 responses)
+      - Call token endpoint with refresh token
+      - Update access token
+      - Trigger onTokenRefresh callback
+      - Retry original request with new token
+    - [ ] 23.5.3 Handle edge cases
+      - Validate token format
+      - Handle missing refresh token
+      - Handle refresh failures
+      - Prevent infinite refresh loops
+    - [ ]* 23.5.4 Write unit tests (with mocked token endpoint)
+      - Test bearer token addition
+      - Test token refresh flow
+      - Test refresh callback
+      - Test refresh failure handling
+      - Test missing refresh token
+    - Export from src/auth/oauth2.ts
+
+  - [ ] 23.6 Implement custom authentication
+    - [ ] 23.6.1 Create CustomAuthenticator class
+      - Constructor accepts CustomAuthConfig
+      - Implement authenticate(request) method
+      - Delegate to user-provided authenticate function
+      - Handle async authentication
+    - [ ] 23.6.2 Handle edge cases
+      - Validate custom function is provided
+      - Catch and wrap authentication errors
+      - Preserve request immutability
+    - [ ]* 23.6.3 Write unit tests
+      - Test with sync custom function
+      - Test with async custom function
+      - Test error handling
+      - Test request preservation
+    - Export from src/auth/custom.ts
+
+  - [ ] 23.7 Create authentication factory
+    - [ ] 23.7.1 Implement createAuthenticator function
+      - Accept AuthConfig union type
+      - Return appropriate authenticator instance
+      - Use discriminated union pattern
+      ```typescript
+      function createAuthenticator(config: AuthConfig): Authenticator {
+        switch (config.type) {
+          case 'apiKey': return new ApiKeyAuthenticator(config);
+          case 'awsSigV4': return new AwsSigV4Authenticator(config);
+          case 'oauth2': return new OAuth2Authenticator(config);
+          case 'custom': return new CustomAuthenticator(config);
+        }
+      }
+      ```
+    - [ ] 23.7.2 Define Authenticator interface
+      - authenticate(request: AuthenticatedRequest): Promise<AuthenticatedRequest>
+    - [ ]* 23.7.3 Write unit tests
+      - Test factory returns correct authenticator type
+      - Test with each auth config type
+    - Export from src/auth/factory.ts
+
+  - [ ] 23.8 Update WalletClient to use authentication
+    - [ ] 23.8.1 Add auth parameter to constructor
+      - Accept optional AuthConfig
+      - Create authenticator using factory
+      - Store authenticator instance
+    - [ ] 23.8.2 Apply authentication to all requests
+      - Update createTransaction to authenticate requests
+      - Update getTransactionStatus to authenticate requests
+      - Update any other wallet API calls
+    - [ ] 23.8.3 Handle authentication errors
+      - Catch authentication failures
+      - Throw typed AuthenticationError
+      - Include original error details
+    - [ ]* 23.8.4 Write integration tests
+      - Test createTransaction with API key auth
+      - Test createTransaction with AWS SigV4 auth
+      - Test createTransaction with OAuth2 auth
+      - Test createTransaction with custom auth
+      - Test authentication error handling
+
+  - [ ] 23.9 Update FABClientScheme to support authentication
+    - [ ] 23.9.1 Add auth parameter to constructor
+      - Accept optional AuthConfig
+      - Pass to WalletClient constructor
+    - [ ] 23.9.2 Update createPaymentPayload method
+      - Ensure wallet client uses authentication
+      - Handle authentication errors gracefully
+    - [ ]* 23.9.3 Write integration tests
+      - Test payment creation with authenticated wallet client
+      - Test with different auth methods
+
+  - [ ] 23.10 Add authentication examples
+    - [ ] 23.10.1 Create API key example
+      ```typescript
+      const client = new FABClientScheme({
+        walletId: 'my-wallet',
+        auth: {
+          type: 'apiKey',
+          apiKey: process.env.WALLET_API_KEY,
+          headerName: 'X-Wallet-API-Key'
+        }
+      });
+      ```
+    - [ ] 23.10.2 Create AWS SigV4 example
+      ```typescript
+      const client = new FABClientScheme({
+        walletId: 'aws-wallet',
+        auth: {
+          type: 'awsSigV4',
+          credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+          },
+          region: 'us-east-1',
+          service: 'execute-api'
+        }
+      });
+      ```
+    - [ ] 23.10.3 Create OAuth2 example
+      ```typescript
+      const client = new FABClientScheme({
+        walletId: 'oauth-wallet',
+        auth: {
+          type: 'oauth2',
+          accessToken: 'current-access-token',
+          refreshToken: 'refresh-token',
+          tokenEndpoint: 'https://wallet.example.com/oauth/token',
+          onTokenRefresh: (newToken) => {
+            // Save new token
+            saveToken(newToken);
+          }
+        }
+      });
+      ```
+    - [ ] 23.10.4 Create custom auth example
+      ```typescript
+      const client = new FABClientScheme({
+        walletId: 'custom-wallet',
+        auth: {
+          type: 'custom',
+          authenticate: async (request) => {
+            // Custom authentication logic
+            const signature = await signRequest(request);
+            return {
+              ...request,
+              headers: {
+                ...request.headers,
+                'X-Custom-Signature': signature
+              }
+            };
+          }
+        }
+      });
+      ```
+    - Add to examples/authentication.ts
+
+  - [ ] 23.11 Document authentication security best practices
+    - [ ] 23.11.1 Create authentication security guide
+      - Never hardcode credentials in source code
+      - Use environment variables or secure credential stores
+      - Rotate API keys regularly
+      - Use IAM roles when running on AWS
+      - Implement token refresh for OAuth2
+      - Use HTTPS for all wallet communication
+      - Validate wallet certificates
+      - Handle credential expiration gracefully
+    - [ ] 23.11.2 Document credential storage patterns
+      - Environment variables
+      - AWS Secrets Manager
+      - HashiCorp Vault
+      - Kubernetes secrets
+      - Secure credential providers
+    - [ ] 23.11.3 Document error handling
+      - Authentication failures (401)
+      - Authorization failures (403)
+      - Credential expiration
+      - Network errors
+      - Retry strategies
+    - Add to docs/design.md authentication section
+
+  - [ ] 23.12 Add authentication to README
+    - [ ] 23.12.1 Add authentication section
+      - Overview of supported methods
+      - Quick start for each method
+      - Link to detailed authentication guide
+    - [ ] 23.12.2 Update quick start example
+      - Show authentication configuration
+      - Use environment variables for credentials
+
+  - [ ] 23.13 Update mock wallet server for testing
+    - [ ] 23.13.1 Add authentication middleware
+      - Support API key validation
+      - Support mock AWS SigV4 validation
+      - Support mock OAuth2 validation
+      - Return 401 for missing/invalid auth
+    - [ ] 23.13.2 Add authentication configuration
+      - Allow enabling/disabling auth
+      - Configure accepted credentials
+      - Support multiple auth methods simultaneously
+    - [ ]* 23.13.3 Write tests for mock auth
+      - Test API key validation
+      - Test AWS SigV4 validation
+      - Test OAuth2 validation
+      - Test 401 responses
+
+  - [ ] 23.14 Add authentication error types
+    - [ ] 23.14.1 Create AuthenticationError class
+      - Extend FABError
+      - Include auth method type
+      - Include original error
+      - Include retry information
+    - [ ] 23.14.2 Create specific error subclasses
+      - InvalidCredentialsError
+      - ExpiredCredentialsError
+      - MissingCredentialsError
+      - AuthenticationTimeoutError
+    - Export from src/auth/errors.ts
+
+  - [ ]* 23.15 Write end-to-end authentication tests
+    - Test complete payment flow with API key auth
+    - Test complete payment flow with AWS SigV4 auth
+    - Test complete payment flow with OAuth2 auth
+    - Test authentication failure scenarios
+    - Test credential refresh scenarios
+    - Test with real mock wallet server
+
+## Notes
+
+- All tasks marked with `*` are optional test tasks that can be skipped for faster MVP
+- Each task references specific requirements for traceability
+- Property tests validate universal correctness properties
+- Unit tests validate specific examples and edge cases
+- Integration tests validate end-to-end flows
+- The implementation follows TDD: write tests first, then implement to make them pass
+
+
+- [ ] 24. Express Middleware for FAB Server
+
+  Implement a plug-and-play Express middleware that simplifies FAB server-side integration for service providers.
+  _Requirements: FAB-MWR-001 through FAB-MWR-014_
+
+  **Status (2026-04-14):** Initial implementation complete. Core middleware (`fabPaymentMiddleware`) implemented in `src/middleware/express.ts` with 15 unit tests. Covers route matching, 402 generation, payment verification, auto-capture settlement, lifecycle hooks, and error handling. Remaining subtasks (storage abstraction, logging/observability, advanced examples) are deferred.
+
+  **Files created:**
+  - `src/middleware/express.ts` — middleware factory and route matching
+  - `src/middleware/index.ts` — barrel export
+  - `test/unit/middleware/express.test.ts` — 15 unit tests
+
+  - [ ] 24.1 Design middleware architecture
+    - [ ] 24.1.1 Define middleware configuration interface
+      - signingKey: CryptoKey (for JWT verification)
+      - acceptedWallets: WalletConfig[] (list of trusted wallets)
+      - quoteTokenTTL?: number (default: 300 seconds)
+      - paymentTokenTTL?: number (default: 3600 seconds)
+      - onAuthorize?: (req, payment) => Promise<void> (custom authorization logic)
+      - onCapture?: (req, payment) => Promise<void> (custom capture logic)
+      - errorHandler?: (err, req, res, next) => void (custom error handling)
+    - [ ] 24.1.2 Define middleware endpoints
+      - POST /fab/authorize - Handle payment authorization requests
+      - POST /fab/capture - Handle payment capture requests
+      - GET /fab/status/:transactionId - Get payment status
+      - GET /fab/.well-known/payment-method-manifest.json - Serve payment method manifest
+    - [ ] 24.1.3 Design request/response flow
+      - Parse X402 payment requests from request body
+      - Extract FAB payment requirements
+      - Validate wallet credentials
+      - Generate quote tokens
+      - Verify payment tokens
+      - Execute capture logic
+      - Return standardized responses
+
+  - [ ] 24.2 Implement core middleware
+    - [ ] 24.2.1 Create fabMiddleware factory function
+      ```typescript
+      export function fabMiddleware(config: FABMiddlewareConfig): Router {
+        const router = express.Router();
+        // Configure routes
+        return router;
+      }
+      ```
+    - [ ] 24.2.2 Implement authorization endpoint
+      - Parse X402PaymentRequest from req.body
+      - Validate FAB payment requirements
+      - Call onAuthorize hook if provided
+      - Generate quote token
+      - Return X402PaymentResponse with quote token
+    - [ ] 24.2.3 Implement capture endpoint
+      - Parse payment token from request
+      - Verify payment token with wallet public key
+      - Verify quote token
+      - Call onCapture hook if provided
+      - Return capture confirmation
+    - [ ] 24.2.4 Implement status endpoint
+      - Parse transaction ID from URL params
+      - Look up payment status (requires storage integration)
+      - Return payment status response
+    - [ ] 24.2.5 Implement manifest endpoint
+      - Serve static payment method manifest
+      - Include supported payment methods
+      - Include wallet discovery information
+
+  - [ ] 24.3 Add request validation
+    - [ ] 24.3.1 Validate content-type headers
+      - Require application/json for POST requests
+      - Return 415 Unsupported Media Type for invalid content types
+    - [ ] 24.3.2 Validate request body schemas
+      - Use Zod schemas for validation
+      - Return 400 Bad Request with validation errors
+    - [ ] 24.3.3 Validate authentication headers
+      - Check for required authentication (if configured)
+      - Return 401 Unauthorized for missing/invalid auth
+
+  - [ ] 24.4 Add error handling
+    - [ ] 24.4.1 Create middleware error handler
+      - Catch all errors from route handlers
+      - Map FABError types to HTTP status codes
+      - Return standardized error responses
+      - Log errors for debugging
+    - [ ] 24.4.2 Handle specific error types
+      - ValidationError → 400 Bad Request
+      - AuthenticationError → 401 Unauthorized
+      - PaymentError → 402 Payment Required
+      - NotFoundError → 404 Not Found
+      - InternalError → 500 Internal Server Error
+
+  - [ ] 24.5 Add storage abstraction
+    - [ ] 24.5.1 Define PaymentStorage interface
+      - savePayment(payment: Payment): Promise<void>
+      - getPayment(transactionId: string): Promise<Payment | null>
+      - updatePaymentStatus(transactionId: string, status: PaymentStatus): Promise<void>
+    - [ ] 24.5.2 Implement in-memory storage (for testing)
+      - Use Map for simple key-value storage
+      - No persistence
+    - [ ] 24.5.3 Document storage integration patterns
+      - Redis integration example
+      - Database integration example
+      - Custom storage adapter example
+
+  - [ ] 24.6 Add logging and observability
+    - [ ] 24.6.1 Add structured logging
+      - Log all incoming requests
+      - Log payment authorizations
+      - Log payment captures
+      - Log errors with stack traces
+    - [ ] 24.6.2 Add metrics hooks
+      - onRequestStart, onRequestEnd
+      - onAuthorizationSuccess, onAuthorizationFailure
+      - onCaptureSuccess, onCaptureFailure
+      - Allow custom metrics integration
+
+  - [ ] 24.7 Create usage examples
+    - [ ] 24.7.1 Basic Express server example
+      ```typescript
+      import express from 'express';
+      import { fabMiddleware } from '@x402/fab-extension';
+      
+      const app = express();
+      app.use(express.json());
+      
+      app.use('/payments', fabMiddleware({
+        signingKey: await loadSigningKey(),
+        acceptedWallets: [
+          { id: 'aws-wallet', publicKey: await loadWalletKey() }
+        ],
+        onAuthorize: async (req, payment) => {
+          // Custom authorization logic
+          console.log('Authorizing payment:', payment);
+        },
+        onCapture: async (req, payment) => {
+          // Custom capture logic
+          console.log('Capturing payment:', payment);
+        }
+      }));
+      
+      app.listen(3000);
+      ```
+    - [ ] 24.7.2 Advanced example with custom storage
+      - Show Redis integration
+      - Show database integration
+      - Show custom error handling
+    - [ ] 24.7.3 Example with authentication
+      - Show API key authentication
+      - Show AWS SigV4 authentication
+      - Show OAuth2 authentication
+
+  - [ ] 24.8 Write comprehensive tests
+    - [ ]* 24.8.1 Unit tests for middleware factory
+      - Test configuration validation
+      - Test route registration
+      - Test error handler registration
+    - [ ]* 24.8.2 Integration tests for endpoints
+      - Test POST /fab/authorize flow
+      - Test POST /fab/capture flow
+      - Test GET /fab/status/:transactionId
+      - Test GET /fab/.well-known/payment-method-manifest.json
+    - [ ]* 24.8.3 Error handling tests
+      - Test validation errors
+      - Test authentication errors
+      - Test payment errors
+      - Test internal errors
+    - [ ]* 24.8.4 End-to-end tests
+      - Test complete payment flow with Express server
+      - Test with real HTTP requests
+      - Test error scenarios
+
+  - [ ] 24.9 Document middleware
+    - [ ] 24.9.1 Create middleware guide (docs/EXPRESS_MIDDLEWARE.md)
+      - Installation instructions
+      - Quick start guide
+      - Configuration reference
+      - API endpoint documentation
+      - Storage integration guide
+      - Error handling guide
+      - Security best practices
+    - [ ] 24.9.2 Add to main README
+      - Add Express middleware section
+      - Link to detailed guide
+      - Show quick example
+
+  - _Requirements: Simplify FAB server-side integration, provide production-ready middleware_
+
+- [ ] 25. MCP Server Tool for FAB Client
+
+  Implement a Model Context Protocol (MCP) server that exposes FAB client functionality as tools for AI agents and automation.
+
+  - [ ] 25.1 Design MCP server architecture
+    - [ ] 25.1.1 Define MCP tools
+      - fab_create_payment: Create a new FAB payment request
+      - fab_verify_payment: Verify a payment token
+      - fab_capture_payment: Capture an authorized payment
+      - fab_get_payment_status: Get payment status
+      - fab_discover_wallet: Discover wallet endpoints
+    - [ ] 25.1.2 Define tool input schemas
+      - Use JSON Schema for tool parameters
+      - Validate all inputs
+      - Provide clear descriptions and examples
+    - [ ] 25.1.3 Define tool output schemas
+      - Standardized success responses
+      - Standardized error responses
+      - Include relevant payment details
+
+  - [ ] 25.2 Implement MCP server
+    - [ ] 25.2.1 Set up MCP server framework
+      - Use @modelcontextprotocol/sdk
+      - Configure server metadata
+      - Register tool handlers
+    - [ ] 25.2.2 Implement fab_create_payment tool
+      - Accept payment parameters (amount, currency, walletId, etc.)
+      - Create FABClientScheme instance
+      - Generate payment request
+      - Return payment request and quote token
+    - [ ] 25.2.3 Implement fab_verify_payment tool
+      - Accept payment token and wallet public key
+      - Verify token signature
+      - Verify token expiration
+      - Return verification result and payment details
+    - [ ] 25.2.4 Implement fab_capture_payment tool
+      - Accept payment token and quote token
+      - Verify both tokens
+      - Call wallet capture endpoint
+      - Return capture confirmation
+    - [ ] 25.2.5 Implement fab_get_payment_status tool
+      - Accept transaction ID and wallet URL
+      - Query wallet status endpoint
+      - Return payment status
+    - [ ] 25.2.6 Implement fab_discover_wallet tool
+      - Accept wallet identifier or URL
+      - Perform wallet discovery
+      - Return wallet endpoints and capabilities
+
+  - [ ] 25.3 Add configuration management
+    - [ ] 25.3.1 Support environment-based configuration
+      - Read wallet configurations from environment variables
+      - Read signing keys from secure storage
+      - Support multiple wallet profiles
+    - [ ] 25.3.2 Support configuration file
+      - JSON or YAML configuration file
+      - Define wallet profiles
+      - Define default settings
+    - [ ] 25.3.3 Support runtime configuration
+      - Allow tools to accept configuration overrides
+      - Validate configuration at runtime
+
+  - [ ] 25.4 Add authentication support
+    - [ ] 25.4.1 Support wallet authentication in tools
+      - Accept auth config in tool parameters
+      - Use authentication system from Task 23
+      - Support all auth methods (API key, AWS SigV4, OAuth2, custom)
+    - [ ] 25.4.2 Secure credential handling
+      - Never log credentials
+      - Use secure credential providers
+      - Support credential rotation
+
+  - [ ] 25.5 Add error handling and logging
+    - [ ] 25.5.1 Implement comprehensive error handling
+      - Catch all errors from FAB operations
+      - Return structured error responses
+      - Include error codes and messages
+    - [ ] 25.5.2 Add structured logging
+      - Log all tool invocations
+      - Log payment operations
+      - Log errors with context
+      - Support log level configuration
+
+  - [ ] 25.6 Create usage examples
+    - [ ] 25.6.1 Basic MCP server setup
+      ```typescript
+      import { MCPServer } from '@modelcontextprotocol/sdk';
+      import { createFABMCPServer } from '@x402/fab-extension/mcp';
+      
+      const server = createFABMCPServer({
+        wallets: [
+          {
+            id: 'aws-wallet',
+            url: 'https://wallet.aws.example.com',
+            publicKey: await loadWalletKey()
+          }
+        ],
+        signingKey: await loadSigningKey()
+      });
+      
+      server.listen();
+      ```
+    - [ ] 25.6.2 Example tool invocations
+      - Show fab_create_payment example
+      - Show fab_verify_payment example
+      - Show fab_capture_payment example
+      - Show complete payment flow
+    - [ ] 25.6.3 Integration with AI agents
+      - Show Claude Desktop integration
+      - Show custom agent integration
+      - Show automation workflow examples
+
+  - [ ] 25.7 Write comprehensive tests
+    - [ ]* 25.7.1 Unit tests for tool handlers
+      - Test each tool in isolation
+      - Test input validation
+      - Test error handling
+    - [ ]* 25.7.2 Integration tests with MCP protocol
+      - Test tool registration
+      - Test tool invocation via MCP
+      - Test error responses
+    - [ ]* 25.7.3 End-to-end tests
+      - Test complete payment flow via MCP tools
+      - Test with mock wallet server
+      - Test error scenarios
+
+  - [ ] 25.8 Document MCP server
+    - [ ] 25.8.1 Create MCP server guide (docs/MCP_SERVER.md)
+      - Installation instructions
+      - Quick start guide
+      - Tool reference documentation
+      - Configuration guide
+      - Authentication guide
+      - Integration examples
+      - Security best practices
+    - [ ] 25.8.2 Add to main README
+      - Add MCP server section
+      - Link to detailed guide
+      - Show quick example
+    - [ ] 25.8.3 Create Claude Desktop integration guide
+      - Show how to configure Claude Desktop
+      - Show example conversations
+      - Show automation examples
+
+  - _Requirements: Enable AI agents and automation to use FAB payments, provide MCP-compliant interface_
+
+- [ ] 26. Facilitator Extensibility Analysis
+
+  Explore and justify the facilitator as a translation layer between X402 and the wallet from an extensibility and scalability perspective.
+
+  - [ ] 26.1 Document current facilitator architecture
+    - [ ] 26.1.1 Analyze WalletFacilitatorClient implementation
+      - Review current responsibilities
+      - Identify coupling points with X402
+      - Identify coupling points with wallet
+      - Document data flow
+    - [ ] 26.1.2 Document facilitator interface
+      - FacilitatorClient interface from @x402/core/http
+      - Methods: authorize, capture, getStatus
+      - Input/output types
+      - Error handling
+    - [ ] 26.1.3 Identify translation responsibilities
+      - X402 PaymentRequest → Wallet authorization request
+      - Wallet authorization response → X402 PaymentResponse
+      - X402 capture request → Wallet capture request
+      - Wallet capture response → X402 capture response
+      - Error mapping between X402 and wallet
+
+  - [ ] 26.2 Analyze extensibility requirements
+    - [ ] 26.2.1 Identify extension points
+      - Supporting new wallet types (beyond AWS wallet)
+      - Supporting new payment methods (beyond FAB)
+      - Supporting new authentication methods
+      - Supporting new settlement methods
+      - Supporting custom payment flows
+    - [ ] 26.2.2 Analyze current extensibility limitations
+      - Hard-coded wallet API assumptions
+      - Limited error mapping
+      - Fixed data transformation logic
+      - Lack of plugin architecture
+    - [ ] 26.2.3 Define extensibility goals
+      - Support multiple wallet implementations without code changes
+      - Support custom payment flows via configuration
+      - Support wallet-specific features
+      - Support versioning and backward compatibility
+
+  - [ ] 26.3 Analyze scalability requirements
+    - [ ] 26.3.1 Identify scalability concerns
+      - Request volume handling
+      - Concurrent payment processing
+      - Wallet API rate limiting
+      - Token caching and validation
+      - State management
+    - [ ] 26.3.2 Analyze current scalability limitations
+      - Synchronous request processing
+      - No request batching
+      - No caching layer
+      - No retry logic
+      - No circuit breaker pattern
+    - [ ] 26.3.3 Define scalability goals
+      - Support high request volumes
+      - Minimize wallet API calls
+      - Handle wallet API failures gracefully
+      - Support horizontal scaling
+      - Support distributed deployments
+
+  - [ ] 26.4 Propose facilitator architecture improvements
+    - [ ] 26.4.1 Design plugin architecture
+      - Define WalletAdapter interface
+        - authorize(request): Promise<response>
+        - capture(request): Promise<response>
+        - getStatus(transactionId): Promise<status>
+        - supportsFeature(feature): boolean
+      - Implement adapter registry
+      - Support runtime adapter registration
+      - Support adapter versioning
+    - [ ] 26.4.2 Design middleware pipeline
+      - Pre-processing middleware (validation, logging)
+      - Translation middleware (X402 ↔ wallet)
+      - Post-processing middleware (error mapping, response formatting)
+      - Support custom middleware injection
+    - [ ] 26.4.3 Design caching layer
+      - Cache wallet public keys
+      - Cache wallet discovery results
+      - Cache token validation results
+      - Support cache invalidation
+      - Support distributed caching (Redis)
+    - [ ] 26.4.4 Design retry and circuit breaker
+      - Implement exponential backoff retry
+      - Implement circuit breaker for wallet APIs
+      - Support configurable retry policies
+      - Support fallback strategies
+
+  - [ ] 26.5 Create proof-of-concept implementations
+    - [ ] 26.5.1 Implement WalletAdapter interface
+      - Create base adapter class
+      - Implement AWS wallet adapter
+      - Implement mock wallet adapter for testing
+    - [ ] 26.5.2 Implement adapter registry
+      - Register adapters by wallet type
+      - Select adapter based on wallet identifier
+      - Support adapter fallback
+    - [ ] 26.5.3 Implement middleware pipeline
+      - Create middleware interface
+      - Implement validation middleware
+      - Implement logging middleware
+      - Implement error mapping middleware
+    - [ ] 26.5.4 Implement caching layer
+      - Create cache interface
+      - Implement in-memory cache
+      - Implement Redis cache adapter
+      - Add cache to facilitator
+
+  - [ ] 26.6 Benchmark and validate improvements
+    - [ ] 26.6.1 Create performance benchmarks
+      - Measure request latency
+      - Measure throughput
+      - Measure cache hit rates
+      - Compare with current implementation
+    - [ ] 26.6.2 Create extensibility tests
+      - Test adding new wallet adapter
+      - Test adding custom middleware
+      - Test adapter versioning
+      - Test backward compatibility
+    - [ ] 26.6.3 Create scalability tests
+      - Test with high request volumes
+      - Test with concurrent requests
+      - Test with wallet API failures
+      - Test horizontal scaling
+
+  - [ ] 26.7 Document findings and recommendations
+    - [ ] 26.7.1 Write extensibility analysis (docs/FACILITATOR_EXTENSIBILITY.md)
+      - Current architecture overview
+      - Extensibility limitations
+      - Proposed improvements
+      - Plugin architecture design
+      - Middleware pipeline design
+      - Migration path
+    - [ ] 26.7.2 Write scalability analysis (docs/FACILITATOR_SCALABILITY.md)
+      - Current architecture overview
+      - Scalability limitations
+      - Proposed improvements
+      - Caching strategy
+      - Retry and circuit breaker design
+      - Performance benchmarks
+      - Deployment recommendations
+    - [ ] 26.7.3 Write implementation guide (docs/FACILITATOR_IMPLEMENTATION.md)
+      - Step-by-step implementation plan
+      - Code examples
+      - Testing strategy
+      - Migration guide
+      - Best practices
+    - [ ] 26.7.4 Create decision document
+      - Justify facilitator as translation layer
+      - Compare with alternative architectures
+      - Analyze trade-offs
+      - Provide recommendations
+      - Include cost-benefit analysis
+
+  - [ ] 26.8 Update main documentation
+    - [ ] 26.8.1 Add facilitator architecture section to README
+      - Overview of facilitator role
+      - Link to detailed analysis
+      - Show architecture diagram
+    - [ ] 26.8.2 Update SDK explanation
+      - Explain facilitator extensibility
+      - Show adapter examples
+      - Show middleware examples
+
+  - _Requirements: Justify facilitator architecture, ensure extensibility for multiple wallets, ensure scalability for production use_
+
+- [ ] 27. OIDC Discovery and Quote Token Signature Verification
+
+  Implement service public key fetching via OIDC discovery so that the facilitator can verify quote token signatures end-to-end. This closes the gap where the in-process facilitator trusts quote tokens without verifying the service's signature.
+
+  _Spec references: FAB-DSC-009, FAB-DSC-011, FAB-STUB-001, FAB-FAC-002, FAB-FAC-003a, FAB-FAC-003b, FAB-FCL-007_
+
+  **Context:**
+  - `fetchServicePublicKey()` in `src/utils.ts` is deprecated — replaced by `fetchServiceJWKS()` which is fully implemented with 1-hour TTL caching and `clearServiceJWKSCache()` for invalidation.
+  - The in-process facilitator (`src/fab/facilitator/verify.ts`) already calls `fetchServiceJWKS` and `jose.jwtVerify` on the quote token, but wraps it in a try/catch that silently swallows failures. This makes quote signature verification best-effort rather than mandatory.
+  - The `WalletFacilitatorClient` (`src/wallet-facilitator-client.ts`) independently fetches service JWKS and verifies the quote token signature — that path is complete.
+  - `test/unit/service-jwks.test.ts` has 7 tests covering `fetchServiceJWKS` and `clearServiceJWKSCache`.
+  - `test/unit/fab/quote-verification.test.ts` exists as a placeholder with a single `.todo` test.
+
+  **What's done (subtasks 27.1, 27.3):**
+  - `fetchServiceJWKS()` is implemented with caching and cache clearing (subtask 27.1 ✅)
+  - Decision documented: quote verification stays in facilitator verify logic, not in `WalletClientForFacilitator` (subtask 27.3 ✅)
+
+  **What remains:**
+
+  - [ ] 27.2 Make quote token signature verification mandatory in the in-process facilitator
+    - In `src/fab/facilitator/verify.ts`, replace the silent try/catch around `fetchServiceJWKS` + `jose.jwtVerify` with proper error handling:
+      - If `quotePayload.iss` is missing, return `{ isValid: false, invalidReason: 'invalid_quote', invalidMessage: 'Quote token missing issuer (iss) claim' }`
+      - If JWKS fetch fails (network error, non-200), return `{ isValid: false, invalidReason: 'invalid_quote', invalidMessage: 'Failed to fetch service JWKS from {url}: {error}' }`
+      - If `jose.jwtVerify` fails (bad signature, wrong key), return `{ isValid: false, invalidReason: 'invalid_quote', invalidMessage: 'Quote token signature verification failed' }`
+    - After signature verification, check `exp` against current time:
+      - If expired, return `{ isValid: false, invalidReason: 'quote_expired', invalidMessage: 'Quote token expired' }`
+    - _Spec: FAB-FAC-003a, FAB-FAC-003b_
+
+  - [ ] 27.4 Add optional `serviceJWKSUrl` override to `FABFacilitatorSchemeConfig`
+    - Allow callers to provide a custom JWKS URL for the service (useful when the service URL in the quote token doesn't match the JWKS endpoint, e.g., behind a proxy)
+    - Default behavior: derive from `quote.iss` + `/.well-known/jwks.json`
+    - _Spec: may need new requirement FAB-FAC-013_
+
+  - [ ] 27.5 Write unit tests for quote token verification in facilitator
+    - Populate `test/unit/fab/quote-verification.test.ts` with:
+      - Test: verification succeeds when quote token is signed by service and service JWKS is reachable
+      - Test: verification fails with `invalid_quote` when quote token signature doesn't match service's key
+      - Test: verification fails with `invalid_quote` when service JWKS endpoint returns non-200
+      - Test: verification fails with `invalid_quote` when quote token `iss` is missing
+      - Test: verification fails with `quote_expired` when quote token `exp` is in the past
+      - Test: verification succeeds when quote token `exp` is in the future
+    - Target: 6 tests
+    - _Validates: FAB-FAC-003a, FAB-FAC-003b_
+
+  - [ ] 27.6 Update integration test
+    - Update `test/integrations/fab-test.test.ts` to set up a service JWKS endpoint (the mock wallet server already serves `/.well-known/jwks.json` for the wallet; the test service needs to serve its own JWKS)
+    - Verify the full flow now includes quote token signature verification
+    - Target: 1-2 additional assertions in existing test(s)
+
+  - [ ] 27.7 Update spec.md
+    - Update FAB-STUB-001 to note that `fetchServicePublicKey` is deprecated and replaced by `fetchServiceJWKS`
+    - Update §6.6 (OIDC Discovery Stub rationale) to reflect that `fetchServiceJWKS` is implemented and the in-process facilitator now verifies quote signatures
+    - Add `clearServiceJWKSCache` to the utility functions section if not already present
+
+  - [ ] 27.8 Update docs and known limitations
+    - Remove "OIDC discovery for service public keys is stubbed" from known limitations in README.md and sdk-guide.md
+    - Update sdk-guide.md §3.5 verification step 4 to remove "(best-effort)" — it is now mandatory
+    - No user-facing API changes (verification happens automatically)
+
+  - [ ] 27.9 Update traceability matrix
+    - Add FAB-FAC-003a → `src/fab/facilitator/verify.ts` → `test/unit/fab/quote-verification.test.ts`
+    - Add FAB-FAC-003b → `src/fab/facilitator/verify.ts` → `test/unit/fab/quote-verification.test.ts`
+
+  **Files modified:**
+  - `src/fab/facilitator/verify.ts` (make quote verification mandatory)
+  - `test/unit/fab/quote-verification.test.ts` (add 6 tests)
+  - `test/integrations/fab-test.test.ts` (add assertions)
+  - `docs/spec.md` (update FAB-STUB-001, §6.6)
+  - `docs/sdk-guide.md` (update verification description)
+  - `docs/tasks.md` (traceability matrix)
+  - `README.md` (remove known limitation)
+
+  **Estimated test count:** 6 new unit tests + 1-2 integration assertions
+  **Dependencies:** None (fetchServiceJWKS is already implemented)
+  **Risk:** Low-medium — making quote verification mandatory could break integration tests that don't serve a service JWKS endpoint. The mock wallet server in examples already serves JWKS, but the test harness may need a mock service JWKS endpoint added.
+
+  **Estimated test count:** 13-18 new tests
+  **Files modified:** `src/utils.ts`, `src/fab/facilitator/verify.ts`, `src/config.ts` (optional), `test/unit/utils.test.ts`, `test/unit/fab/facilitator.test.ts`, `test/integrations/fab-test.test.ts`, `docs/spec.md`, `README.md`
+  **Dependencies:** None (self-contained)
+
+
+- [ ] 28. Sentinel Values for x402 Core Protocol Fields (`payTo`, `maxTimeoutSeconds`)
+
+  Replace the redundant `payTo` and `maxTimeoutSeconds` fields in the x402 `PaymentRequirements` with well-defined sentinel values. In FAB, the signed quote token is the authoritative source for payment details (recipient, pricing, expiry). The outer `PaymentRequirements` fields `payTo` and `maxTimeoutSeconds` are required by the `@x402/core` type contract but are semantically redundant for FAB — the wallet and facilitator already use the quote token. This task makes that explicit by using sentinel values and documenting the convention.
+
+  **Motivation:**
+  - `payTo` in `PaymentRequirements` duplicates `payTo` inside the signed quote token. The quote token is the source of truth because it's signed by the service; the outer field is unsigned and could be tampered with.
+  - `maxTimeoutSeconds` has no direct FAB equivalent — FAB uses `exp - iat` in the quote token to express validity. The outer field is a leftover from the EVM/SVM `exact` scheme where it controls `validBefore` in on-chain authorization.
+  - Clients and facilitators in FAB already ignore these outer fields in favor of the quote token. Making them sentinels formalizes what's already true.
+
+  **Design decisions:**
+  - `payTo` sentinel: `"urn:x402:fab:see-quote"` — a URN that is clearly not a real address, signals "look at the quote token", and won't collide with any wallet ID or blockchain address.
+  - `maxTimeoutSeconds` sentinel: derived from the quote token's `exp - iat` (i.e., the quote validity window). This keeps the field numerically meaningful for any x402 middleware that might inspect it, while still being derived from the quote rather than independently configured.
+  - Both sentinels are set in `enhancePaymentRequirements` (server scheme), which is the last touch before the 402 response is sent. The base requirements from `x402ResourceServer.buildPaymentRequirements` still set `payTo` from `resourceConfig.payTo` and `maxTimeoutSeconds` from config, but the FAB server scheme overrides them.
+
+  **Scope:**
+
+  - [ ] 28.1 Add sentinel constants to `src/constants.ts`
+    - Add `FAB_SENTINEL_PAY_TO = 'urn:x402:fab:see-quote'`
+    - Add JSDoc explaining the sentinel convention and why it exists
+    - _New requirement: FAB-CON-007_
+
+  - [ ] 28.2 Update `enhancePaymentRequirements` in `src/fab/server/scheme.ts`
+    - After building the quote token and signing it, override the returned `PaymentRequirements`:
+      - Set `payTo` to `FAB_SENTINEL_PAY_TO`
+      - Set `maxTimeoutSeconds` to `quotePayload.exp - quotePayload.iat` (the quote validity window, currently 300s by default)
+    - The quote token itself still contains the real `payTo` from the original `paymentRequirements.payTo` — that doesn't change
+    - _Updates: FAB-SRV-012 (enhance return value now also normalizes payTo and maxTimeoutSeconds)_
+    - _New requirements: FAB-SRV-016, FAB-SRV-017_
+
+  - [ ] 28.3 Update client scheme `createPaymentPayload` in `src/fab/client/scheme.ts`
+    - Currently the client reads `payTo` from `quote.iss` (the service URL from the quote token), not from `paymentRequirements.payTo`. Verify this is still correct — it should be, since the client already ignores the outer `payTo`.
+    - Add a defensive comment explaining that `paymentRequirements.payTo` is a sentinel in FAB and the real recipient comes from the quote token.
+    - No functional change expected; this subtask is verification + documentation.
+    - _Validates: FAB-CLI-003 (client uses quote token, not outer fields)_
+
+  - [ ] 28.4 Update facilitator verify logic in `src/fab/facilitator/verify.ts`
+    - Currently the facilitator does not use `requirements.payTo` or `requirements.maxTimeoutSeconds` — it verifies the payment token and quote token directly. Verify this is still correct.
+    - Add a defensive comment explaining the sentinel convention.
+    - No functional change expected; this subtask is verification + documentation.
+    - _Validates: FAB-FAC-001 through FAB-FAC-006 (facilitator uses tokens, not outer fields)_
+
+  - [ ] 28.5 Update facilitator settle logic in `src/fab/facilitator/settle.ts`
+    - Currently uses `requirements.amount` and `requirements.asset` (which are NOT sentinels — they remain real values). Verify `payTo` and `maxTimeoutSeconds` are not used in settle. They aren't.
+    - Add a defensive comment.
+    - No functional change expected.
+
+  - [ ] 28.6 Export sentinel constant from `src/index.ts`
+    - Add `FAB_SENTINEL_PAY_TO` to the constants export block.
+
+  - [ ] 28.7 Update `src/networks/aws.ts`
+    - No changes needed — the AWS pre-configured schemes delegate to the base schemes, which will pick up the sentinel behavior from `enhancePaymentRequirements`. Verify and document.
+
+  - [ ] 28.8 Write unit tests in `test/unit/fab/server.test.ts`
+    - Test: `enhancePaymentRequirements` sets `payTo` to `FAB_SENTINEL_PAY_TO`
+    - Test: `enhancePaymentRequirements` sets `maxTimeoutSeconds` to `DEFAULT_QUOTE_VALIDITY_SECONDS` (300)
+    - Test: the quote token inside `extra.quoteToken` still contains the original real `payTo` value (not the sentinel)
+    - Test: when a custom quote validity is used (if/when supported), `maxTimeoutSeconds` matches `exp - iat`
+    - Target: 4 new tests
+
+  - [ ] 28.9 Write unit tests in `test/unit/fab/client.test.ts`
+    - Test: `createPaymentPayload` works correctly when `paymentRequirements.payTo` is the sentinel value `'urn:x402:fab:see-quote'` — it should still extract `payTo` from the quote token's `iss` field
+    - Test: `createPaymentPayload` does not pass the sentinel value to `walletClient.authorize()` — it passes `quote.iss` instead
+    - Target: 2 new tests
+
+  - [ ] 28.10 Write unit tests in `test/unit/fab/facilitator.test.ts`
+    - Test: `verifyPayment` succeeds when `requirements.payTo` is the sentinel value (proving the facilitator doesn't depend on it)
+    - Test: `settlePayment` succeeds when `requirements.payTo` is the sentinel value
+    - Target: 2 new tests
+
+  - [ ] 28.11 Update integration test in `test/integrations/fab-test.test.ts`
+    - Update the existing end-to-end flow test to assert that the `PaymentRequirements` returned by the server scheme contains the sentinel `payTo` and a numeric `maxTimeoutSeconds` matching the quote validity
+    - Target: 2 new assertions in existing test(s)
+
+  - [ ] 28.12 Update `docs/spec.md`
+    - Add FAB-CON-007: `The system shall define a sentinel constant FAB_SENTINEL_PAY_TO with value "urn:x402:fab:see-quote" to indicate that the payTo field in PaymentRequirements is not authoritative and the quote token shall be consulted instead.`
+    - Add FAB-SRV-016: `When enhancePaymentRequirements completes, the server scheme shall set the PaymentRequirements payTo field to FAB_SENTINEL_PAY_TO.`
+    - Add FAB-SRV-017: `When enhancePaymentRequirements completes, the server scheme shall set the PaymentRequirements maxTimeoutSeconds field to the quote token's validity window (exp minus iat).`
+    - Update FAB-SRV-012 rationale to note that the returned requirements now also normalize payTo and maxTimeoutSeconds.
+    - Add a rationale note in §2.3 (Architectural Constraints) or a new §2.4 explaining the sentinel convention and why FAB treats the quote token as authoritative over the outer PaymentRequirements fields.
+
+  - [ ] 28.13 Update `docs/tasks.md` traceability matrix
+    - Add FAB-CON-007 → `src/constants.ts` → `test/unit/constants.test.ts`
+    - Add FAB-SRV-016 → `src/fab/server/scheme.ts` → `test/unit/fab/server.test.ts`
+    - Add FAB-SRV-017 → `src/fab/server/scheme.ts` → `test/unit/fab/server.test.ts`
+
+  **Estimated test count:** 8 new unit tests + 2 new integration assertions
+  **Files modified:** `src/constants.ts`, `src/fab/server/scheme.ts`, `src/fab/client/scheme.ts` (comments only), `src/fab/facilitator/verify.ts` (comments only), `src/fab/facilitator/settle.ts` (comments only), `src/index.ts`, `docs/spec.md`, `docs/tasks.md`
+  **Files created:** none
+  **Test files modified:** `test/unit/fab/server.test.ts`, `test/unit/fab/client.test.ts`, `test/unit/fab/facilitator.test.ts`, `test/integrations/fab-test.test.ts`
+  **Dependencies:** None (self-contained, no core type changes)
+  **Risk:** Low — sentinel values are backward-compatible. Any x402 middleware that inspects `payTo` will see a clearly non-real value. Any middleware that inspects `maxTimeoutSeconds` will see a valid number (300). No breaking changes to the `@x402/core` contract.
+
+---
+
+## Spec Requirements — Implementation Status
+
+_Moved from `spec.md`. Tracks implementation state against the formal EARS requirements in that document._
+
+### Implemented (Verified)
+
+| Area | Status | Test Coverage |
+|------|--------|---------------|
+| Scheme Registration (FAB-REG-*) | ✅ Complete | Unit + Integration |
+| Type System (FAB-TYP-*) | ✅ Complete | Unit |
+| Error Handling (FAB-ERR-*) | ✅ Complete | Unit |
+| Server Scheme (FAB-SRV-*) | ✅ Complete | Unit + Integration |
+| Client Scheme (FAB-CLI-*) | ✅ Complete | Unit + Integration |
+| Facilitator Scheme (FAB-FAC-*) | ✅ Complete | Unit + Integration |
+| Signer Interfaces (FAB-SGN-*) | ✅ Complete | Unit |
+| Utility Functions (FAB-UTL-*) | ✅ Complete | Unit |
+| Constants (FAB-CON-*) | ✅ Complete | Unit |
+| Authentication (FAB-AUTH-*) | ✅ Complete | 28 tests |
+| DPoP (FAB-DPOP-*) | ✅ Complete | 33 tests |
+| Wallet Client (FAB-WCL-*) | ✅ Complete | Unit |
+| InProcess Facilitator (FAB-FCL-001) | ✅ Complete | Integration |
+
+Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
+
+### Partially Implemented (Known Limitations)
+
+| ID | Area | Limitation |
+|----|------|------------|
+| FAB-AUTH-005 | AWS SigV4 | Simplified placeholder; production use requires `@aws-sdk/signature-v4`. |
+| FAB-FCL-002–005 | WalletFacilitatorClient | HTTP-based facilitator client is defined but wallet API integration is stubbed. |
+| FAB-FAC-007 | Settlement | Returns success placeholder; actual fund capture requires wallet backend integration. |
+| FAB-DSC-003 | JWKS Fetching | OIDC discovery for service public keys is stubbed; quote token signature verification is skipped in facilitator. |
+
+### Not Yet Implemented
+
+| Area | Description |
+|------|-------------|
+| OIDC Discovery / Quote Verification (Task 27) | `fetchServiceJWKS` implemented with caching. Remaining: make quote signature verification mandatory in in-process facilitator (currently best-effort), add unit tests, update integration tests. |
+| Sentinel Values for Core Fields (Task 28) | Replace redundant `payTo` and `maxTimeoutSeconds` with sentinel values; quote token is authoritative. |
+| Zod Validation Schemas | Comprehensive runtime validation schemas (types exist, Zod schemas not fully wired). |
+| Express Middleware (Task 24) | Core middleware implemented (`fabPaymentMiddleware`). Storage abstraction, logging/observability, and advanced examples deferred. |
+| MCP Server Tool (Task 25) | Model Context Protocol server exposing FAB tools for AI agents. |
+| Facilitator Extensibility (Task 26) | Analysis and abstraction for multi-wallet-provider extensibility. |
+| Property-Based Tests | `fast-check` property tests for correctness properties FAB-PROP-001 through FAB-PROP-014. |
+| CI/CD Pipeline | Automated testing, coverage enforcement, and npm publishing. |
+| Performance Benchmarks | Formal measurement against FAB-PRF-001 through FAB-PRF-004. |
+
+---
+
+## Traceability Matrix
+
+| Requirement | Source File(s) | Test File(s) |
+|-------------|----------------|--------------|
+| FAB-REG-001–004 | `src/fab/*/scheme.ts`, `src/constants.ts` | `test/unit/constants.test.ts`, `test/unit/fab/*.test.ts` |
+| FAB-TYP-001–007 | `src/types.ts` | `test/unit/types.test.ts` |
+| FAB-ERR-001–006 | `src/types.ts` (error classes) | `test/unit/errors.test.ts` |
+| FAB-SRV-001–015 | `src/fab/server/scheme.ts`, `src/signer.ts` | `test/unit/fab/server.test.ts` |
+| FAB-SRV-016–017 | `src/fab/server/scheme.ts` | `test/unit/fab/server.test.ts` |
+| FAB-CLI-001–008 | `src/fab/client/scheme.ts`, `src/config.ts` | `test/unit/fab/client.test.ts` |
+| FAB-FAC-001–012 | `src/fab/facilitator/scheme.ts`, `verify.ts`, `settle.ts` | `test/unit/fab/facilitator.test.ts` |
+| FAB-SGN-001–004 | `src/signer.ts` | `test/unit/signer.test.ts` |
+| FAB-UTL-001–015 | `src/utils.ts` | `test/unit/utils.test.ts` |
+| FAB-CON-001–006 | `src/constants.ts` | `test/unit/constants.test.ts` |
+| FAB-CON-007 | `src/constants.ts` | `test/unit/fab/server.test.ts` |
+| FAB-AUTH-001–008 | `src/auth/*.ts` | `test/unit/auth/*.test.ts` |
+| FAB-DPOP-001–017 | `src/dpop/*.ts` | `test/unit/dpop/*.test.ts` |
+| FAB-WCL-001–010 | `src/wallet-client.ts`, `src/config.ts` | `test/unit/facilitator-client.test.ts` |
+| FAB-FCL-001–010 | `src/facilitator-client.ts`, `src/wallet-facilitator-client.ts` | `test/integrations/fab-test.test.ts` |
+| FAB-DSC-001–014 | `src/discovery.ts` | `test/unit/discovery.test.ts` |
+| FAB-NET-001–005 | `src/networks/*.ts` | `test/unit/networks/*.test.ts` |
+| FAB-WCOMPAT-001–007 | (external interface) | `test/integrations/fab-test.test.ts` |
+| FAB-STUB-001 | `src/utils.ts` | — |
+| FAB-PROP-001–015 | (cross-cutting) | planned: `fast-check` property tests |
+| FAB-BLD-001–003, 005 | `src/builders/resource-server-builder.ts` | `test/unit/builders/resource-server-builder.test.ts`, `test/integrations/multi-facilitator.test.ts` |
+| FAB-BLD-002 | `src/builders/client-builder.ts` | `test/unit/builders/client-builder.test.ts` |
+| FAB-BLD-004 | `src/wallet-facilitator-client.ts` | `test/unit/builders/wallet-facilitator-network-filter.test.ts` |
+| FAB-BLD-006 | `src/builders/register.ts` | `test/integrations/multi-facilitator.test.ts` |
+| FAB-MWR-001–014 | `src/middleware/express.ts` | `test/unit/middleware/express.test.ts` |
+
+---
+
+## Requirement Count Summary
+
+| Category | Count |
+|----------|-------|
+| Scheme Registration (FAB-REG) | 4 |
+| Type System (FAB-TYP) | 7 |
+| Error Handling (FAB-ERR) | 6 |
+| Server Scheme (FAB-SRV) | 17 |
+| Client Scheme (FAB-CLI) | 8 |
+| Facilitator Scheme (FAB-FAC) | 14 |
+| Signer Interfaces (FAB-SGN) | 4 |
+| Utility Functions (FAB-UTL) | 15 |
+| Constants (FAB-CON) | 7 |
+| Authentication (FAB-AUTH) | 8 |
+| DPoP (FAB-DPOP) | 17 |
+| Wallet Client (FAB-WCL) | 10 |
+| Facilitator Client (FAB-FCL) | 10 |
+| Wallet Discovery (FAB-DSC) | 14 |
+| Pre-configured Networks (FAB-NET) | 5 |
+| Wallet Provider Contract (FAB-WCOMPAT) | 7 |
+| Exported Stubs (FAB-STUB) | 1 |
+| Performance (FAB-PRF) | 4 |
+| Security (FAB-SEC) | 6 |
+| Compatibility (FAB-CMP) | 5 |
+| Testability (FAB-TST) | 5 |
+| Correctness Properties (FAB-PROP) | 15 |
+| Builders (FAB-BLD) | 6 |
+| Express Middleware (FAB-MWR) | 14 |
+| **Total** | **209** |
+
+- [ ] 29. Refactor Registration: Network-Aware Facilitator Routing with Default Fallback
+
+  Refactor the registration model so that the FAB facilitator only handles explicitly registered networks, while all other networks fall back to the official x402 facilitator (`https://x402.org/facilitator`). Today, both the buyer (client) and seller (server) sides require manual, per-network registration of FAB schemes. This task introduces a single "register these networks for FAB" entry point that wires up client, server, and facilitator schemes for the specified networks, and lets everything else pass through to the default `HTTPFacilitatorClient`.
+
+  **Motivation:**
+  - Currently, every network that FAB should handle must be individually registered on the client (`x402Client.register`), the server (`x402ResourceServer.register`), and the facilitator (`x402Facilitator.register`). This is repetitive and error-prone.
+  - There is no built-in fallback: if a service accepts both `fab:aws` (FAB) and `eip155:8453` (EVM on-chain), the integrator must either register FAB schemes for both or manually set up two facilitator clients. If they forget to register a network, it silently fails.
+  - The desired experience: "I want FAB to handle `fab:aws` and `eip155:8453`. Everything else (e.g., `solana:mainnet`) should fall back to the official x402 facilitator automatically."
+
+  **Design:**
+
+  The core idea is a two-phase API: create a server/client, then register networks individually via `registerNetwork()`. This separates construction from configuration and makes it easy to extend later (e.g., register different networks with different options).
+
+  **Server side:**
+  1. `createFABResourceServer(config)` returns a `FABResourceServer` object with a `registerNetwork(network, options?)` method.
+  2. Networks are added one at a time (or chained): `server.registerNetwork('fab:aws').registerNetwork('eip155:8453')`.
+  3. `server.initialize()` fetches supported kinds from facilitators and returns the underlying `x402ResourceServer`.
+  4. The FAB facilitator (wallet-based) is registered for the specified networks. The default `HTTPFacilitatorClient` acts as catch-all for any network not claimed by FAB.
+
+  **Client side:**
+  1. `createFABClient(config)` returns a `FABClient` object with a `registerNetwork(network)` method.
+  2. Networks are added one at a time (or chained).
+  3. The underlying `x402Client` is available via `.client` and `createPaymentPayload` is delegated.
+
+  **Convenience builders** (`buildFABResourceServer`, `buildFABClient`) are kept for backward compatibility — they delegate to the two-phase API internally.
+
+  **Scope:**
+
+  - [ ] 29.1 Create `FABResourceServerBuilder` in `src/builders/resource-server-builder.ts`
+    - [ ] 29.1.1 Define `FABResourceServerConfig` interface
+      ```typescript
+      interface FABResourceServerConfig {
+        /** Networks that FAB should handle (e.g., ['fab:aws', 'eip155:8453']) */
+        fabNetworks: Network[];
+        /** Wallet base URL for the FAB facilitator */
+        walletBaseUrl: string;
+        /** Wallet ID for the FAB facilitator */
+        walletId: string;
+        /** Service signing keys for quote tokens */
+        signingKeys: SigningKeysConfig;
+        /** Service URL (used as issuer in quote tokens) */
+        serviceUrl: string;
+        /** Optional: wallet auth config for facilitator API calls */
+        walletAuth?: WalletFacilitatorAuthConfig;
+        /** Optional: wallet auth config for wallet client (used by facilitator scheme) */
+        walletClientAuth?: AuthConfig;
+        /** Optional: custom default facilitator URL (defaults to https://x402.org/facilitator) */
+        defaultFacilitatorUrl?: string;
+        /** Optional: disable default facilitator fallback entirely */
+        disableDefaultFallback?: boolean;
+      }
+      ```
+    - [ ] 29.1.2 Implement `buildFABResourceServer(config)` factory function
+      - Create a `WalletFacilitatorClient` (or `InProcessFacilitatorClient`) for the FAB networks
+      - Create an `HTTPFacilitatorClient` for the default fallback (unless `disableDefaultFallback` is true)
+      - Instantiate `x402ResourceServer` with `[fabFacilitatorClient, defaultFacilitatorClient]` (FAB first for precedence)
+      - For each network in `fabNetworks`, call `server.register(network, new FABServerScheme({...}))` with the provided signing keys and service URL
+      - Call `server.initialize()` to fetch supported kinds from both facilitators
+      - Return the configured `x402ResourceServer`
+    - [ ] 29.1.3 Handle edge cases
+      - Validate `fabNetworks` is non-empty
+      - Validate wallet URL is a valid URL
+      - Validate signing keys are present
+      - If `disableDefaultFallback` is true, only pass the FAB facilitator client
+      - If a network in `fabNetworks` is not supported by the wallet's `/.well-known/x402-supported` response, log a warning (the wallet may not support it yet)
+
+  - [ ] 29.2 Create `FABClientBuilder` in `src/builders/client-builder.ts`
+    - [ ] 29.2.1 Define `FABClientConfig` interface
+      ```typescript
+      interface FABClientConfig {
+        /** Networks to register FAB client schemes for */
+        fabNetworks: Network[];
+        /** Wallet base URL */
+        walletBaseUrl: string;
+        /** Wallet ID */
+        walletId: string;
+        /** Optional: wallet auth config */
+        walletAuth?: AuthConfig;
+        /** Optional: DPoP configuration */
+        dpop?: { keyPair: DPoPKeyPair; enabled: boolean };
+      }
+      ```
+    - [ ] 29.2.2 Implement `buildFABClient(config)` factory function
+      - Create a single `FABClientScheme` instance configured with the wallet
+      - For each network in `fabNetworks`, call `client.register(network, fabClientScheme)` — the same `FABClientScheme` instance can be reused across networks because the scheme is stateless w.r.t. network (the network is passed through to the wallet)
+      - Return the configured `x402Client`
+    - [ ] 29.2.3 Handle edge cases
+      - Validate `fabNetworks` is non-empty
+      - Validate wallet URL
+      - Allow passing an existing `x402Client` instance to add FAB networks to (for composability with non-FAB schemes the client may also support)
+
+  - [ ] 29.3 Update `InProcessFacilitatorClient` to support multi-facilitator composition
+    - [ ] 29.3.1 The `InProcessFacilitatorClient` wraps an `x402Facilitator` which already supports multiple scheme registrations. Verify that registering the FAB facilitator scheme for specific networks and then passing this client as one of multiple facilitator clients to `x402ResourceServer` works correctly.
+    - [ ] 29.3.2 The `x402ResourceServer` constructor accepts `FacilitatorClient | FacilitatorClient[]`. Verify that passing `[inProcessFabClient, httpDefaultClient]` gives FAB precedence for registered networks and falls back to HTTP for others.
+    - [ ] 29.3.3 No code changes expected — this subtask is verification of existing behavior. Document findings.
+
+  - [ ] 29.4 Update `WalletFacilitatorClient.getSupported()` to scope to registered networks
+    - [ ] 29.4.1 Currently `WalletFacilitatorClient.getSupported()` returns whatever the wallet's `/.well-known/x402-supported` endpoint returns. This is correct — the wallet declares what it supports, and the `x402ResourceServer.initialize()` maps those to facilitator clients.
+    - [ ] 29.4.2 However, if the wallet declares support for networks that the integrator did NOT include in `fabNetworks`, those networks would still be claimed by the FAB facilitator (because `initialize()` maps by what `getSupported()` returns, not by what the integrator registered). This could shadow the default facilitator for networks the integrator didn't intend to handle via FAB.
+    - [ ] 29.4.3 Solution: Add an optional `networkFilter` to `WalletFacilitatorClient` constructor. When set, `getSupported()` filters the wallet's response to only include kinds whose network is in the filter set. This ensures the FAB facilitator only claims the networks the integrator explicitly chose.
+      ```typescript
+      constructor(
+        walletBaseUrl: string,
+        authConfig?: WalletFacilitatorAuthConfig,
+        networkFilter?: Set<Network>  // NEW: only claim these networks
+      )
+      ```
+    - [ ] 29.4.4 Update `getSupported()` implementation:
+      ```typescript
+      async getSupported(): Promise<SupportedResponse> {
+        const response = await fetch(`${this.walletBaseUrl}/.well-known/x402-supported`);
+        if (!response.ok) throw new Error(`Failed to fetch supported kinds: ${response.statusText}`);
+        const supported = await response.json() as SupportedResponse;
+        
+        // If network filter is set, only include kinds for registered networks
+        if (this.networkFilter) {
+          supported.kinds = supported.kinds.filter(kind => this.networkFilter!.has(kind.network as Network));
+        }
+        
+        return supported;
+      }
+      ```
+
+  - [ ] 29.5 Create convenience `registerFABNetworks` function in `src/builders/register.ts`
+    - [ ] 29.5.1 Implement a single function that wires up both server and facilitator for the common case:
+      ```typescript
+      /**
+       * Register FAB networks on an existing x402ResourceServer.
+       * For each network, registers a FABServerScheme.
+       * Does NOT handle facilitator client setup — use buildFABResourceServer for that.
+       */
+      function registerFABNetworks(
+        server: x402ResourceServer,
+        networks: Network[],
+        config: { signingKeys: SigningKeysConfig; serviceUrl: string }
+      ): x402ResourceServer {
+        const fabServer = new FABServerScheme({
+          signingKeys: config.signingKeys,
+          serviceUrl: config.serviceUrl,
+        });
+        for (const network of networks) {
+          server.register(network, fabServer);
+        }
+        return server;
+      }
+      ```
+    - [ ] 29.5.2 This is a lower-level helper for integrators who want to compose their own facilitator client setup but still want a one-liner for scheme registration.
+
+  - [ ] 29.6 Update exports in `src/index.ts`
+    - [ ] 29.6.1 Export the new builder functions and config types:
+      ```typescript
+      // Builders
+      export { buildFABResourceServer } from './builders/resource-server-builder';
+      export { buildFABClient } from './builders/client-builder';
+      export { registerFABNetworks } from './builders/register';
+      export type { FABResourceServerConfig } from './builders/resource-server-builder';
+      export type { FABClientConfig } from './builders/client-builder';
+      ```
+    - [ ] 29.6.2 Keep existing exports unchanged for backward compatibility. The new builders are additive.
+
+  - [ ] 29.7 Update examples to use new builders
+    - [ ] 29.7.1 Update `examples/test-service.ts` to use `buildFABResourceServer`:
+      ```typescript
+      // BEFORE (manual registration):
+      const facilitatorClient = new WalletFacilitatorClient(WALLET_BASE_URL, { ... });
+      const server = new x402ResourceServer(facilitatorClient);
+      server.register('fab:test', new FABServerScheme({ ... }));
+      server.register('eip155:8453', new FABServerScheme({ ... }));
+      await server.initialize();
+
+      // AFTER (builder):
+      const server = await buildFABResourceServer({
+        fabNetworks: ['fab:test', 'eip155:8453'],
+        walletBaseUrl: WALLET_BASE_URL,
+        walletId: 'mock-wallet-provider',
+        signingKeys: { privateKey: serviceKeys.privateKey, publicKey: publicJWK, alg: 'RS256' },
+        serviceUrl: SERVICE_URL,
+        walletAuth: { getAuthHeaders: async () => ({ ... }) },
+      });
+      ```
+    - [ ] 29.7.2 Update `examples/test-client.ts` to use `buildFABClient`:
+      ```typescript
+      // BEFORE (manual registration):
+      const paymentClient = new x402Client()
+        .register('fab:test', new FABClientScheme({ ... }))
+        .register('eip155:8453', new FABClientScheme({ ... }));
+
+      // AFTER (builder):
+      const paymentClient = buildFABClient({
+        fabNetworks: ['fab:test', 'eip155:8453'],
+        walletBaseUrl: WALLET_BASE_URL,
+        walletId: WALLET_ID,
+        walletAuth: { type: 'apiKey', apiKey: API_KEY },
+      });
+      ```
+    - [ ] 29.7.3 Add a new example `examples/multi-facilitator.ts` showing the fallback scenario:
+      - Register `fab:aws` and `eip155:8453` for FAB
+      - Show that `solana:mainnet` would fall back to the default x402 facilitator
+      - Include comments explaining the precedence model
+
+  - [ ] 29.8 Write unit tests for `buildFABResourceServer` in `test/unit/builders/resource-server-builder.test.ts`
+    - [ ] 29.8.1 Test: builds server with FAB facilitator for specified networks
+      - Mock `WalletFacilitatorClient.getSupported()` to return the specified networks
+      - Verify `server.hasRegisteredScheme(network, 'fab')` is true for each specified network
+      - Verify `server.getSupportedKind(2, network, 'fab')` returns a kind for each network
+    - [ ] 29.8.2 Test: default facilitator is included when `disableDefaultFallback` is false (default)
+      - Mock both facilitator clients
+      - Verify that a network NOT in `fabNetworks` but supported by the default facilitator is available via `getSupportedKind`
+    - [ ] 29.8.3 Test: default facilitator is excluded when `disableDefaultFallback` is true
+      - Verify that only FAB networks are available
+    - [ ] 29.8.4 Test: FAB facilitator takes precedence over default for overlapping networks
+      - If both FAB and default facilitator support `eip155:8453`, the FAB facilitator should win (it's first in the array)
+      - Verify by checking which facilitator client is used for verify/settle
+    - [ ] 29.8.5 Test: validation errors for invalid config
+      - Empty `fabNetworks` array throws
+      - Invalid `walletBaseUrl` throws
+      - Missing `signingKeys` throws
+    - Target: 5-7 tests
+
+  - [ ] 29.9 Write unit tests for `buildFABClient` in `test/unit/builders/client-builder.test.ts`
+    - [ ] 29.9.1 Test: registers FAB client scheme for all specified networks
+      - Build client with `fabNetworks: ['fab:aws', 'eip155:8453']`
+      - Create a mock `PaymentRequired` with `accepts` containing both networks
+      - Verify `createPaymentPayload` works for both networks
+    - [ ] 29.9.2 Test: client rejects payment requirements for unregistered networks
+      - Build client with `fabNetworks: ['fab:aws']`
+      - Create `PaymentRequired` with only `solana:mainnet` in `accepts`
+      - Verify `createPaymentPayload` throws (no registered scheme for solana)
+    - [ ] 29.9.3 Test: client selects registered network when multiple options available
+      - Build client with `fabNetworks: ['eip155:8453']`
+      - Create `PaymentRequired` with `accepts` containing both `eip155:8453` and `solana:mainnet`
+      - Verify client selects `eip155:8453` (the one it has a scheme for)
+    - [ ] 29.9.4 Test: composability with existing x402Client
+      - Build FAB client, then add a non-FAB scheme manually
+      - Verify both work
+    - [ ] 29.9.5 Test: validation errors
+      - Empty `fabNetworks` throws
+      - Invalid `walletBaseUrl` throws
+    - Target: 5-6 tests
+
+  - [ ] 29.10 Write unit tests for `WalletFacilitatorClient` network filter in `test/unit/wallet-facilitator-client.test.ts`
+    - [ ] 29.10.1 Test: without filter, `getSupported()` returns all wallet-supported networks
+      - Mock wallet returning `['fab:aws', 'fab:test', 'eip155:8453']`
+      - Verify all three are in the response
+    - [ ] 29.10.2 Test: with filter `['fab:aws']`, `getSupported()` only returns `fab:aws`
+      - Same mock wallet response
+      - Verify only `fab:aws` is in the filtered response
+    - [ ] 29.10.3 Test: with filter for networks the wallet doesn't support, returns empty kinds
+      - Filter for `['solana:mainnet']` but wallet only supports FAB networks
+      - Verify `kinds` is empty
+    - Target: 3-4 tests
+
+  - [ ] 29.11 Write integration test for multi-facilitator fallback in `test/integrations/multi-facilitator.test.ts`
+    - [ ] 29.11.1 Test: end-to-end FAB payment on a FAB-registered network
+      - Use `buildFABResourceServer` with `fabNetworks: ['fab:aws']`
+      - Use `buildFABClient` with `fabNetworks: ['fab:aws']`
+      - Run the full flow: buildPaymentRequirements → createPaymentPayload → verifyPayment → settlePayment
+      - Verify success
+    - [ ] 29.11.2 Test: server offers multiple networks, client only supports FAB networks
+      - Server registers `fab:aws` (FAB) and `eip155:8453` (default facilitator)
+      - Client registers only `fab:aws`
+      - Server builds requirements for `fab:aws` — client pays successfully
+      - Server builds requirements for `eip155:8453` — client correctly rejects (no scheme registered)
+    - [ ] 29.11.3 Test: FAB facilitator precedence over default
+      - Both FAB and default facilitator claim `eip155:8453`
+      - Verify the FAB facilitator handles verify/settle (not the default)
+      - This validates the `x402ResourceServer` precedence model
+    - Target: 3-4 tests
+
+  - [ ] 29.12 Update `src/builders/index.ts` barrel export
+    - Create `src/builders/index.ts` that re-exports from all builder modules
+    - Keep the builder directory self-contained
+
+  - [ ] 29.13 Update documentation
+    - [ ] 29.13.1 Update `README.md`
+      - Add "Quick Start" section showing `buildFABResourceServer` and `buildFABClient`
+      - Add "Multi-Facilitator Fallback" section explaining the precedence model
+      - Show the before/after comparison of manual vs builder registration
+    - [ ] 29.13.2 Update `docs/design.md` (if exists) or add a section to `docs/spec.md`
+      - Document the multi-facilitator architecture
+      - Document the network filter on `WalletFacilitatorClient`
+      - Document the precedence model: FAB first, default second
+    - [ ] 29.13.3 Add JSDoc to all new public APIs
+      - `buildFABResourceServer` — full parameter docs, usage example
+      - `buildFABClient` — full parameter docs, usage example
+      - `registerFABNetworks` — full parameter docs
+      - `FABResourceServerConfig` — field-level docs
+      - `FABClientConfig` — field-level docs
+
+  - [ ] 29.14 Update spec.md with new requirements
+    - Add FAB-BLD-001: `The system shall provide a buildFABResourceServer factory function that accepts a list of networks and returns a fully configured x402ResourceServer with FAB facilitator precedence over the default facilitator.`
+    - Add FAB-BLD-002: `The system shall provide a buildFABClient factory function that accepts a list of networks and returns a fully configured x402Client with FAB client schemes registered for each network.`
+    - Add FAB-BLD-003: `When buildFABResourceServer is called without disableDefaultFallback, the system shall include an HTTPFacilitatorClient as a fallback facilitator for networks not handled by FAB.`
+    - Add FAB-BLD-004: `The WalletFacilitatorClient shall support an optional networkFilter that restricts getSupported() to only return kinds for networks in the filter set.`
+    - Add FAB-BLD-005: `When multiple facilitator clients are provided to x402ResourceServer, the FAB facilitator client shall be positioned first in the array to ensure precedence during initialize().`
+    - Add FAB-BLD-006: `The registerFABNetworks helper shall register a FABServerScheme for each specified network on an existing x402ResourceServer without modifying facilitator client configuration.`
+
+  - [ ] 29.15 Update traceability matrix
+    - Add FAB-BLD-001 → `src/builders/resource-server-builder.ts` → `test/unit/builders/resource-server-builder.test.ts`
+    - Add FAB-BLD-002 → `src/builders/client-builder.ts` → `test/unit/builders/client-builder.test.ts`
+    - Add FAB-BLD-003 → `src/builders/resource-server-builder.ts` → `test/unit/builders/resource-server-builder.test.ts`
+    - Add FAB-BLD-004 → `src/wallet-facilitator-client.ts` → `test/unit/wallet-facilitator-client.test.ts`
+    - Add FAB-BLD-005 → `src/builders/resource-server-builder.ts` → `test/integrations/multi-facilitator.test.ts`
+    - Add FAB-BLD-006 → `src/builders/register.ts` → `test/unit/builders/resource-server-builder.test.ts`
+
+  **How the precedence model works (for reference):**
+
+  The `x402ResourceServer` constructor accepts `FacilitatorClient | FacilitatorClient[]`. During `initialize()`, it calls `getSupported()` on each client in order and builds a map of `(version, network, scheme) → facilitatorClient`. The key line in the core is:
+
+  ```typescript
+  // Only store if not already present (gives precedence to earlier facilitators)
+  if (!responseNetworkMap.has(kind.scheme)) {
+    responseNetworkMap.set(kind.scheme, supported);
+    clientNetworkMap.set(kind.scheme, facilitatorClient);
+  }
+  ```
+
+  So by passing `[fabFacilitatorClient, defaultFacilitatorClient]`, FAB claims its networks first. The default facilitator only fills in networks that FAB didn't claim. This is exactly the behavior we want.
+
+  **Files created:**
+  - `src/builders/resource-server-builder.ts`
+  - `src/builders/client-builder.ts`
+  - `src/builders/register.ts`
+  - `src/builders/index.ts`
+  - `test/unit/builders/resource-server-builder.test.ts`
+  - `test/unit/builders/client-builder.test.ts`
+  - `test/integrations/multi-facilitator.test.ts`
+  - `examples/multi-facilitator.ts`
+
+  **Files modified:**
+  - `src/wallet-facilitator-client.ts` (add `networkFilter` parameter)
+  - `src/index.ts` (add builder exports)
+  - `examples/test-service.ts` (update to use builder)
+  - `examples/test-client.ts` (update to use builder)
+  - `docs/spec.md` (add FAB-BLD requirements)
+  - `docs/tasks.md` (traceability matrix)
+  - `README.md` (documentation)
+
+  **Estimated test count:** 16-21 new tests
+  **Dependencies:** None (uses existing `@x402/core` multi-facilitator support)
+  **Risk:** Low — builders are additive, existing manual registration still works. The only behavioral change is the `networkFilter` on `WalletFacilitatorClient`, which is opt-in (default: no filter, same as today).
+  **Backward compatibility:** Full. All existing code continues to work. Builders are a new, optional API surface.
+
+- [ ] 30. Create Brazil Package and Upload to code.amazon.com
+
+  Create a Brazil package for `@x402/fab` on code.amazon.com so the SDK can be consumed by internal teams via the Brazil dependency model. This involves creating the package using the NpmPrettyMuch build system, configuring it for the existing codebase, and uploading it to GitFarm.
+
+  _Spec references: FAB-CMP-001 through FAB-CMP-005, FAB-BLD-001 through FAB-BLD-003_
+
+  **Context:**
+  - The `@x402/fab` package is currently a local npm project built with `tsup` and tested with `vitest`.
+  - Amazon's internal TypeScript build system is [NpmPrettyMuch](https://code.amazon.com/packages/NpmPrettyMuch), which wraps npm and integrates with Brazil's dependency model.
+  - The package has two production dependencies (`jose`, `zod`) and one peer dependency (`@x402/core`).
+  - The [BuilderHub Create CLI](https://docs.hub.amazon.dev/docs/create/cli-guide/howto-pkg.html) provides the `create package` command to scaffold and `create package upload` to promote packages to Brazil/GitFarm.
+  - The recommended source package template for TypeScript libraries is `javascript-npm-pretty-much`.
+
+  **Prerequisites:**
+  - A Bindle ID for the package (ownership and permissions). Must be created or identified before starting.
+  - A version set to build into (either existing or new).
+  - A Brazil workspace associated with that version set.
+  - The `create` CLI installed (`toolbox install create`).
+  - `mwinit` session active for GitFarm push.
+
+  **Plan:**
+
+  - [ ] 30.1 Identify or create a Bindle for the package
+    - Determine the owning team and Bindle for `@x402/fab`.
+    - If no Bindle exists, create one at [bindles.amazon.com](https://bindles.amazon.com) with appropriate team ownership.
+    - Record the Bindle ID (`amzn1.bindle.resource.xxxxxxxxxxxxxxxxxxxx`).
+    - Decide on package permissions: Public source + Public artifacts (recommended for an SDK consumed by other teams).
+
+  - [ ] 30.2 Create a version set (if one doesn't exist)
+    - Create a version set for the FAB project:
+      ```bash
+      brazil vs create \
+        --from Linux/central \
+        --versionset <VSGroup>/mainline \
+        --platforms AL2023_x86_64,AL2023_aarch64 \
+        --mailinglist <team-mailing-list>@amazon.com \
+        --bindleid <bindle-id>
+      ```
+    - Merge NpmPrettyMuch and NodeJS into the version set:
+      ```bash
+      brazil vs merge --package NpmPrettyMuch --destination <VSGroup>/mainline
+      brazil vs merge --package NodeJS --destination <VSGroup>/mainline
+      ```
+
+  - [ ] 30.3 Create a Brazil workspace
+    - Create a local workspace tracking the version set:
+      ```bash
+      brazil ws create \
+        --name fab-x402-workspace \
+        --versionSet <VSGroup>/mainline
+      ```
+    - Set platform:
+      ```bash
+      brazil ws use --platform AL2023_x86_64
+      ```
+
+  - [ ] 30.4 Generate the Brazil package from template
+    - Use the BuilderHub Create CLI to scaffold the package:
+      ```bash
+      cd fab-x402-workspace
+      create package --id javascript-npm-pretty-much --name X402Fab
+      ```
+    - This creates a `src/X402Fab/` directory with a `Config` file, `package.json`, and NpmPrettyMuch build configuration.
+
+  - [ ] 30.5 Configure the Brazil `Config` file
+    - Verify the generated `Config` file has the correct build system and tools:
+      ```
+      build-system = npm-pretty-much;
+      build-tools = {
+          1.0 = {
+              NpmPrettyMuch = 1.10;
+              NodeJS = default;
+          };
+      };
+      ```
+    - Add any required dependencies or test-dependencies blocks if needed for `@x402/core`.
+
+  - [ ] 30.6 Copy the existing source code into the Brazil package
+    - Copy the following from the current `fab-x402-extension/` into the Brazil package directory:
+      - `src/` — all TypeScript source files
+      - `test/` — all test files
+      - `package.json` — the npm package manifest (will need adaptation)
+      - `tsconfig.json` — TypeScript configuration
+      - `tsup.config.ts` — build configuration
+      - `vitest.config.ts` — test configuration (if present)
+      - `README.md`, `docs/` — documentation
+    - Do NOT copy: `node_modules/`, `dist/`, `coverage/`, `.git/`, `examples/` (examples can be added later).
+
+  - [ ] 30.7 Adapt `package.json` for Brazil
+    - Update the `name` field to use the `@amzn/` scope if required by internal conventions (e.g., `@amzn/x402-fab`), or keep `@x402/fab` if the team prefers.
+    - Ensure `repository` field points to the GitFarm repo:
+      ```json
+      "repository": {
+        "type": "git",
+        "url": "ssh://git.amazon.com/pkg/X402Fab"
+      }
+      ```
+    - Update the `@x402/core` dev dependency from `file:../x402/typescript/packages/core` to a proper version reference. If `@x402/core` is available in the version set, use `"*"` and declare it in the Brazil `Config` dependencies. If not, it needs to be built into the version set first.
+    - Verify `jose` and `zod` (third-party dependencies) are resolvable via NpmPrettyMuch's npm proxy.
+
+  - [ ] 30.8 Verify local build
+    - Run `brazil-build` to verify the package builds successfully:
+      ```bash
+      cd src/X402Fab
+      brazil-build
+      ```
+    - This should invoke NpmPrettyMuch, which runs `npm install` and then `npm run build` (the `release` target).
+    - Verify that `build/brazil-npm-registry/` is produced (this is the artifact NpmPrettyMuch publishes).
+
+  - [ ] 30.9 Verify tests pass in Brazil build
+    - Ensure `npm test` is wired into the NpmPrettyMuch build. By default, NpmPrettyMuch runs `npm test` as part of `release`.
+    - Run `brazil-build release` and verify all 306 tests pass.
+
+  - [ ] 30.10 Upload the package to Brazil/GitFarm
+    - Commit all files to git locally.
+    - Upload using the Create CLI:
+      ```bash
+      create package upload \
+        --bindleId <bindle-id> \
+        --primaryExportControlType none \
+        --containsEncryption yes
+      ```
+      (The package uses `jose` for JWT/JWK cryptographic operations, so `containsEncryption` should be `yes`.)
+    - This will:
+      1. Create the GitFarm repository at `code.amazon.com/packages/X402Fab`
+      2. Register the Brazil package
+      3. Push the local git history to GitFarm
+
+  - [ ] 30.11 Build the package into the version set
+    - Submit a build request:
+      ```bash
+      brazil pb build \
+        --versionSet <VSGroup>/mainline \
+        --package X402Fab \
+        --branch mainline \
+        --useLatestChange \
+        --waitForCompletion
+      ```
+    - Verify the build succeeds on [build.amazon.com](https://build.amazon.com).
+
+  - [ ] 30.12 Verify the package is consumable
+    - In a separate test package or workspace, add `X402Fab` as a dependency in the `Config` file and `@amzn/x402-fab` (or `@x402/fab`) in `package.json`.
+    - Run `brazil-build` and verify the dependency resolves and imports work.
+
+  - [ ] 30.13 Update documentation
+    - Update `README.md` installation instructions to include Brazil consumption:
+      ```
+      ## Installation (Brazil)
+      Add to your Config file:
+      dependencies = { 1.0 = { X402Fab = 1.0; }; };
+
+      Add to your package.json:
+      "dependencies": { "@x402/fab": "*" }
+      ```
+    - Update `docs/sdk-guide.md` with a note about Brazil package availability.
+
+  **Files created:**
+  - `Config` (Brazil build configuration)
+  - GitFarm repository at `code.amazon.com/packages/X402Fab`
+
+  **Files modified:**
+  - `package.json` (repository URL, dependency references)
+  - `README.md` (installation instructions)
+  - `docs/sdk-guide.md` (Brazil availability note)
+
+  **Dependencies:**
+  - Bindle ID (must exist before upload)
+  - Version set (must exist before build)
+  - `@x402/core` must be available in the version set or resolvable via npm proxy
+
+  **Risk:** Medium — the main risk is `@x402/core` dependency resolution. If `@x402/core` is not in the version set or npm proxy, it needs to be built/published first. Third-party deps (`jose`, `zod`) should resolve via NpmPrettyMuch's npm proxy automatically.
+
+  **Open questions:**
+  1. What is the Bindle ID for this package? (Needs team input)
+  2. What version set should this build into? (Needs team input)
+  3. Should the npm scope be `@amzn/x402-fab` or `@x402/fab`? (Naming convention decision)
+  4. Is `@x402/core` already available as a Brazil package, or does it need to be onboarded first?
