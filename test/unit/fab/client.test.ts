@@ -10,7 +10,8 @@ import { createMockAgenticPayClient } from '../../helpers/mock-agentic-pay-clien
  * FAB Client Unit Tests
  * 
  * Tests the client scheme with mock Agentic Pay client.
- * In production, the client calls the Agentic Pay provider's API to get payment tokens.
+ * The client sends the quote token to the Agent Pay Service and receives
+ * a signed payment JWT in return.
  */
 
 describe('FAB Client Scheme', () => {
@@ -20,12 +21,10 @@ describe('FAB Client Scheme', () => {
   const agenticPayId = 'agentic-pay-test-456';
 
   beforeEach(async () => {
-    // Create mock Agentic Pay client
     const mock = await createMockAgenticPayClient(agenticPayId);
     privateKey = mock.privateKey;
     publicKey = mock.publicKey;
 
-    // Create scheme with mock Agentic Pay client
     scheme = new FABScheme({
       agenticPayId,
       agenticPayClient: mock.agenticPayClient
@@ -33,68 +32,6 @@ describe('FAB Client Scheme', () => {
   });
 
   it('should create payment payload with valid quote token', async () => {
-    // Create a mock quote token
-    const quotePayload = {
-      iss: 'https://api.example.com',
-      aud: 'fab:test',
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 300,
-      jti: 'quote_123',
-      price: { amount: '1.50', currency: 'USD' },
-      payTo: 'service-pay',
-      capture: 'manual',
-      reference: 'TEST'
-    };
-    const quoteToken = await new jose.SignJWT(quotePayload as any)
-      .setProtectedHeader({ alg: 'RS256' })
-      .sign(privateKey);
-
-    const requirements: PaymentRequirements = {
-      scheme: FAB_SCHEME,
-      network: 'fab:test',
-      amount: '1.50',
-      asset: 'iso4217:USD',
-      payTo: 'service-pay',
-      maxTimeoutSeconds: 3600,
-      extra: {
-        quoteToken
-      } as unknown as Record<string, unknown>
-    };
-
-    const result = await scheme.createPaymentPayload(2, requirements);
-
-    expect(result).toBeDefined();
-    expect(result.x402Version).toBe(2);
-    expect(result.payload).toBeDefined();
-    expect(result.payload.paymentToken).toBeDefined();
-    expect(result.payload.transactionId).toBeDefined();
-    expect(typeof result.payload.paymentToken).toBe('string');
-    expect(typeof result.payload.transactionId).toBe('string');
-
-    // Verify payment token structure
-    const decoded = jose.decodeJwt(result.payload.paymentToken as string);
-    expect(decoded.iss).toBe(agenticPayId);
-    expect(decoded.sub).toBe(agenticPayId);
-    expect(decoded.aud).toBe('https://api.example.com'); // Service URL from quote.iss
-  });
-
-  it('should throw error when quote token is missing', async () => {
-    const requirements: PaymentRequirements = {
-      scheme: FAB_SCHEME,
-      network: 'fab:test',
-      amount: '1.50',
-      asset: 'iso4217:USD',
-      payTo: 'service-pay',
-      maxTimeoutSeconds: 3600,
-      extra: {} as Record<string, unknown>
-    };
-
-    await expect(
-      scheme.createPaymentPayload(2, requirements)
-    ).rejects.toThrow('Missing quoteToken');
-  });
-
-  it('should generate valid transaction ID', async () => {
     const quotePayload = {
       iss: 'https://api.example.com',
       aud: 'fab:test',
@@ -121,13 +58,73 @@ describe('FAB Client Scheme', () => {
     };
 
     const result = await scheme.createPaymentPayload(2, requirements);
-    const transactionId = result.payload.transactionId as string;
 
-    expect(transactionId).toBeDefined();
-    expect(transactionId).toMatch(/^fab:test:[a-f0-9-]+$/);
+    expect(result).toBeDefined();
+    expect(result.x402Version).toBe(2);
+    expect(result.payload).toBeDefined();
+    expect(result.payload.paymentToken).toBeDefined();
+    expect(result.payload.paymentId).toBeDefined();
+    // Backward compat: transactionId is also set
+    expect(result.payload.transactionId).toBe(result.payload.paymentId);
+    expect(typeof result.payload.paymentToken).toBe('string');
+
+    // Verify payment token structure (Agent Pay format)
+    const decoded = jose.decodeJwt(result.payload.paymentToken as string);
+    expect(decoded.iss).toBe('aws-marketplace');
+    expect(decoded.sub).toBe(agenticPayId);
+    expect(decoded.payment_id).toBeDefined();
   });
 
-  it('should sign payment token correctly', async () => {
+  it('should throw error when quote token is missing', async () => {
+    const requirements: PaymentRequirements = {
+      scheme: FAB_SCHEME,
+      network: 'fab:test',
+      amount: '1.50',
+      asset: 'iso4217:USD',
+      payTo: 'service-pay',
+      maxTimeoutSeconds: 3600,
+      extra: {} as Record<string, unknown>
+    };
+
+    await expect(
+      scheme.createPaymentPayload(2, requirements)
+    ).rejects.toThrow('Missing quoteToken');
+  });
+
+  it('should generate valid payment ID in awsmp format', async () => {
+    const quotePayload = {
+      iss: 'https://api.example.com',
+      aud: 'fab:test',
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 300,
+      jti: 'quote_123',
+      price: { amount: '1.50', currency: 'USD' },
+      payTo: 'service-pay',
+      capture: 'manual',
+      reference: 'TEST'
+    };
+    const quoteToken = await new jose.SignJWT(quotePayload as any)
+      .setProtectedHeader({ alg: 'RS256' })
+      .sign(privateKey);
+
+    const requirements: PaymentRequirements = {
+      scheme: FAB_SCHEME,
+      network: 'fab:test',
+      amount: '1.50',
+      asset: 'iso4217:USD',
+      payTo: 'service-pay',
+      maxTimeoutSeconds: 3600,
+      extra: { quoteToken } as unknown as Record<string, unknown>
+    };
+
+    const result = await scheme.createPaymentPayload(2, requirements);
+    const paymentId = result.payload.paymentId as string;
+
+    expect(paymentId).toBeDefined();
+    expect(paymentId).toMatch(/^awsmp-/);
+  });
+
+  it('should produce verifiable payment token', async () => {
     const quotePayload = {
       iss: 'https://api.example.com',
       aud: 'fab:test',
@@ -156,11 +153,10 @@ describe('FAB Client Scheme', () => {
     const result = await scheme.createPaymentPayload(2, requirements);
     const paymentToken = result.payload.paymentToken as string;
 
-    // Verify token can be verified with public key
+    // Verify token can be verified with Agent Pay's public key
     const verified = await jose.jwtVerify(paymentToken, publicKey);
-    expect(verified.payload.iss).toBe(agenticPayId);
+    expect(verified.payload.iss).toBe('aws-marketplace');
     expect(verified.payload.sub).toBe(agenticPayId);
-    expect(verified.payload.aud).toBe('https://api.example.com'); // Service URL from quote.iss
     expect(verified.payload.payment_context).toBeDefined();
     expect((verified.payload.payment_context as any).quote_token).toBe(quoteToken);
   });
@@ -182,7 +178,7 @@ describe('FAB Client Scheme', () => {
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
 
-      // Use sentinel payTo — this is what the server scheme now produces
+      // Use sentinel payTo — this is what the server scheme produces
       const requirements: PaymentRequirements = {
         scheme: FAB_SCHEME,
         network: 'fab:test',
@@ -197,15 +193,14 @@ describe('FAB Client Scheme', () => {
 
       expect(result).toBeDefined();
       expect(result.payload.paymentToken).toBeDefined();
-      expect(result.payload.transactionId).toBeDefined();
+      expect(result.payload.paymentId).toBeDefined();
 
-      // Client should use quote.iss as payTo, NOT the sentinel value
+      // Client sends only the quoteToken to Agent Pay — sentinel payTo is irrelevant
       const decoded = jose.decodeJwt(result.payload.paymentToken as string);
-      expect(decoded.aud).toBe('https://api.example.com');
-      expect(decoded.aud).not.toBe(FAB_SENTINEL_PAY_TO);
+      expect(decoded.iss).toBe('aws-marketplace');
     });
 
-    it('should not pass sentinel value to Agentic Pay authorize call', async () => {
+    it('should not pass sentinel value to Agentic Pay — only sends quoteToken', async () => {
       const quotePayload = {
         iss: 'https://api.example.com',
         aud: 'fab:test',
@@ -233,10 +228,10 @@ describe('FAB Client Scheme', () => {
 
       const result = await scheme.createPaymentPayload(2, requirements);
 
-      // The payment token's aud should be the service URL from quote.iss,
-      // proving the client extracted payTo from the quote, not from requirements
+      // The payment token embeds the quote token in payment_context,
+      // proving Agent Pay received and processed it correctly
       const decoded = jose.decodeJwt(result.payload.paymentToken as string);
-      expect(decoded.aud).toBe('https://api.example.com');
+      expect((decoded.payment_context as any).quote_token).toBe(quoteToken);
     });
   });
 });

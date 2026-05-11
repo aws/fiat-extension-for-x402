@@ -1,8 +1,9 @@
 /**
  * FAB Client Scheme Implementation
  * 
- * In FAB, the "client" role is played by the Agentic Pay provider,
- * which creates payment tokens (JWTs) for authorized payments.
+ * In FAB, the "client" role is played by the AI agent (buyer),
+ * which sends the quote token to the Agent Pay Service and receives
+ * a signed payment JWT in return.
  */
 
 import {
@@ -12,7 +13,8 @@ import {
 } from '@x402/core/types';
 import type {
   FABClientSchemeConfig,
-  AgenticPayClientForClient
+  AgenticPayClientForClient,
+  DpopJwk
 } from '../../config';
 import { DefaultAgenticPayClient } from '../../agentic-pay-client';
 import {
@@ -20,30 +22,35 @@ import {
   FABPayloadV2,
   ValidationError
 } from '../../types';
-import { decodeQuoteToken } from '../../utils';
 import { FAB_SCHEME } from '../../constants';
 
 /**
- * FAB client implementation for Agentic Pay providers.
- * Creates payment tokens (JWTs) for authorized payments.
+ * FAB client implementation.
+ * Sends quote tokens to the Agent Pay Service and wraps the response
+ * into an x402 PaymentPayload.
  */
 export class FABScheme implements SchemeNetworkClient {
   readonly scheme = FAB_SCHEME;
   private readonly agenticPayId: string;
   private readonly agenticPayClient: AgenticPayClientForClient;
+  private readonly dpopJwk?: DpopJwk;
+  private readonly clientTokenGenerator?: () => string;
 
   /**
    * Create a new FAB client scheme
-   * @param config - Client configuration with Agentic Pay ID and Agentic Pay client or config
+   * @param config - Client configuration with Agentic Pay ID and client or config
    */
-  constructor(config: FABClientSchemeConfig) {
+  constructor(config: FABClientSchemeConfig & {
+    dpopJwk?: DpopJwk;
+    clientTokenGenerator?: () => string;
+  }) {
     this.agenticPayId = config.agenticPayId;
+    this.dpopJwk = config.dpopJwk;
+    this.clientTokenGenerator = config.clientTokenGenerator;
     
-    // Determine if we have a custom client or need to create default
     if ('agenticPayClient' in config) {
       this.agenticPayClient = config.agenticPayClient;
     } else if ('agenticPay' in config) {
-      // Pass through auth config if provided
       this.agenticPayClient = new DefaultAgenticPayClient(config.agenticPay);
     } else {
       throw new ValidationError('FABClientScheme requires either agenticPayClient or Agentic Pay configuration');
@@ -52,6 +59,11 @@ export class FABScheme implements SchemeNetworkClient {
 
   /**
    * Create a payment payload for FAB scheme
+   * 
+   * Sends the quote token to the Agent Pay Service which verifies the quote,
+   * captures the payment, and returns a signed Payment JWT. The Agent Pay
+   * Service extracts all payment details (amount, currency, recipient) from
+   * the quote token — the client only needs to forward it.
    * 
    * @param x402Version - x402 protocol version
    * @param paymentRequirements - Payment requirements from 402 response
@@ -67,33 +79,24 @@ export class FABScheme implements SchemeNetworkClient {
       throw new ValidationError('Missing quoteToken in payment requirements');
     }
 
-    // Decode quote token to get service details and payment info
-    const quote = decodeQuoteToken(extra.quoteToken);
-    
-    // Get price - handle both single price and array of prices
-    const price = Array.isArray(quote.price) ? quote.price[0] : quote.price;
-    if (!price) {
-      throw new ValidationError('Missing price in quote token');
-    }
-    
-    // Call Agentic Pay provider to authorize payment
-    // In FAB, paymentRequirements.payTo is a sentinel value ('urn:x402:fab:see-quote')
-    // because the signed quote token is the authoritative source for the payment
-    // recipient. We use quote.iss (service URL) as the payTo for the Agentic Pay's
-    // authorization request — this becomes the payment token's aud field.
-    const authResult = await this.agenticPayClient.authorize({
-      network: paymentRequirements.network,
-      amount: price.amount,
-      currency: price.currency,
-      payTo: quote.iss, // Service URL from quote token
+    // Generate client token for idempotency
+    const clientToken = this.clientTokenGenerator
+      ? this.clientTokenGenerator()
+      : crypto.randomUUID();
+
+    // Call Agent Pay Service — it extracts everything from the quote token
+    const result = await this.agenticPayClient.createPayment({
       quoteToken: extra.quoteToken,
-      agenticPayId: this.agenticPayId,
+      clientToken,
+      dpopJwk: this.dpopJwk,
     });
 
-    // Create FAB payload with payment token from Agentic Pay
+    // Create FAB payload with payment token from Agent Pay
     const payload: FABPayloadV2 = {
-      paymentToken: authResult.paymentToken,
-      transactionId: authResult.transactionId
+      paymentToken: result.paymentToken,
+      paymentId: result.paymentId,
+      // Backward compat: also set transactionId
+      transactionId: result.paymentId,
     };
 
     return {

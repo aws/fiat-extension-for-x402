@@ -11,7 +11,7 @@ import type { AuthConfig } from './auth/types';
 export interface SigningKeysConfig {
   publicKey: JWK;
   privateKey: KeyLike;
-  alg: 'RS256' | 'ES256';
+  alg: 'RS256' | 'ES256' | 'ES384';
 }
 
 /**
@@ -23,9 +23,10 @@ export interface AgenticPayConfig {
    * Base URL for Agentic Pay provider (e.g., 'https://pay.aws.amazon.com')
    * 
    * Standardized endpoints:
-   * - POST ${baseUrl}/transactions - authorize payment
-   * - POST ${baseUrl}/capture - capture payment
-   * - GET ${baseUrl}/.well-known/jwks.json - public keys
+   * - POST ${baseUrl}/CreateAgentPayment - create/authorize payment
+   * - GET  ${baseUrl}/GetAgentPayment/{paymentId} - get payment detail
+   * - POST ${baseUrl}/ListAgentPayments - list payments
+   * - GET  ${baseUrl}/.well-known/jwks.json - public keys
    */
   baseUrl: string;
   
@@ -36,34 +37,123 @@ export interface AgenticPayConfig {
   auth?: AuthConfig;
 }
 
+// ============================================================================
+// Agent Pay API Request/Response Types
+// ============================================================================
+
+/**
+ * DPoP public key in JWK format for proof-of-possession binding.
+ * Only EC keys are supported (P-256, P-384, P-521).
+ */
+export interface DpopJwk {
+  kty: 'EC';
+  crv: 'P-256' | 'P-384' | 'P-521';
+  x: string;
+  y: string;
+}
+
+/**
+ * Request body for CreateAgentPayment
+ */
+export interface CreateAgentPaymentRequest {
+  /** The seller-signed quote token JWT from the HTTP 402 response */
+  quoteToken: string;
+  /** Client-provided idempotency key (1-128 chars). Auto-generated if omitted. */
+  clientToken?: string;
+  /** EC public key for DPoP binding */
+  dpopJwk?: DpopJwk;
+}
+
+/**
+ * Response from CreateAgentPayment (201)
+ */
+export interface CreateAgentPaymentResponse {
+  /** Globally unique payment ID (format: awsmp-{UUIDv7}, 42 chars) */
+  paymentId: string;
+  /** Payment JWT signed by Agent Pay Service (ES384) */
+  paymentToken: string;
+  /** Authorization timestamp in ISO 8601 format */
+  createdAt: string;
+}
+
+/**
+ * Response from GetAgentPayment (200)
+ */
+export interface GetAgentPaymentResponse {
+  payment: {
+    paymentId: string;
+    buyerAccountId: string;
+    sellerInformation: {
+      sellerProfileId: string;
+      displayName: string;
+    };
+    listingId: string;
+    quoteToken: string;
+    paymentToken: string;
+    createdAt: string;
+    amount: {
+      value: string;
+      currency: string;
+    };
+    agreementId?: string;
+  };
+}
+
+/**
+ * Request body for ListAgentPayments
+ */
+export interface ListAgentPaymentsRequest {
+  sort?: {
+    sortBy?: 'CreatedAt';
+    sortOrder?: 'Asc' | 'Desc';
+  };
+  maxResults?: number;
+  nextToken?: string;
+}
+
+/**
+ * Response from ListAgentPayments (200)
+ */
+export interface ListAgentPaymentsResponse {
+  payments: Array<{
+    paymentId: string;
+    buyerAccountId: string;
+    sellerInformation: {
+      sellerProfileId: string;
+      displayName: string;
+    };
+    listingId: string;
+    createdAt: string;
+    agreementId?: string;
+  }>;
+  nextToken?: string;
+}
+
+// ============================================================================
+// Client Interfaces
+// ============================================================================
+
 /**
  * Client-side Agentic Pay operations
- * Used by FABClientScheme to authorize payments
+ * Used by FABClientScheme to create payments via the Agent Pay API
  */
 export interface AgenticPayClientForClient {
   /**
-   * Authorize a payment with the Agentic Pay provider
-   * Calls Agentic Pay's POST /transactions endpoint
+   * Create a payment with the Agent Pay Service.
+   * Sends the seller-signed quote token; Agent Pay verifies, captures,
+   * and returns a signed payment JWT.
    * 
-   * @param payload - Payment authorization request
-   * @returns Transaction ID and signed payment token from Agentic Pay
+   * @param request - CreateAgentPayment request
+   * @returns Payment ID and signed payment token
    */
-  authorize(payload: {
-    network: string;
-    amount: string;
-    currency: string;
-    payTo: string;
-    quoteToken: string;
-    agenticPayId: string;
-  }): Promise<{
-    transactionId: string;
-    paymentToken: string; // JWT signed by Agentic Pay provider
-  }>;
+  createPayment(request: CreateAgentPaymentRequest): Promise<CreateAgentPaymentResponse>;
 }
 
 /**
  * Facilitator-side Agentic Pay operations
- * Used by FABFacilitatorScheme to verify and settle payments
+ * Used by FABFacilitatorScheme to verify payments
+ * 
+ * Note: Agent Pay auto-captures on creation — there is no separate capture/settle step.
  */
 export interface AgenticPayClientForFacilitator {
   /**
@@ -75,39 +165,23 @@ export interface AgenticPayClientForFacilitator {
    */
   verifyPaymentToken(token: string): Promise<{
     iss: string;
-    sub: string;
-    aud: string;
+    sub?: string;
+    aud?: string;
     iat: number;
     exp: number;
-    payment_context: {
+    payment_id: string;
+    payment_context?: {
       transaction_id: string;
       quote_token: string;
     };
-  }>;
-  
-  /**
-   * Capture/settle a payment with the Agentic Pay provider
-   * Calls Agentic Pay's POST /capture endpoint
-   * 
-   * @param transactionId - Transaction ID from payment token
-   * @param amount - Amount to capture
-   * @param currency - Currency code
-   * @returns Capture result with confirmation
-   */
-  capturePayment(
-    transactionId: string,
-    amount: string,
-    currency: string
-  ): Promise<{
-    success: boolean;
-    captureId: string;
-    timestamp: number;
+    cnf?: {
+      jkt: string;
+    };
   }>;
 }
 
 /**
  * Combined interface for full Agentic Pay client
- * Used when implementing a complete Agentic Pay client
  */
 export interface AgenticPayClient extends AgenticPayClientForClient, AgenticPayClientForFacilitator {}
 

@@ -170,13 +170,12 @@ describe('FAB Integration Tests', () => {
       const fabPayload = paymentPayload.payload as unknown as FABPayloadV2;
       expect(fabPayload.paymentToken).toBeDefined();
       expect(fabPayload.transactionId).toBeDefined();
-      expect(fabPayload.transactionId).toMatch(/^fab:aws:[a-f0-9]+$/);
+      expect(fabPayload.transactionId).toMatch(/^awsmp-/);
 
-      // Decode and verify payment token structure
+      // Decode and verify payment token structure (Agent Pay format)
       const decodedPayment = jose.decodeJwt(fabPayload.paymentToken);
-      expect(decodedPayment.iss).toBe(agenticPayId);
-      expect(decodedPayment.sub).toBe(agenticPayId); // sub is same as iss (Agentic Pay ID)
-      expect(decodedPayment.aud).toBe(serviceUrl);
+      expect(decodedPayment.iss).toBe('aws-marketplace');
+      expect(decodedPayment.sub).toBe(agenticPayId);
       expect((decodedPayment as any).payment_context).toBeDefined();
       expect((decodedPayment as any).payment_context.transaction_id).toBe(fabPayload.transactionId);
       expect((decodedPayment as any).payment_context.quote_token).toBeDefined();
@@ -517,20 +516,18 @@ describe('FAB Integration Tests', () => {
       });
 
       // Then create payment token using Agentic Pay client
-      const result = await agenticPayMock.agenticPayClient.authorize({
+      const result = await agenticPayMock.agenticPayClient.createPayment({
         quoteToken,
-        payTo: 'service-pay',
-        network: 'fab:aws'
       });
 
       expect(result.paymentToken).toBeDefined();
       expect(typeof result.paymentToken).toBe('string');
+      expect(result.paymentId).toBeDefined();
 
       // Verify token can be decoded
       const decoded = jose.decodeJwt(result.paymentToken);
-      expect(decoded.iss).toBe(agenticPayId);
+      expect(decoded.iss).toBe('aws-marketplace');
       expect(decoded.sub).toBe(agenticPayId);
-      expect(decoded.aud).toBe('service-pay');
       expect((decoded as any).payment_context.quote_token).toBe(quoteToken);
     });
   });

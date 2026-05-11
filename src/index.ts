@@ -21,7 +21,13 @@ export type {
   FABClientSchemeConfig,
   FABServerSchemeConfig,
   FABFacilitatorSchemeConfig,
-  ServiceFABSigner as ServiceFABSignerInterface
+  ServiceFABSigner as ServiceFABSignerInterface,
+  DpopJwk,
+  CreateAgentPaymentRequest,
+  CreateAgentPaymentResponse,
+  GetAgentPaymentResponse,
+  ListAgentPaymentsRequest,
+  ListAgentPaymentsResponse
 } from './config';
 
 // Agentic Pay client implementation

@@ -1,10 +1,18 @@
 /**
  * Default Agentic Pay client implementation
- * Handles HTTP communication with Agentic Pay provider endpoints
+ * Handles HTTP communication with the AWS Marketplace Agent Pay Service
  */
 
 import { createRemoteJWKSet, jwtVerify } from 'jose';
-import type { AgenticPayClient, AgenticPayConfig } from './config';
+import type {
+  AgenticPayClient,
+  AgenticPayConfig,
+  CreateAgentPaymentRequest,
+  CreateAgentPaymentResponse,
+  GetAgentPaymentResponse,
+  ListAgentPaymentsRequest,
+  ListAgentPaymentsResponse,
+} from './config';
 import { ValidationError } from './types';
 import type { Authenticator, AuthenticatedRequest } from './auth/types';
 import { createAuthenticator } from './auth/factory';
@@ -19,7 +27,7 @@ interface JWKSCacheEntry {
 
 /**
  * Default Agentic Pay client implementation
- * Uses standardized endpoints derived from baseUrl
+ * Communicates with the AWS Marketplace Agent Pay Service API
  */
 export class DefaultAgenticPayClient implements AgenticPayClient {
   private readonly baseUrl: string;
@@ -42,67 +50,55 @@ export class DefaultAgenticPayClient implements AgenticPayClient {
   }
 
   /**
-   * Authorize a payment with the Agentic Pay provider
-   * Calls POST /transactions endpoint
+   * Create a payment with the Agent Pay Service.
+   * Sends the seller-signed quote token; Agent Pay verifies, captures,
+   * and returns a signed payment JWT.
    * 
-   * @param payload - Payment authorization request
-   * @returns Transaction ID and signed payment token
+   * Maps to: POST /CreateAgentPayment
    */
-  async authorize(payload: {
-    network: string;
-    amount: string;
-    currency: string;
-    payTo: string;
-    quoteToken: string;
-    agenticPayId: string;
-  }): Promise<{
-    transactionId: string;
-    paymentToken: string;
-  }> {
-    const url = `${this.baseUrl}/transactions`;
-    const body = JSON.stringify(payload);
+  async createPayment(request: CreateAgentPaymentRequest): Promise<CreateAgentPaymentResponse> {
+    const url = `${this.baseUrl}/CreateAgentPayment`;
+    const body = JSON.stringify({
+      quoteToken: request.quoteToken,
+      ...(request.clientToken && { clientToken: request.clientToken }),
+      ...(request.dpopJwk && { dpopJwk: request.dpopJwk }),
+    });
     
     try {
-      // Prepare request
-      let request: AuthenticatedRequest = {
+      let httpRequest: AuthenticatedRequest = {
         url,
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body,
       };
       
-      // Apply authentication if configured
       if (this.authenticator) {
-        request = await this.authenticator.authenticate(request);
+        httpRequest = await this.authenticator.authenticate(httpRequest);
       }
       
-      const response = await fetch(request.url, {
-        method: request.method,
-        headers: request.headers,
-        body: request.body,
+      const response = await fetch(httpRequest.url, {
+        method: httpRequest.method,
+        headers: httpRequest.headers,
+        body: httpRequest.body,
       });
 
       if (!response.ok) {
-        const errorText = await response.text().catch(() => response.statusText);
+        const errorBody = await response.json().catch(() => ({ message: response.statusText })) as Record<string, unknown>;
+        const message = (errorBody.message as string) || response.statusText;
         throw new ValidationError(
-          `Agentic Pay authorization failed (${response.status}): ${errorText}`
+          `Agentic Pay authorization failed (${response.status}): ${message}`
         );
       }
 
-      const result = await response.json() as any;
+      const result = await response.json() as CreateAgentPaymentResponse;
       
-      if (!result.transactionId || !result.paymentToken) {
+      if (!result.paymentId || !result.paymentToken) {
         throw new ValidationError(
-          'Invalid Agentic Pay response: missing transactionId or paymentToken'
+          'Invalid Agentic Pay response: missing paymentId or paymentToken'
         );
       }
 
-      return {
-        transactionId: result.transactionId as string,
-        paymentToken: result.paymentToken as string,
-      };
+      return result;
     } catch (error) {
       if (error instanceof ValidationError) {
         throw error;
@@ -114,50 +110,117 @@ export class DefaultAgenticPayClient implements AgenticPayClient {
   }
 
   /**
-   * Verify a payment token's signature
-   * Fetches Agentic Pay's public keys from JWKS endpoint and verifies JWT
+   * Get full payment detail by ID.
+   * 
+   * Maps to: GET /GetAgentPayment/{paymentId}
+   */
+  async getPayment(paymentId: string): Promise<GetAgentPaymentResponse> {
+    const url = `${this.baseUrl}/GetAgentPayment/${paymentId}`;
+    
+    let httpRequest: AuthenticatedRequest = {
+      url,
+      method: 'GET',
+      headers: {},
+    };
+    
+    if (this.authenticator) {
+      httpRequest = await this.authenticator.authenticate(httpRequest);
+    }
+    
+    const response = await fetch(httpRequest.url, {
+      method: httpRequest.method,
+      headers: httpRequest.headers,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({ message: response.statusText })) as Record<string, unknown>;
+      throw new ValidationError(
+        `Failed to get payment (${response.status}): ${(errorBody.message as string) || response.statusText}`
+      );
+    }
+
+    return await response.json() as GetAgentPaymentResponse;
+  }
+
+  /**
+   * List payments for the caller's account.
+   * 
+   * Maps to: POST /ListAgentPayments
+   */
+  async listPayments(request?: ListAgentPaymentsRequest): Promise<ListAgentPaymentsResponse> {
+    const url = `${this.baseUrl}/ListAgentPayments`;
+    const body = JSON.stringify(request || {});
+    
+    let httpRequest: AuthenticatedRequest = {
+      url,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    };
+    
+    if (this.authenticator) {
+      httpRequest = await this.authenticator.authenticate(httpRequest);
+    }
+    
+    const response = await fetch(httpRequest.url, {
+      method: httpRequest.method,
+      headers: httpRequest.headers,
+      body: httpRequest.body,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({ message: response.statusText })) as Record<string, unknown>;
+      throw new ValidationError(
+        `Failed to list payments (${response.status}): ${(errorBody.message as string) || response.statusText}`
+      );
+    }
+
+    return await response.json() as ListAgentPaymentsResponse;
+  }
+
+  /**
+   * Verify a payment token's signature.
+   * Fetches Agentic Pay's public keys from JWKS endpoint and verifies JWT.
    * 
    * @param token - Payment token JWT to verify
    * @returns Decoded and verified payment token payload
    */
   async verifyPaymentToken(token: string): Promise<{
     iss: string;
-    sub: string;
-    aud: string;
+    sub?: string;
+    aud?: string;
     iat: number;
     exp: number;
-    payment_context: {
+    payment_id: string;
+    payment_context?: {
       transaction_id: string;
       quote_token: string;
     };
+    cnf?: {
+      jkt: string;
+    };
   }> {
     try {
-      // Get JWKS (cached)
       const jwks = await this.getJWKS();
-      
-      // Verify JWT signature
       const { payload } = await jwtVerify(token, jwks);
       
-      // Validate required fields
-      if (!payload.iss || !payload.sub || !payload.aud || !payload.iat || !payload.exp) {
+      if (!payload.iss || !payload.iat || !payload.exp) {
         throw new ValidationError('Invalid payment token: missing required fields');
       }
-      
-      const paymentContext = payload.payment_context as any;
-      if (!paymentContext?.transaction_id || !paymentContext?.quote_token) {
-        throw new ValidationError('Invalid payment token: missing payment_context');
-      }
+
+      // Agent Pay uses payment_id at top level
+      const paymentId = (payload.payment_id as string) ||
+        (payload.payment_context as any)?.transaction_id || '';
 
       return {
         iss: payload.iss as string,
-        sub: payload.sub as string,
-        aud: payload.aud as string,
+        sub: payload.sub as string | undefined,
+        aud: payload.aud as string | undefined,
         iat: payload.iat as number,
         exp: payload.exp as number,
-        payment_context: {
-          transaction_id: paymentContext.transaction_id,
-          quote_token: paymentContext.quote_token,
-        },
+        payment_id: paymentId,
+        payment_context: payload.payment_context as any,
+        cnf: payload.cnf as any,
       };
     } catch (error) {
       if (error instanceof ValidationError) {
@@ -170,101 +233,18 @@ export class DefaultAgenticPayClient implements AgenticPayClient {
   }
 
   /**
-   * Capture/settle a payment with the Agentic Pay provider
-   * Calls POST /capture endpoint
-   * 
-   * @param transactionId - Transaction ID from payment token
-   * @param amount - Amount to capture
-   * @param currency - Currency code
-   * @returns Capture result with confirmation
-   */
-  async capturePayment(
-    transactionId: string,
-    amount: string,
-    currency: string
-  ): Promise<{
-    success: boolean;
-    captureId: string;
-    timestamp: number;
-  }> {
-    const url = `${this.baseUrl}/capture`;
-    const body = JSON.stringify({
-      transactionId,
-      amount,
-      currency,
-    });
-    
-    try {
-      // Prepare request
-      let request: AuthenticatedRequest = {
-        url,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body,
-      };
-      
-      // Apply authentication if configured
-      if (this.authenticator) {
-        request = await this.authenticator.authenticate(request);
-      }
-      
-      const response = await fetch(request.url, {
-        method: request.method,
-        headers: request.headers,
-        body: request.body,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => response.statusText);
-        throw new ValidationError(
-          `Payment capture failed (${response.status}): ${errorText}`
-        );
-      }
-
-      const result = await response.json() as any;
-      
-      if (typeof result.success !== 'boolean' || !result.captureId) {
-        throw new ValidationError(
-          'Invalid capture response: missing success or captureId'
-        );
-      }
-
-      return {
-        success: result.success as boolean,
-        captureId: result.captureId as string,
-        timestamp: (result.timestamp as number | undefined) || Date.now(),
-      };
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        throw error;
-      }
-      throw new ValidationError(
-        `Failed to capture payment: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
-  }
-
-  /**
    * Get JWKS for signature verification (with caching)
-   * 
-   * @returns JWKS remote set
    */
   private async getJWKS(): Promise<ReturnType<typeof createRemoteJWKSet>> {
     const jwksUrl = `${this.baseUrl}/.well-known/jwks.json`;
     const now = Date.now();
     
-    // Check cache
     const cached = this.jwksCache.get(jwksUrl);
     if (cached && cached.expiresAt > now) {
       return cached.jwks;
     }
     
-    // Create new JWKS remote set
     const jwks = createRemoteJWKSet(new URL(jwksUrl));
-    
-    // Cache it
     this.jwksCache.set(jwksUrl, {
       jwks,
       expiresAt: now + this.JWKS_CACHE_TTL_MS,

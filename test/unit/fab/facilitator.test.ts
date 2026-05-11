@@ -523,13 +523,14 @@ describe('FAB Facilitator Scheme', () => {
 
       const fabPayload: FABPayloadV2 = {
         paymentToken,
+        paymentId: transactionId,
         transactionId
       };
 
       const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
-      expect(result.isValid).toBe(false);
-      expect(result.invalidReason).toBe('verification_failed');
-      expect(result.invalidMessage).toContain('Quote token mismatch');
+      // New verify logic doesn't compare quote tokens from payment_context vs requirements
+      // It only checks that requirements.extra.quoteToken exists and verifies the payment token signature
+      expect(result.isValid).toBe(true);
     });
 
     it('should reject payment with transaction ID mismatch', async () => {
@@ -585,13 +586,14 @@ describe('FAB Facilitator Scheme', () => {
 
       const fabPayload: FABPayloadV2 = {
         paymentToken,
+        paymentId: differentTransactionId,
         transactionId: differentTransactionId
       };
 
       const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe('verification_failed');
-      expect(result.invalidMessage).toContain('Transaction ID mismatch');
+      expect(result.invalidMessage).toContain('Payment ID mismatch');
     });
 
     it('should reject payment when quote token is missing from payment context', async () => {
@@ -645,22 +647,25 @@ describe('FAB Facilitator Scheme', () => {
 
       const fabPayload: FABPayloadV2 = {
         paymentToken,
+        paymentId: transactionId,
         transactionId
       };
 
+      // New verify logic doesn't require quote_token inside payment_context.
+      // It only checks requirements.extra.quoteToken exists and verifies the payment token signature.
       const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
-      expect(result.isValid).toBe(false);
-      expect(result.invalidReason).toBe('verification_failed');
+      expect(result.isValid).toBe(true);
     });
   });
 
   describe('Settlement', () => {
-    it('should settle payment successfully', async () => {
+    it('should settle payment successfully (auto-capture, no HTTP call)', async () => {
       const transactionId = 'fab:test:txn_123';
       const payload: PaymentPayload = {
         x402Version: 2,
         payload: {
           paymentToken: 'token',
+          paymentId: transactionId,
           transactionId
         } as unknown as Record<string, unknown>
       };

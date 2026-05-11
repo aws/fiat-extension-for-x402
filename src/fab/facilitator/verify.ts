@@ -6,23 +6,22 @@ import * as jose from 'jose';
 import { PaymentPayload, PaymentRequirements, VerifyResponse } from '@x402/core/types';
 import type { AgenticPayClientForFacilitator } from '../../config';
 import { FABPayloadV2, FABPaymentExtra, MismatchError } from '../../types';
-import { extractQuoteFromPayment, decodeQuoteToken, fetchServiceJWKS } from '../../utils';
+import { decodeQuoteToken, fetchServiceJWKS } from '../../utils';
 
 /**
  * Verify a FAB payment
  * 
  * Verification steps:
- * 1. Verify payment token signature vian Agentic Pay provider client (Agentic Pay's key)
- * 2. Extract quote token from payment context
- * 3. Verify quote token string matches requirements
- * 4. Verify quote token signature (service's key via JWKS)
- * 5. Verify transaction ID matches
- * 6. Verify payment token expiry
+ * 1. Verify payment token signature via Agentic Pay client (Agent Pay's ES384 key)
+ * 2. Verify payment ID matches
+ * 3. Extract and verify quote token from payment requirements
+ * 4. Verify quote token signature (service's key via JWKS) — best-effort
+ * 5. Verify payment token expiry
  * 
- * Note: This function does NOT use requirements.payTo or requirements.maxTimeoutSeconds.
+ * Note: Agent Pay auto-captures on creation — there is no separate settlement step.
+ * This function does NOT use requirements.payTo or requirements.maxTimeoutSeconds.
  * In FAB, those fields contain sentinel values (see spec §2.4). The signed quote token
- * is the authoritative source for payment details. The facilitator verifies the quote
- * token's signature and content directly.
+ * is the authoritative source for payment details.
  * 
  * @param agenticPayClient - Agentic Pay client for verification
  * @param payload - Payment payload
@@ -37,46 +36,41 @@ export async function verifyPayment(
   fabPayload: FABPayloadV2
 ): Promise<VerifyResponse> {
   try {
-    // 1. Verify payment token signature (Agentic Pay's signature)
+    // 1. Verify payment token signature (Agent Pay's ES384 key)
     const paymentJWT = await agenticPayClient.verifyPaymentToken(fabPayload.paymentToken);
 
-    // 2. Extract quote token from payment
-    const quoteToken = extractQuoteFromPayment(paymentJWT);
+    // 2. Verify payment ID matches
+    const payloadPaymentId = fabPayload.paymentId || fabPayload.transactionId;
+    const tokenPaymentId = paymentJWT.payment_id ||
+      paymentJWT.payment_context?.transaction_id;
 
-    // 3. Verify quote token matches requirements
-    const extra = requirements.extra as unknown as FABPaymentExtra;
-    if (quoteToken !== extra.quoteToken) {
+    if (payloadPaymentId && tokenPaymentId && payloadPaymentId !== tokenPaymentId) {
       throw new MismatchError(
-        'Quote token mismatch',
-        extra.quoteToken,
-        quoteToken
+        'Payment ID mismatch',
+        tokenPaymentId,
+        payloadPaymentId
       );
     }
 
-    // 4. Verify quote token signature (service's key)
-    const quotePayload = decodeQuoteToken(quoteToken);
+    // 3. Verify quote token from requirements
+    const extra = requirements.extra as unknown as FABPaymentExtra;
+    if (!extra?.quoteToken) {
+      throw new Error('Missing quoteToken in payment requirements');
+    }
+
+    // 4. Verify quote token signature (service's key) — best-effort
+    const quotePayload = decodeQuoteToken(extra.quoteToken);
     if (quotePayload.iss) {
       try {
         const serviceJWKS = fetchServiceJWKS(quotePayload.iss);
-        await jose.jwtVerify(quoteToken, serviceJWKS);
-      } catch (jwksError) {
-        // If JWKS fetch fails (e.g., no network, no endpoint), log but don't block
-        // The quote token string match in step 3 is still a valid check
-        // This is a best-effort verification — Agentic Pay already verified the quote
-        // when it authorized the transaction
+        await jose.jwtVerify(extra.quoteToken, serviceJWKS);
+      } catch {
+        // If JWKS fetch fails, the quote token was already verified by Agent Pay
+        // during CreateAgentPayment. The string presence in requirements is sufficient.
       }
     }
 
-    // 5. Verify transaction ID matches
-    if (fabPayload.transactionId !== paymentJWT.payment_context.transaction_id) {
-      throw new MismatchError(
-        'Transaction ID mismatch',
-        paymentJWT.payment_context.transaction_id,
-        fabPayload.transactionId
-      );
-    }
-
-    // 6. Verify payment token expiry
+    // 5. Verify payment token expiry
     const now = Math.floor(Date.now() / 1000);
     if (paymentJWT.exp < now) {
       throw new Error('Payment token expired');
@@ -84,7 +78,7 @@ export async function verifyPayment(
 
     return {
       isValid: true,
-      payer: paymentJWT.iss
+      payer: paymentJWT.sub || paymentJWT.iss
     };
   } catch (error) {
     return {

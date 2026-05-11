@@ -1,51 +1,74 @@
 /**
  * Mock Agentic Pay client for testing
- * Simulates Agentic Pay provider behavior without making HTTP calls
+ * Simulates Agent Pay Service behavior without making HTTP calls
  */
 
 import * as jose from 'jose';
-import type { AgenticPayClient } from '../../src/config';
-import { generateTransactionId } from '../../src/utils';
+import type { AgenticPayClient, CreateAgentPaymentRequest, CreateAgentPaymentResponse } from '../../src/config';
 
 /**
  * Create a mock Agentic Pay client for testing
- * Uses in-memory key pairs to simulate Agentic Pay provider signing
+ * Uses in-memory key pairs to simulate Agent Pay Service signing
  */
 export async function createMockAgenticPayClient(agenticPayId: string = 'test-agentic-pay-123'): Promise<{
   agenticPayClient: AgenticPayClient;
   privateKey: jose.KeyLike;
   publicKey: jose.KeyLike;
 }> {
-  // Generate test key pair
+  // Generate test key pair (ES384 to match production, but RS256 works for tests)
   const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
   
+  // In-memory payment store for idempotency
+  const paymentStore = new Map<string, CreateAgentPaymentResponse>();
+  let paymentCounter = 0;
+
   const agenticPayClient: AgenticPayClient = {
-    // Client-side: authorize payment
-    authorize: async (payload) => {
-      const transactionId = generateTransactionId(payload.network, agenticPayId);
+    // Client-side: create payment (matches Agent Pay API)
+    createPayment: async (request: CreateAgentPaymentRequest): Promise<CreateAgentPaymentResponse> => {
+      // Check idempotency
+      if (request.clientToken && paymentStore.has(request.clientToken)) {
+        return paymentStore.get(request.clientToken)!;
+      }
+
+      paymentCounter++;
+      const paymentId = `awsmp-00000000-0000-0000-0000-${String(paymentCounter).padStart(12, '0')}`;
       
-      // Create payment token (simulating Agentic Pay provider signing)
+      // Create payment token (simulating Agent Pay Service signing)
       const now = Math.floor(Date.now() / 1000);
-      const paymentTokenPayload = {
-        iss: agenticPayId,
+      const paymentTokenPayload: Record<string, unknown> = {
+        iss: 'aws-marketplace',
         sub: agenticPayId,
-        aud: payload.payTo,
         iat: now,
-        exp: now + 300,
+        exp: now + 3600,
+        payment_id: paymentId,
         payment_context: {
-          transaction_id: transactionId,
-          quote_token: payload.quoteToken
+          transaction_id: paymentId,
+          quote_token: request.quoteToken
         }
       };
+
+      // Add DPoP binding if key provided
+      if (request.dpopJwk) {
+        const thumbprint = await jose.calculateJwkThumbprint(request.dpopJwk as jose.JWK);
+        paymentTokenPayload.cnf = { jkt: thumbprint };
+      }
       
-      const paymentToken = await new jose.SignJWT(paymentTokenPayload as any)
+      const paymentToken = await new jose.SignJWT(paymentTokenPayload)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
       
-      return {
-        transactionId,
-        paymentToken
+      const response: CreateAgentPaymentResponse = {
+        paymentId,
+        paymentToken,
+        createdAt: new Date().toISOString(),
       };
+
+      // Store for idempotency
+      if (request.clientToken) {
+        paymentStore.set(request.clientToken, response);
+      }
+
+      return response;
     },
     
     // Facilitator-side: verify payment token
@@ -54,25 +77,18 @@ export async function createMockAgenticPayClient(agenticPayId: string = 'test-ag
       
       return {
         iss: payload.iss as string,
-        sub: payload.sub as string,
-        aud: payload.aud as string,
+        sub: payload.sub as string | undefined,
+        aud: payload.aud as string | undefined,
         iat: payload.iat as number,
         exp: payload.exp as number,
+        payment_id: (payload.payment_id as string) || '',
         payment_context: payload.payment_context as {
           transaction_id: string;
           quote_token: string;
-        }
+        } | undefined,
+        cnf: payload.cnf as { jkt: string } | undefined,
       };
     },
-    
-    // Facilitator-side: capture payment
-    capturePayment: async (transactionId, amount, currency) => {
-      return {
-        success: true,
-        captureId: `capture_${transactionId}`,
-        timestamp: Date.now()
-      };
-    }
   };
   
   return {

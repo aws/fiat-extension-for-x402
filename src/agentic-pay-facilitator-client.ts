@@ -194,76 +194,28 @@ export class AgenticPayFacilitatorClient implements FacilitatorClient {
   }
 
   /**
-   * Settle a payment by capturing it with Agentic Pay
+   * Settle a payment.
+   * 
+   * Agent Pay auto-captures on creation — there is no separate /capture endpoint.
+   * This returns success immediately since the payment was already settled.
    * 
    * @param payload - Payment payload to settle
    * @param requirements - Payment requirements
-   * @returns Settlement response
+   * @returns Settlement response (always success)
    */
   async settle(
     payload: PaymentPayload,
     requirements: PaymentRequirements
   ): Promise<SettleResponse> {
     const fabPayload = payload.payload as unknown as FABPayloadV2;
-    
-    try {
-      // 1. Verify payment first
-      const verifyResult = await this.verify(payload, requirements);
-      if (!verifyResult.isValid) {
-        return {
-          success: false,
-          errorReason: verifyResult.invalidReason || 'verification_failed',
-          errorMessage: verifyResult.invalidMessage || 'Payment verification failed',
-          transaction: fabPayload.transactionId,
-          network: requirements.network
-        };
-      }
+    const paymentId = fabPayload.paymentId || fabPayload.transactionId || '';
 
-      // 2. Call Agentic Pay's capture endpoint
-      const authHeaders = this.authConfig?.getAuthHeaders 
-        ? await this.authConfig.getAuthHeaders() 
-        : {};
-      
-      const captureResponse = await fetch(`${this.agenticPayBaseUrl}/capture`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...authHeaders
-        },
-        body: JSON.stringify({
-          transactionId: fabPayload.transactionId,
-          amount: requirements.amount,
-          currency: requirements.asset.replace('iso4217:', '')
-        })
-      });
-
-      if (!captureResponse.ok) {
-        const errorData: any = await captureResponse.json().catch(() => ({}));
-        return {
-          success: false,
-          errorReason: 'capture_failed',
-          errorMessage: errorData.error || `Capture failed: ${captureResponse.statusText}`,
-          transaction: fabPayload.transactionId,
-          network: requirements.network
-        };
-      }
-
-      await captureResponse.json();
-
-      return {
-        success: true,
-        transaction: fabPayload.transactionId,
-        network: requirements.network
-      };
-    } catch (error) {
-      return {
-        success: false,
-        errorReason: 'settlement_error',
-        errorMessage: error instanceof Error ? error.message : 'Settlement failed',
-        transaction: fabPayload.transactionId,
-        network: requirements.network
-      };
-    }
+    // Agent Pay auto-captures — no HTTP call needed.
+    return {
+      success: true,
+      transaction: paymentId,
+      network: requirements.network
+    };
   }
 
   /**

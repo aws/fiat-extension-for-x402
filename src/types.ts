@@ -170,8 +170,10 @@ export interface PaymentTokenPayload {
 export interface FABPayloadV2 {
   /** Payment token (signed JWT from Agentic Pay) */
   paymentToken: string;
-  /** Transaction ID from Agentic Pay */
-  transactionId: string;
+  /** Payment ID from Agentic Pay (format: awsmp-{UUIDv7}) */
+  paymentId: string;
+  /** @deprecated Use paymentId. Kept for backward compatibility. */
+  transactionId?: string;
 }
 
 // ============================================================================
