@@ -112,7 +112,7 @@ This is how FAB coexists with the default x402 facilitator — FAB claims `fab:*
 
 ## 2. What FAB Introduces
 
-FAB (Federated Application Billing) extends x402 to support **fiat currency payments** through trusted wallet providers. Instead of on-chain transactions, FAB uses JWT-signed tokens as proof of payment.
+FAB (Federated Application Billing) extends x402 to support **fiat currency payments** through trusted Agentic Pay providers. Instead of on-chain transactions, FAB uses JWT-signed tokens as proof of payment.
 
 ### 2.1 Core Concept: Two Signed Tokens
 
@@ -121,36 +121,36 @@ The entire FAB security model rests on two JWTs:
 | Token | Signed by | Purpose |
 |-------|-----------|---------|
 | **Quote Token** | Service (API provider) | "I will sell you this resource for $0.15 USD. This offer expires in 5 minutes." |
-| **Payment Token** | Wallet provider | "I have authorized $0.15 USD from buyer X to seller Y. Here is the transaction ID." |
+| **Payment Token** | Agentic Pay provider | "I have authorized $0.15 USD from buyer X to seller Y. Here is the transaction ID." |
 
-The quote token is embedded in the 402 response (`extra.quoteToken`). The client forwards it to the wallet, which returns a payment token. The service verifies both signatures to confirm the payment.
+The quote token is embedded in the 402 response (`extra.quoteToken`). The client forwards it to Agentic Pay, which returns a payment token. The service verifies both signatures to confirm the payment.
 
-### 2.2 The Wallet's Dual Role
+### 2.2 The Agentic Pay's Dual Role
 
-In the default x402 model, the facilitator is a separate third-party service. In FAB, the **wallet provider IS the facilitator**. It:
+In the default x402 model, the facilitator is a separate third-party service. In FAB, the **Agentic Pay provider IS the facilitator**. It:
 
 - Authorizes transactions (client-facing: `POST /transactions`)
-- Signs payment tokens (JWT with the wallet's private key)
+- Signs payment tokens (JWT with the Agentic Pay's private key)
 - Verifies payment tokens (facilitator-facing: JWKS at `/.well-known/jwks.json`)
 - Settles payments (facilitator-facing: `POST /capture`)
 
-This eliminates the need for a separate facilitator service. The `WalletFacilitatorClient` adapter translates x402's `FacilitatorClient` interface into wallet API calls.
+This eliminates the need for a separate facilitator service. The `AgenticPayFacilitatorClient` adapter translates x402's `FacilitatorClient` interface into Agentic Pay API calls.
 
 ### 2.3 What We Built
 
 | Module | File(s) | Purpose |
 |--------|---------|---------|
 | **FABServerScheme** | `src/fab/server/scheme.ts` | Implements `SchemeNetworkServer`. Generates quote tokens, signs them with the service's key, and embeds them in the 402 response. |
-| **FABClientScheme** | `src/fab/client/scheme.ts` | Implements `SchemeNetworkClient`. Extracts the quote token from the 402 response, sends it to the wallet for authorization, and wraps the payment token into a `PaymentPayload`. |
-| **FABFacilitatorScheme** | `src/fab/facilitator/scheme.ts` | Implements `SchemeNetworkFacilitator`. Delegates to `verify.ts` and `settle.ts` for cryptographic verification and wallet capture calls. |
-| **WalletFacilitatorClient** | `src/wallet-facilitator-client.ts` | Implements `FacilitatorClient` (the x402 facilitator interface). Verifies payment tokens by checking JWT signatures against the wallet's JWKS, then settles via the wallet's `/capture` endpoint. |
-| **DefaultWalletClient** | `src/wallet-client.ts` | HTTP client for wallet API calls (`/transactions`, `/capture`, `/.well-known/jwks.json`). Used by both the client scheme and the facilitator scheme. This is a reference implementation — it will be replaced by the official AWS SDK wallet client in production. The scheme constructors accept either a `WalletConfig` (which creates a `DefaultWalletClient`) or a custom object implementing `WalletClientForClient` / `WalletClientForFacilitator`, so swapping in the AWS SDK client requires no changes to the scheme layer. |
+| **FABClientScheme** | `src/fab/client/scheme.ts` | Implements `SchemeNetworkClient`. Extracts the quote token from the 402 response, sends it to Agentic Pay for authorization, and wraps the payment token into a `PaymentPayload`. |
+| **FABFacilitatorScheme** | `src/fab/facilitator/scheme.ts` | Implements `SchemeNetworkFacilitator`. Delegates to `verify.ts` and `settle.ts` for cryptographic verification and Agentic Pay capture calls. |
+| **AgenticPayFacilitatorClient** | `src/agentic-pay-facilitator-client.ts` | Implements `FacilitatorClient` (the x402 facilitator interface). Verifies payment tokens by checking JWT signatures against the Agentic Pay's JWKS, then settles via the Agentic Pay's `/capture` endpoint. |
+| **DefaultAgenticPayClient** | `src/agentic-pay-client.ts` | HTTP client for Agentic Pay API calls (`/transactions`, `/capture`, `/.well-known/jwks.json`). Used by both the client scheme and the facilitator scheme. This is a reference implementation — it will be replaced by the official AWS SDK Agentic Pay client in production. The scheme constructors accept either a `AgenticPayConfig` (which creates a `DefaultAgenticPayClient`) or a custom object implementing `AgenticPayClientForClient` / `AgenticPayClientForFacilitator`, so swapping in the AWS SDK client requires no changes to the scheme layer. |
 | **Builders** | `src/builders/` | `createFABResourceServer()` and `createFABClient()` — high-level APIs that wire up schemes, facilitators, and network registration in a fluent two-phase pattern. |
-| **Authentication** | `src/auth/` | Pluggable auth for wallet API calls: API Key, AWS SigV4, OAuth2, Custom. Factory pattern via `createAuthenticator()`. |
+| **Authentication** | `src/auth/` | Pluggable auth for Agentic Pay API calls: API Key, AWS SigV4, OAuth2, Custom. Factory pattern via `createAuthenticator()`. |
 | **DPoP** | `src/dpop/` | RFC 9449 Demonstrating Proof-of-Possession. Key generation, proof creation, proof verification with replay protection. Prevents token theft by binding payment tokens to ephemeral client keys. |
-| **Discovery** | `src/discovery.ts` | Network registry (`registerNetwork`) and OIDC-based wallet endpoint discovery. |
-| **Signers** | `src/signer.ts` | `toServiceFABSigner()` and `toWalletFABSigner()` — adapter functions that wrap `jose` key pairs into the `ServiceFABSigner` / `WalletFABSigner` interfaces. |
-| **AWS Presets** | `src/networks/aws.ts` | Pre-configured scheme classes for AWS Wallet (`FABAWSClientScheme`, `FABAWSServerScheme`, `FABAWSFacilitatorScheme`) with `https://wallet.aws.com` as the default base URL. |
+| **Discovery** | `src/discovery.ts` | Network registry (`registerNetwork`) and OIDC-based Agentic Pay endpoint discovery. |
+| **Signers** | `src/signer.ts` | `toServiceFABSigner()` and `toAgenticPayFABSigner()` — adapter functions that wrap `jose` key pairs into the `ServiceFABSigner` / `AgenticPayFABSigner` interfaces. |
+| **AWS Presets** | `src/networks/aws.ts` | Pre-configured scheme classes for AWS Agentic Pay (`FABAWSClientScheme`, `FABAWSServerScheme`, `FABAWSFacilitatorScheme`) with `https://pay.aws.amazon.com` as the default base URL. |
 | **Types** | `src/types.ts` | All FAB-specific types: `QuoteTokenPayload`, `PaymentTokenPayload`, `FABPayloadV2`, settlement types, DPoP types, error classes. |
 | **Constants** | `src/constants.ts` | `FAB_SCHEME`, `FAB_CAIP_FAMILY`, `FAB_SENTINEL_PAY_TO`, default validity windows. |
 | **Utilities** | `src/utils.ts` | JWT decode/verify helpers, transaction ID parsing, money parsing, service JWKS caching. |
@@ -162,7 +162,7 @@ This eliminates the need for a separate facilitator service. The `WalletFacilita
 ### 3.1 Payment Flow (Step by Step)
 
 ```
-Client                          Service                         Wallet Provider
+Client                          Service                         Agentic Pay Provider
   │                                │                                │
   │  1. GET /resource              │                                │
   │──────────────────────────────►│                                │
@@ -181,11 +181,11 @@ Client                          Service                         Wallet Provider
   │◄──────────────────────────────│                                │
   │                                │                                │
   │  3. POST /transactions         │                                │
-  │     { quoteToken, walletId }   │                                │
+  │     { quoteToken, agenticPayId }   │                                │
   │────────────────────────────────────────────────────────────────►│
   │                                │                                │
   │  4. { transactionId,           │                                │
-  │       paymentToken: "<JWT>" }  │  ◄── signed by wallet          │
+  │       paymentToken: "<JWT>" }  │  ◄── signed by Agentic Pay          │
   │◄────────────────────────────────────────────────────────────────│
   │                                │                                │
   │  5. GET /resource              │                                │
@@ -193,7 +193,7 @@ Client                          Service                         Wallet Provider
   │                  transactionId }                                │
   │──────────────────────────────►│                                │
   │                                │  6. Verify payment token       │
-  │                                │     (check wallet JWKS)        │
+  │                                │     (check Agentic Pay JWKS)        │
   │                                │  7. Verify quote token         │
   │                                │     (check service JWKS)       │
   │                                │  8. POST /capture              │
@@ -217,7 +217,7 @@ The quote token is a JWT signed by the service's private key (RS256 or ES256):
   "exp": 1709654700,
   "jti": "550e8400-e29b-41d4-a716-446655440000",
   "price": { "amount": "0.15", "currency": "USD" },
-  "payTo": "seller-wallet-id",
+  "payTo": "seller-agentic-pay-id",
   "capture": "manual",
   "reference": "premium-api-access",
   "settlement": { "method": "INST" },
@@ -230,11 +230,11 @@ Default validity: 300 seconds (5 minutes). The `price`, `payTo`, `capture`, and 
 
 ### 3.3 Payment Token Structure
 
-The payment token is a JWT signed by the wallet provider's private key:
+The payment token is a JWT signed by the Agentic Pay provider's private key:
 
 ```json
 {
-  "iss": "https://wallet.aws.com",
+  "iss": "https://pay.aws.amazon.com",
   "sub": "buyer-identity",
   "aud": "https://api.example.com",
   "iat": 1709654410,
@@ -266,22 +266,22 @@ Both sentinels are applied in `enhancePaymentRequirements` (server scheme). The 
 
 The facilitator's `verify()` performs these checks in order:
 
-1. **Payment token signature** — Fetch the wallet's JWKS (`/.well-known/jwks.json`), verify the JWT signature. This proves the wallet authorized the payment.
+1. **Payment token signature** — Fetch the Agentic Pay's JWKS (`/.well-known/jwks.json`), verify the JWT signature. This proves Agentic Pay authorized the payment.
 2. **Quote token extraction** — Extract `payment_context.quote_token` from the verified payment token.
 3. **Quote token match** — Confirm the extracted quote token string matches `requirements.extra.quoteToken` (the one the service originally issued).
-4. **Quote token signature** (best-effort) — Fetch the service's JWKS and verify the quote token's signature. If the JWKS endpoint is unreachable, this step is skipped — the string match in step 3 is still valid because the wallet already verified the quote when it authorized the transaction.
+4. **Quote token signature** (best-effort) — Fetch the service's JWKS and verify the quote token's signature. If the JWKS endpoint is unreachable, this step is skipped — the string match in step 3 is still valid because Agentic Pay already verified the quote when it authorized the transaction.
 5. **Transaction ID match** — Confirm `fabPayload.transactionId` matches `payment_context.transaction_id`.
 6. **Expiry check** — Confirm the payment token hasn't expired.
 
 ### 3.6 Settlement Logic
 
-The facilitator's `settle()` calls the wallet's `POST /capture` endpoint with the transaction ID, amount, and currency. The wallet transfers the held funds to the service's account.
+The facilitator's `settle()` calls the Agentic Pay's `POST /capture` endpoint with the transaction ID, amount, and currency. Agentic Pay transfers the held funds to the service's account.
 
 Settlement uses `requirements.amount` and `requirements.asset` (which are real values, not sentinels). It does not use `requirements.payTo` or `requirements.maxTimeoutSeconds`.
 
 ### 3.7 Authentication
 
-Wallet API calls support four authentication methods, configured via the `auth` field on `WalletConfig`:
+Agentic Pay API calls support four authentication methods, configured via the `auth` field on `AgenticPayConfig`:
 
 ```typescript
 // API Key
@@ -297,7 +297,7 @@ Wallet API calls support four authentication methods, configured via the `auth` 
 { type: 'custom', authenticate: async (request) => ({ ...request, headers: { ...request.headers, 'Authorization': '...' } }) }
 ```
 
-The `createAuthenticator()` factory returns an `Authenticator` instance that is applied to every outgoing wallet request.
+The `createAuthenticator()` factory returns an `Authenticator` instance that is applied to every outgoing Agentic Pay request.
 
 ### 3.8 DPoP (Demonstrating Proof-of-Possession)
 
@@ -311,9 +311,9 @@ DPoP binds payment tokens to ephemeral client keys, preventing token theft. The 
 
 Supported algorithms: ES256 (EC P-256) and RS256 (RSA 2048). Replay protection is available via the `DPoPNonceStore` interface.
 
-### 3.9 Wallet Provider Endpoints
+### 3.9 Agentic Pay Provider Endpoints
 
-Any wallet provider can integrate with FAB by exposing these standardized endpoints:
+Any Agentic Pay provider can integrate with FAB by exposing these standardized endpoints:
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
@@ -329,8 +329,8 @@ FAB uses a two-phase builder pattern:
 
 ```typescript
 const server = createFABResourceServer({
-  walletBaseUrl: 'https://wallet.aws.com',
-  walletId: 'my-wallet',
+  agenticPayBaseUrl: 'https://pay.aws.amazon.com',
+  agenticPayId: 'my-agentic-pay',
   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
   serviceUrl: 'https://api.example.com',
 });
@@ -342,7 +342,7 @@ server.registerNetwork('fab:aws');
 const x402Server = await server.initialize();
 ```
 
-During `initialize()`, the server queries the FAB facilitator's `getSupported()` and the default x402 facilitator's `getSupported()`. The FAB facilitator only claims networks that were explicitly registered (via the `networkFilter` on `WalletFacilitatorClient`). Unregistered networks fall through to the default facilitator.
+During `initialize()`, the server queries the FAB facilitator's `getSupported()` and the default x402 facilitator's `getSupported()`. The FAB facilitator only claims networks that were explicitly registered (via the `networkFilter` on `AgenticPayFacilitatorClient`). Unregistered networks fall through to the default facilitator.
 
 This prevents FAB from accidentally shadowing EVM or Solana networks that should be handled by the default `https://x402.org/facilitator`.
 
@@ -366,9 +366,9 @@ All FAB errors extend `FABError`, which extends `Error`:
 
 | Cache | TTL | Purpose |
 |-------|-----|---------|
-| Wallet JWKS | 1 hour | Avoid fetching public keys on every verification |
+| Agentic Pay JWKS | 1 hour | Avoid fetching public keys on every verification |
 | Service JWKS | 1 hour | Avoid fetching service keys on every quote token verification |
-| OIDC Discovery | 24 hours | Wallet endpoint metadata changes rarely |
+| OIDC Discovery | 24 hours | Agentic Pay endpoint metadata changes rarely |
 
 All caches can be cleared programmatically (`clearServiceJWKSCache()`, `clearJWKSCache()`, `clearDiscoveryCache()`).
 
@@ -385,13 +385,14 @@ Sub-path exports are available for tree-shaking: `@x402/fab/client`, `@x402/fab/
 ### 4.4 Known Limitations
 
 1. **AWS SigV4** — Simplified placeholder implementation. Production should use `@aws-sdk/signature-v4`.
-2. **OIDC Discovery** — Stub exists but needs a real OIDC client for production use.
-3. **Settlement** — The `/capture` call is a simple HTTP POST. Real settlement depends on the wallet provider's backend implementation.
-4. **Zod Schemas** — Types are fully defined but Zod runtime validation schemas are not fully wired up yet.
+2. **OIDC Discovery** — Full OIDC discovery (`/.well-known/openid-configuration`) is a stub. However, `fetchServiceJWKS` (direct JWKS fetching from `/.well-known/jwks.json`) is fully implemented with 1-hour caching.
+3. **Settlement (In-Process Facilitator)** — The in-process `FABFacilitatorScheme.settle()` returns a placeholder. The `AgenticPayFacilitatorClient.settle()` performs real HTTP-based capture via `POST /capture`.
+4. **Quote Token Verification (In-Process Facilitator)** — The in-process facilitator's quote signature check is best-effort (silently swallows failures). The `AgenticPayFacilitatorClient` verifies quote token signatures fully.
+5. **Zod Schemas** — Types are fully defined but Zod runtime validation schemas are not fully wired up yet.
 
 ### 4.5 Test Suite
 
-184 tests passing across 19 test files. Run with:
+306 tests passing across 29 test files. Run with:
 
 ```bash
 npm test              # single run
@@ -405,12 +406,12 @@ src/
 ├── index.ts                    # Package entry point and exports
 ├── types.ts                    # All FAB type definitions and error classes
 ├── constants.ts                # Scheme identifiers, defaults, sentinel values
-├── config.ts                   # Configuration interfaces (signing keys, wallet, schemes)
-├── signer.ts                   # JWT signer adapters (service + wallet)
+├── config.ts                   # Configuration interfaces (signing keys, Agentic Pay, schemes)
+├── signer.ts                   # JWT signer adapters (service + Agentic Pay)
 ├── utils.ts                    # JWT helpers, transaction IDs, money parsing, JWKS cache
-├── discovery.ts                # Network registry and OIDC wallet discovery
-├── wallet-client.ts            # HTTP client for wallet API calls
-├── wallet-facilitator-client.ts # x402 FacilitatorClient adapter for wallet providers
+├── discovery.ts                # Network registry and OIDC Agentic Pay discovery
+├── agentic-pay-client.ts            # HTTP client for Agentic Pay API calls
+├── agentic-pay-facilitator-client.ts # x402 FacilitatorClient adapter for Agentic Pay providers
 ├── facilitator-client.ts       # In-process facilitator (for testing/demos)
 ├── fab/
 │   ├── client/scheme.ts        # SchemeNetworkClient implementation
@@ -435,5 +436,5 @@ src/
 │   ├── proof-creation.ts       # createDPoPProof, computeJWKThumbprint
 │   └── proof-verification.ts   # verifyDPoPProof, extractDPoPThumbprint
 └── networks/
-    └── aws.ts                  # Pre-configured AWS Wallet schemes
+    └── aws.ts                  # Pre-configured AWS Agentic Pay schemes
 ```

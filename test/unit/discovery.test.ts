@@ -1,16 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  getWalletBaseUrl,
+  getAgenticPayBaseUrl,
   registerNetwork,
   unregisterNetwork,
   getRegisteredNetworks,
   clearNetworkRegistry,
-  discoverWalletEndpoints,
-  fetchWalletPublicKeys,
+  discoverAgenticPayEndpoints,
+  fetchAgenticPayPublicKeys,
   clearDiscoveryCache,
 } from '../../src/discovery';
 
-describe('Wallet Discovery', () => {
+describe('Agentic Pay Discovery', () => {
   beforeEach(() => {
     // Clear registry and caches before each test
     clearNetworkRegistry();
@@ -20,30 +20,30 @@ describe('Wallet Discovery', () => {
 
   describe('Network Registry', () => {
     it('should register network', () => {
-      registerNetwork('fab:aws', 'https://wallet.aws.com');
-      expect(getWalletBaseUrl('fab:aws')).toBe('https://wallet.aws.com');
+      registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
+      expect(getAgenticPayBaseUrl('fab:aws')).toBe('https://pay.aws.amazon.com');
     });
 
     it('should register multiple networks', () => {
-      registerNetwork('fab:aws', 'https://wallet.aws.com');
-      registerNetwork('fab:google', 'https://wallet.google.com');
-      registerNetwork('fab:custom', 'https://custom-wallet.example.com');
+      registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
+      registerNetwork('fab:google', 'https://pay.google.com');
+      registerNetwork('fab:custom', 'https://custom-pay.example.com');
 
-      expect(getWalletBaseUrl('fab:aws')).toBe('https://wallet.aws.com');
-      expect(getWalletBaseUrl('fab:google')).toBe('https://wallet.google.com');
-      expect(getWalletBaseUrl('fab:custom')).toBe('https://custom-wallet.example.com');
+      expect(getAgenticPayBaseUrl('fab:aws')).toBe('https://pay.aws.amazon.com');
+      expect(getAgenticPayBaseUrl('fab:google')).toBe('https://pay.google.com');
+      expect(getAgenticPayBaseUrl('fab:custom')).toBe('https://custom-pay.example.com');
     });
 
     it('should overwrite existing registration', () => {
-      registerNetwork('fab:aws', 'https://wallet.aws.com');
-      registerNetwork('fab:aws', 'https://new-wallet.aws.com');
-      expect(getWalletBaseUrl('fab:aws')).toBe('https://new-wallet.aws.com');
+      registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
+      registerNetwork('fab:aws', 'https://new-pay.aws.com');
+      expect(getAgenticPayBaseUrl('fab:aws')).toBe('https://new-pay.aws.com');
     });
 
     it('should unregister network', () => {
-      registerNetwork('fab:aws', 'https://wallet.aws.com');
+      registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
       expect(unregisterNetwork('fab:aws')).toBe(true);
-      expect(() => getWalletBaseUrl('fab:aws')).toThrow('Network not registered');
+      expect(() => getAgenticPayBaseUrl('fab:aws')).toThrow('Network not registered');
     });
 
     it('should return false when unregistering non-existent network', () => {
@@ -51,39 +51,39 @@ describe('Wallet Discovery', () => {
     });
 
     it('should get all registered networks', () => {
-      registerNetwork('fab:aws', 'https://wallet.aws.com');
-      registerNetwork('fab:google', 'https://wallet.google.com');
+      registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
+      registerNetwork('fab:google', 'https://pay.google.com');
 
       const networks = getRegisteredNetworks();
       expect(networks.size).toBe(2);
-      expect(networks.get('fab:aws')).toBe('https://wallet.aws.com');
-      expect(networks.get('fab:google')).toBe('https://wallet.google.com');
+      expect(networks.get('fab:aws')).toBe('https://pay.aws.amazon.com');
+      expect(networks.get('fab:google')).toBe('https://pay.google.com');
     });
 
     it('should clear all registrations', () => {
-      registerNetwork('fab:aws', 'https://wallet.aws.com');
-      registerNetwork('fab:google', 'https://wallet.google.com');
+      registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
+      registerNetwork('fab:google', 'https://pay.google.com');
 
       clearNetworkRegistry();
 
       expect(getRegisteredNetworks().size).toBe(0);
-      expect(() => getWalletBaseUrl('fab:aws')).toThrow('Network not registered');
+      expect(() => getAgenticPayBaseUrl('fab:aws')).toThrow('Network not registered');
     });
 
     it('should throw error for invalid network format', () => {
-      expect(() => registerNetwork('invalid', 'https://wallet.com')).toThrow(
+      expect(() => registerNetwork('invalid', 'https://pay.example.com')).toThrow(
         'Invalid network identifier format'
       );
     });
 
     it('should throw error for unsupported scheme', () => {
-      expect(() => registerNetwork('evm:aws', 'https://wallet.com')).toThrow(
+      expect(() => registerNetwork('evm:aws', 'https://pay.example.com')).toThrow(
         'Unsupported scheme'
       );
     });
 
     it('should throw error for missing provider', () => {
-      expect(() => registerNetwork('fab:', 'https://wallet.com')).toThrow(
+      expect(() => registerNetwork('fab:', 'https://pay.example.com')).toThrow(
         'Missing provider'
       );
     });
@@ -93,38 +93,38 @@ describe('Wallet Discovery', () => {
     });
   });
 
-  describe('getWalletBaseUrl', () => {
+  describe('getAgenticPayBaseUrl', () => {
     it('should throw error when network not registered', () => {
-      expect(() => getWalletBaseUrl('fab:aws')).toThrow(
+      expect(() => getAgenticPayBaseUrl('fab:aws')).toThrow(
         'Network not registered: fab:aws'
       );
     });
 
     it('should throw error for invalid network format', () => {
-      expect(() => getWalletBaseUrl('invalid-format')).toThrow(
+      expect(() => getAgenticPayBaseUrl('invalid-format')).toThrow(
         'Invalid network identifier format'
       );
     });
 
     it('should throw error for unsupported scheme', () => {
-      expect(() => getWalletBaseUrl('evm:aws')).toThrow('Unsupported scheme');
+      expect(() => getAgenticPayBaseUrl('evm:aws')).toThrow('Unsupported scheme');
     });
 
     it('should throw error for missing provider', () => {
-      expect(() => getWalletBaseUrl('fab:')).toThrow('Missing provider');
+      expect(() => getAgenticPayBaseUrl('fab:')).toThrow('Missing provider');
     });
   });
 
-  describe('discoverWalletEndpoints', () => {
+  describe('discoverAgenticPayEndpoints', () => {
     it('should fetch and parse discovery metadata', async () => {
       // Register network first
-      registerNetwork('fab:aws', 'https://wallet.aws.com');
+      registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
 
       const mockMetadata = {
-        issuer: 'https://wallet.aws.com',
-        payment_endpoint: 'https://wallet.aws.com/payments',
-        capture_endpoint: 'https://wallet.aws.com/capture',
-        jwks_uri: 'https://wallet.aws.com/.well-known/jwks.json',
+        issuer: 'https://pay.aws.amazon.com',
+        payment_endpoint: 'https://pay.aws.amazon.com/payments',
+        capture_endpoint: 'https://pay.aws.amazon.com/capture',
+        jwks_uri: 'https://pay.aws.amazon.com/.well-known/jwks.json',
       };
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -132,22 +132,22 @@ describe('Wallet Discovery', () => {
         json: async () => mockMetadata,
       });
 
-      const metadata = await discoverWalletEndpoints('fab:aws');
+      const metadata = await discoverAgenticPayEndpoints('fab:aws');
 
       expect(metadata).toEqual(mockMetadata);
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://wallet.aws.com/.well-known/openid-configuration'
+        'https://pay.aws.amazon.com/.well-known/openid-configuration'
       );
     });
 
     it('should cache discovery metadata for 24 hours', async () => {
-      registerNetwork('fab:aws', 'https://wallet.aws.com');
+      registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
 
       const mockMetadata = {
-        issuer: 'https://wallet.aws.com',
-        payment_endpoint: 'https://wallet.aws.com/payments',
-        capture_endpoint: 'https://wallet.aws.com/capture',
-        jwks_uri: 'https://wallet.aws.com/.well-known/jwks.json',
+        issuer: 'https://pay.aws.amazon.com',
+        payment_endpoint: 'https://pay.aws.amazon.com/payments',
+        capture_endpoint: 'https://pay.aws.amazon.com/capture',
+        jwks_uri: 'https://pay.aws.amazon.com/.well-known/jwks.json',
       };
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -156,49 +156,49 @@ describe('Wallet Discovery', () => {
       });
 
       // First call
-      await discoverWalletEndpoints('fab:aws');
+      await discoverAgenticPayEndpoints('fab:aws');
       // Second call (should use cache)
-      await discoverWalletEndpoints('fab:aws');
+      await discoverAgenticPayEndpoints('fab:aws');
 
       expect(global.fetch).toHaveBeenCalledTimes(1);
     });
 
     it('should throw error on fetch failure', async () => {
-      registerNetwork('fab:aws', 'https://wallet.aws.com');
+      registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 404,
       });
 
-      await expect(discoverWalletEndpoints('fab:aws')).rejects.toThrow(
-        'Failed to discover wallet endpoints'
+      await expect(discoverAgenticPayEndpoints('fab:aws')).rejects.toThrow(
+        'Failed to discover Agentic Pay endpoints'
       );
     });
 
     it('should throw error on invalid metadata', async () => {
-      registerNetwork('fab:aws', 'https://wallet.aws.com');
+      registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({ invalid: 'data' }),
       });
 
-      await expect(discoverWalletEndpoints('fab:aws')).rejects.toThrow(
+      await expect(discoverAgenticPayEndpoints('fab:aws')).rejects.toThrow(
         'Invalid discovery metadata'
       );
     });
   });
 
-  describe('fetchWalletPublicKeys', () => {
+  describe('fetchAgenticPayPublicKeys', () => {
     it('should fetch JWKS from discovered endpoint', async () => {
-      registerNetwork('fab:aws', 'https://wallet.aws.com');
+      registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
 
       const mockMetadata = {
-        issuer: 'https://wallet.aws.com',
-        payment_endpoint: 'https://wallet.aws.com/payments',
-        capture_endpoint: 'https://wallet.aws.com/capture',
-        jwks_uri: 'https://wallet.aws.com/.well-known/jwks.json',
+        issuer: 'https://pay.aws.amazon.com',
+        payment_endpoint: 'https://pay.aws.amazon.com/payments',
+        capture_endpoint: 'https://pay.aws.amazon.com/capture',
+        jwks_uri: 'https://pay.aws.amazon.com/.well-known/jwks.json',
       };
 
       const mockJWKS = {
@@ -220,24 +220,24 @@ describe('Wallet Discovery', () => {
           json: async () => mockJWKS,
         });
 
-      const jwks = await fetchWalletPublicKeys('fab:aws');
+      const jwks = await fetchAgenticPayPublicKeys('fab:aws');
 
       expect(jwks).toEqual(mockJWKS);
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://wallet.aws.com/.well-known/jwks.json'
+        'https://pay.aws.amazon.com/.well-known/jwks.json'
       );
     });
   });
 
   describe('Cache Management', () => {
     it('should clear discovery cache', async () => {
-      registerNetwork('fab:aws', 'https://wallet.aws.com');
+      registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
 
       const mockMetadata = {
-        issuer: 'https://wallet.aws.com',
-        payment_endpoint: 'https://wallet.aws.com/payments',
-        capture_endpoint: 'https://wallet.aws.com/capture',
-        jwks_uri: 'https://wallet.aws.com/.well-known/jwks.json',
+        issuer: 'https://pay.aws.amazon.com',
+        payment_endpoint: 'https://pay.aws.amazon.com/payments',
+        capture_endpoint: 'https://pay.aws.amazon.com/capture',
+        jwks_uri: 'https://pay.aws.amazon.com/.well-known/jwks.json',
       };
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -246,26 +246,26 @@ describe('Wallet Discovery', () => {
       });
 
       // First call
-      await discoverWalletEndpoints('fab:aws');
+      await discoverAgenticPayEndpoints('fab:aws');
 
       // Clear cache
       clearDiscoveryCache('fab:aws');
 
       // Second call (should fetch again)
-      await discoverWalletEndpoints('fab:aws');
+      await discoverAgenticPayEndpoints('fab:aws');
 
       expect(global.fetch).toHaveBeenCalledTimes(2);
     });
 
     it('should clear all discovery cache', async () => {
-      registerNetwork('fab:aws', 'https://wallet.aws.com');
-      registerNetwork('fab:google', 'https://wallet.google.com');
+      registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
+      registerNetwork('fab:google', 'https://pay.google.com');
 
       const mockMetadata = {
-        issuer: 'https://wallet.aws.com',
-        payment_endpoint: 'https://wallet.aws.com/payments',
-        capture_endpoint: 'https://wallet.aws.com/capture',
-        jwks_uri: 'https://wallet.aws.com/.well-known/jwks.json',
+        issuer: 'https://pay.aws.amazon.com',
+        payment_endpoint: 'https://pay.aws.amazon.com/payments',
+        capture_endpoint: 'https://pay.aws.amazon.com/capture',
+        jwks_uri: 'https://pay.aws.amazon.com/.well-known/jwks.json',
       };
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -274,15 +274,15 @@ describe('Wallet Discovery', () => {
       });
 
       // Cache both
-      await discoverWalletEndpoints('fab:aws');
-      await discoverWalletEndpoints('fab:google');
+      await discoverAgenticPayEndpoints('fab:aws');
+      await discoverAgenticPayEndpoints('fab:google');
 
       // Clear all
       clearDiscoveryCache();
 
       // Fetch again (should not use cache)
-      await discoverWalletEndpoints('fab:aws');
-      await discoverWalletEndpoints('fab:google');
+      await discoverAgenticPayEndpoints('fab:aws');
+      await discoverAgenticPayEndpoints('fab:google');
 
       expect(global.fetch).toHaveBeenCalledTimes(4);
     });
@@ -290,27 +290,27 @@ describe('Wallet Discovery', () => {
 
   describe('Network Registry - Additional Edge Cases', () => {
     it('should handle standard network identifiers', () => {
-      registerNetwork('fab:aws', 'https://wallet.aws.com');
-      expect(getWalletBaseUrl('fab:aws')).toBe('https://wallet.aws.com');
+      registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
+      expect(getAgenticPayBaseUrl('fab:aws')).toBe('https://pay.aws.amazon.com');
     });
 
     it('should preserve trailing slashes in base URLs', () => {
-      registerNetwork('fab:test', 'https://wallet.test.com/');
-      expect(getWalletBaseUrl('fab:test')).toBe('https://wallet.test.com/');
+      registerNetwork('fab:test', 'https://pay.test.com/');
+      expect(getAgenticPayBaseUrl('fab:test')).toBe('https://pay.test.com/');
     });
 
     it('should handle URLs with ports', () => {
       registerNetwork('fab:local', 'http://localhost:3000');
-      expect(getWalletBaseUrl('fab:local')).toBe('http://localhost:3000');
+      expect(getAgenticPayBaseUrl('fab:local')).toBe('http://localhost:3000');
     });
 
     it('should handle URLs with paths', () => {
-      registerNetwork('fab:custom', 'https://api.example.com/wallet');
-      expect(getWalletBaseUrl('fab:custom')).toBe('https://api.example.com/wallet');
+      registerNetwork('fab:custom', 'https://api.example.com/pay');
+      expect(getAgenticPayBaseUrl('fab:custom')).toBe('https://api.example.com/pay');
     });
 
     it('should reject empty network identifier', () => {
-      expect(() => registerNetwork('', 'https://wallet.com')).toThrow();
+      expect(() => registerNetwork('', 'https://pay.example.com')).toThrow();
     });
 
     it('should reject empty base URL', () => {
@@ -318,21 +318,21 @@ describe('Wallet Discovery', () => {
     });
 
     it('should reject URLs without protocol', () => {
-      expect(() => registerNetwork('fab:test', 'wallet.com')).toThrow('Invalid base URL');
+      expect(() => registerNetwork('fab:test', 'invalid-url')).toThrow('Invalid base URL');
     });
 
     it('should accept both http and https', () => {
-      registerNetwork('fab:http', 'http://wallet.test.com');
-      registerNetwork('fab:https', 'https://wallet.test.com');
+      registerNetwork('fab:http', 'http://pay.test.com');
+      registerNetwork('fab:https', 'https://pay.test.com');
       
-      expect(getWalletBaseUrl('fab:http')).toBe('http://wallet.test.com');
-      expect(getWalletBaseUrl('fab:https')).toBe('https://wallet.test.com');
+      expect(getAgenticPayBaseUrl('fab:http')).toBe('http://pay.test.com');
+      expect(getAgenticPayBaseUrl('fab:https')).toBe('https://pay.test.com');
     });
   });
 
   describe('getRegisteredNetworks - immutability', () => {
     it('should return a copy of the registry', () => {
-      registerNetwork('fab:aws', 'https://wallet.aws.com');
+      registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
       
       const networks1 = getRegisteredNetworks();
       const networks2 = getRegisteredNetworks();
@@ -342,13 +342,13 @@ describe('Wallet Discovery', () => {
     });
 
     it('should not allow modification of internal state', () => {
-      registerNetwork('fab:aws', 'https://wallet.aws.com');
+      registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
       
       const networks = getRegisteredNetworks();
       networks.set('fab:hacked', 'https://evil.com');
       
       // Original registry should be unchanged
-      expect(() => getWalletBaseUrl('fab:hacked')).toThrow('Network not registered');
+      expect(() => getAgenticPayBaseUrl('fab:hacked')).toThrow('Network not registered');
     });
   });
 

@@ -23,16 +23,16 @@ import { FABScheme as FABFacilitator } from '../../src/fab/facilitator/scheme';
 import type { FABPayloadV2 } from '../../src/types';
 import { FAB_SCHEME } from '../../src/constants';
 import { FAB_SENTINEL_PAY_TO } from '../../src/constants';
-import { createMockWalletClient } from '../helpers/mock-wallet-client';
+import { createMockAgenticPayClient } from '../helpers/mock-agentic-pay-client';
 import { createMockServiceSigner } from '../helpers/mock-service-signer';
 
 /**
  * FAB Integration Tests
  * 
- * Tests use mock wallet client and service signer to simulate the complete FAB flow.
+ * Tests use mock Agentic Pay client and service signer to simulate the complete FAB flow.
  * In production:
- * - Client calls wallet provider API to get payment tokens
- * - Facilitator fetches wallet's public key from JWKS endpoint
+ * - Client calls Agentic Pay provider API to get payment tokens
+ * - Facilitator fetches Agentic Pay's public key from JWKS endpoint
  * - Service signs quote tokens with its own keys
  */
 
@@ -91,10 +91,10 @@ function buildFABPaymentRequirements(
 describe('FAB Integration Tests', () => {
   let servicePrivateKey: jose.KeyLike;
   let servicePublicKey: jose.KeyLike;
-  let walletPrivateKey: jose.KeyLike;
-  let walletPublicKey: jose.KeyLike;
+  let agenticPayPrivateKey: jose.KeyLike;
+  let agenticPayPublicKey: jose.KeyLike;
   const serviceUrl = 'https://api.example.com';
-  const walletId = 'wallet-test-123';
+  const agenticPayId = 'agentic-pay-test-123';
 
   beforeEach(async () => {
     // Generate service key pair (service signs quote tokens)
@@ -102,10 +102,10 @@ describe('FAB Integration Tests', () => {
     servicePrivateKey = serviceKeys.privateKey;
     servicePublicKey = serviceKeys.publicKey;
 
-    // Generate wallet key pair (for mock signing in tests)
-    const walletKeys = await jose.generateKeyPair('RS256');
-    walletPrivateKey = walletKeys.privateKey;
-    walletPublicKey = walletKeys.publicKey;
+    // Generate Agentic Pay key pair (for mock signing in tests)
+    const agenticPayKeys = await jose.generateKeyPair('RS256');
+    agenticPayPrivateKey = agenticPayKeys.privateKey;
+    agenticPayPublicKey = agenticPayKeys.publicKey;
   });
 
   describe('x402Client / x402ResourceServer / x402Facilitator - FAB Flow', () => {
@@ -113,23 +113,23 @@ describe('FAB Integration Tests', () => {
     let server: x402ResourceServer;
 
     beforeEach(async () => {
-      // Create mock wallet client
-      const walletMock = await createMockWalletClient(walletId);
+      // Create mock Agentic Pay client
+      const agenticPayMock = await createMockAgenticPayClient(agenticPayId);
       
       // Create mock service signer
       const serviceMock = await createMockServiceSigner(serviceUrl);
 
-      // Create client with wallet client
+      // Create client with Agentic Pay client
       const fabClient = new FABClient({
-        walletId,
-        walletClient: walletMock.walletClient
+        agenticPayId,
+        agenticPayClient: agenticPayMock.agenticPayClient
       });
       client = new x402Client().register('fab:aws', fabClient);
 
-      // Create facilitator with wallet client
+      // Create facilitator with Agentic Pay client
       const fabFacilitator = new FABFacilitator({
-        walletId,
-        walletClient: walletMock.walletClient
+        agenticPayId,
+        agenticPayClient: agenticPayMock.agenticPayClient
       });
       const facilitator = new x402Facilitator().register('fab:aws', fabFacilitator);
 
@@ -144,7 +144,7 @@ describe('FAB Integration Tests', () => {
       const accepts = await server.buildPaymentRequirements({
         scheme: FAB_SCHEME,
         network: 'fab:aws',
-        payTo: 'service-wallet-789',
+        payTo: 'service-pay-789',
         price: 0.15,
         asset: 'iso4217:USD',
       });
@@ -174,8 +174,8 @@ describe('FAB Integration Tests', () => {
 
       // Decode and verify payment token structure
       const decodedPayment = jose.decodeJwt(fabPayload.paymentToken);
-      expect(decodedPayment.iss).toBe(walletId);
-      expect(decodedPayment.sub).toBe(walletId); // sub is same as iss (wallet ID)
+      expect(decodedPayment.iss).toBe(agenticPayId);
+      expect(decodedPayment.sub).toBe(agenticPayId); // sub is same as iss (Agentic Pay ID)
       expect(decodedPayment.aud).toBe(serviceUrl);
       expect((decodedPayment as any).payment_context).toBeDefined();
       expect((decodedPayment as any).payment_context.transaction_id).toBe(fabPayload.transactionId);
@@ -192,12 +192,12 @@ describe('FAB Integration Tests', () => {
         console.log('Invalid reason:', verifyResponse.invalidReason);
         console.log('Invalid message:', verifyResponse.invalidMessage);
         console.log('Payer:', verifyResponse.payer);
-        console.log('Wallet ID:', walletId);
+        console.log('Agentic Pay ID:', agenticPayId);
         console.log('Payload:', JSON.stringify(paymentPayload, null, 2));
       }
 
       expect(verifyResponse.isValid).toBe(true);
-      expect(verifyResponse.payer).toBe(walletId);
+      expect(verifyResponse.payer).toBe(agenticPayId);
 
       // Server does work here
 
@@ -216,7 +216,7 @@ describe('FAB Integration Tests', () => {
       '/api/protected': {
         accepts: {
           scheme: FAB_SCHEME,
-          payTo: 'service-wallet-789',
+          payTo: 'service-pay-789',
           price: 0.15,
           asset: 'iso4217:USD',
           network: 'fab:aws' as Network,
@@ -238,25 +238,25 @@ describe('FAB Integration Tests', () => {
     };
 
     beforeEach(async () => {
-      // Create mock wallet client
-      const walletMock = await createMockWalletClient(walletId);
+      // Create mock Agentic Pay client
+      const agenticPayMock = await createMockAgenticPayClient(agenticPayId);
       
       // Create mock service signer
       const serviceMock = await createMockServiceSigner(serviceUrl);
 
-      // Create facilitator with wallet client
+      // Create facilitator with Agentic Pay client
       const fabFacilitator = new FABFacilitator({
-        walletId,
-        walletClient: walletMock.walletClient
+        agenticPayId,
+        agenticPayClient: agenticPayMock.agenticPayClient
       });
       const facilitator = new x402Facilitator().register('fab:aws', fabFacilitator);
 
       const facilitatorClient = new FABFacilitatorClient(facilitator);
 
-      // Create client with wallet client
+      // Create client with Agentic Pay client
       const fabClient = new FABClient({
-        walletId,
-        walletClient: walletMock.walletClient
+        agenticPayId,
+        agenticPayClient: agenticPayMock.agenticPayClient
       });
       const paymentClient = new x402Client().register('fab:aws', fabClient);
       client = new x402HTTPClient(paymentClient) as x402HTTPClient;
@@ -357,15 +357,15 @@ describe('FAB Integration Tests', () => {
     let fabServer: FABServer;
 
     beforeEach(async () => {
-      // Create mock wallet client
-      const walletMock = await createMockWalletClient(walletId);
+      // Create mock Agentic Pay client
+      const agenticPayMock = await createMockAgenticPayClient(agenticPayId);
       
       // Create mock service signer
       const serviceMock = await createMockServiceSigner(serviceUrl);
 
       const fabFacilitator = new FABFacilitator({
-        walletId,
-        walletClient: walletMock.walletClient
+        agenticPayId,
+        agenticPayClient: agenticPayMock.agenticPayClient
       });
       const facilitator = new x402Facilitator().register('fab:aws', fabFacilitator);
 
@@ -388,7 +388,7 @@ describe('FAB Integration Tests', () => {
       for (const testCase of testCases) {
         const requirements = await server.buildPaymentRequirements({
           scheme: FAB_SCHEME,
-          payTo: 'service-wallet',
+          payTo: 'service-pay',
           price: testCase.input,
           network: 'fab:aws' as Network,
         });
@@ -409,7 +409,7 @@ describe('FAB Integration Tests', () => {
 
       const requirements = await server.buildPaymentRequirements({
         scheme: FAB_SCHEME,
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         price: customAsset,
         network: 'fab:aws' as Network,
       });
@@ -431,7 +431,7 @@ describe('FAB Integration Tests', () => {
       for (const testCase of testCases) {
         const requirements = await server.buildPaymentRequirements({
           scheme: FAB_SCHEME,
-          payTo: 'service-wallet',
+          payTo: 'service-pay',
           price: testCase.input,
           network: 'fab:aws' as Network,
         });
@@ -444,7 +444,7 @@ describe('FAB Integration Tests', () => {
     it('should include quote token in all payment requirements', async () => {
       const requirements = await server.buildPaymentRequirements({
         scheme: FAB_SCHEME,
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         price: 0.15,
         asset: 'iso4217:USD',
         network: 'fab:aws' as Network,
@@ -467,7 +467,7 @@ describe('FAB Integration Tests', () => {
         currency: 'USD',
       });
       // The real payTo lives inside the signed quote token
-      expect((decoded as any).payTo).toBe('service-wallet');
+      expect((decoded as any).payTo).toBe('service-pay');
     });
   });
 
@@ -483,7 +483,7 @@ describe('FAB Integration Tests', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_123',
         price: { amount: '1.50', currency: 'USD' },
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         capture: 'manual',
         reference: 'TEST',
       });
@@ -499,9 +499,9 @@ describe('FAB Integration Tests', () => {
     });
 
     it('should create valid payment token referencing quote token', async () => {
-      // Create mock service signer and wallet client
+      // Create mock service signer and Agentic Pay client
       const serviceMock = await createMockServiceSigner(serviceUrl);
-      const walletMock = await createMockWalletClient(walletId);
+      const agenticPayMock = await createMockAgenticPayClient(agenticPayId);
 
       // First create quote token
       const quoteToken = await serviceMock.signer.signQuote({
@@ -511,15 +511,15 @@ describe('FAB Integration Tests', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_123',
         price: { amount: '1.50', currency: 'USD' },
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         capture: 'manual',
         reference: 'TEST',
       });
 
-      // Then create payment token using wallet client
-      const result = await walletMock.walletClient.authorize({
+      // Then create payment token using Agentic Pay client
+      const result = await agenticPayMock.agenticPayClient.authorize({
         quoteToken,
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         network: 'fab:aws'
       });
 
@@ -528,9 +528,9 @@ describe('FAB Integration Tests', () => {
 
       // Verify token can be decoded
       const decoded = jose.decodeJwt(result.paymentToken);
-      expect(decoded.iss).toBe(walletId);
-      expect(decoded.sub).toBe(walletId);
-      expect(decoded.aud).toBe('service-wallet');
+      expect(decoded.iss).toBe(agenticPayId);
+      expect(decoded.sub).toBe(agenticPayId);
+      expect(decoded.aud).toBe('service-pay');
       expect((decoded as any).payment_context.quote_token).toBe(quoteToken);
     });
   });

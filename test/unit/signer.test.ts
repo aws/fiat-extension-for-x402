@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as jose from 'jose';
-import { toServiceFABSigner, toWalletFABSigner } from '../../src/signer';
-import type { ServiceFABSigner, WalletFABSigner } from '../../src/signer';
+import { toServiceFABSigner, toAgenticPayFABSigner } from '../../src/signer';
+import type { ServiceFABSigner, AgenticPayFABSigner } from '../../src/signer';
 import type { QuoteTokenPayload, PaymentTokenPayload } from '../../src/types';
 
 describe('FAB Signers', () => {
@@ -36,7 +36,7 @@ describe('FAB Signers', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_123',
         price: { amount: '1.50', currency: 'USD' },
-        payTo: 'wallet-test',
+        payTo: 'agentic-pay-test',
         capture: 'manual',
         reference: 'TEST'
       };
@@ -66,10 +66,10 @@ describe('FAB Signers', () => {
     });
   });
 
-  describe('WalletFABSigner', () => {
+  describe('AgenticPayFABSigner', () => {
     let privateKey: jose.KeyLike;
     let publicKey: jose.KeyLike;
-    let signer: WalletFABSigner;
+    let signer: AgenticPayFABSigner;
 
     beforeEach(async () => {
       // Generate test key pair
@@ -85,13 +85,13 @@ describe('FAB Signers', () => {
             .sign(privateKey);
         },
         getPublicKey: () => publicKey,
-        getAddresses: () => ['wallet-test-123']
+        getAddresses: () => ['agentic-pay-test-123']
       };
     });
 
     it('should sign payment tokens', async () => {
       const payload: PaymentTokenPayload = {
-        iss: 'wallet-test-123',
+        iss: 'agentic-pay-test-123',
         sub: 'client-456',
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
@@ -114,12 +114,12 @@ describe('FAB Signers', () => {
       expect(decoded.sub).toBe(payload.sub);
     });
 
-    it('should return wallet addresses', () => {
+    it('should return Agentic Pay addresses', () => {
       const addresses = signer.getAddresses();
       expect(addresses).toBeDefined();
       expect(Array.isArray(addresses)).toBe(true);
       expect(addresses).toHaveLength(1);
-      expect(addresses[0]).toBe('wallet-test-123');
+      expect(addresses[0]).toBe('agentic-pay-test-123');
     });
 
     it('should return public key', () => {
@@ -154,7 +154,7 @@ describe('FAB Signers', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_test',
         price: { amount: '5.00', currency: 'USD' },
-        payTo: 'wallet-id',
+        payTo: 'agentic-pay-id',
         capture: 'auto'
       };
       
@@ -166,15 +166,15 @@ describe('FAB Signers', () => {
     });
   });
 
-  describe('toWalletFABSigner adapter', () => {
-    it('should create a WalletFABSigner from jose keys', async () => {
+  describe('toAgenticPayFABSigner adapter', () => {
+    it('should create a AgenticPayFABSigner from jose keys', async () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
       
-      const signer = toWalletFABSigner(privateKey, publicJWK, 'wallet-provider-123');
+      const signer = toAgenticPayFABSigner(privateKey, publicJWK, 'agentic-pay-provider-123');
       
       expect(signer).toBeDefined();
-      expect(signer.getAddresses()).toEqual(['wallet-provider-123']);
+      expect(signer.getAddresses()).toEqual(['agentic-pay-provider-123']);
       expect(signer.getPublicKey()).toEqual(publicJWK);
     });
 
@@ -182,10 +182,10 @@ describe('FAB Signers', () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
       
-      const signer = toWalletFABSigner(privateKey, publicJWK, 'wallet-test');
+      const signer = toAgenticPayFABSigner(privateKey, publicJWK, 'agentic-pay-test');
       
       const payload: PaymentTokenPayload = {
-        iss: 'wallet-test',
+        iss: 'agentic-pay-test',
         sub: 'client-789',
         aud: 'https://api.test.com',
         iat: Math.floor(Date.now() / 1000),
@@ -203,15 +203,15 @@ describe('FAB Signers', () => {
       expect(verified.sub).toBe('client-789');
     });
 
-    it('should return wallet ID in addresses array', async () => {
+    it('should return Agentic Pay ID in addresses array', async () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
       
-      const signer = toWalletFABSigner(privateKey, publicJWK, 'my-wallet-id');
+      const signer = toAgenticPayFABSigner(privateKey, publicJWK, 'my-agentic-pay-id');
       
       const addresses = signer.getAddresses();
       expect(addresses).toHaveLength(1);
-      expect(addresses[0]).toBe('my-wallet-id');
+      expect(addresses[0]).toBe('my-agentic-pay-id');
     });
   });
 });

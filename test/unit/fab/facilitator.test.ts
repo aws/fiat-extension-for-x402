@@ -3,46 +3,46 @@ import * as jose from 'jose';
 import { FABScheme } from '../../../src/fab/facilitator/scheme';
 import { verifyPayment } from '../../../src/fab/facilitator/verify';
 import { settlePayment } from '../../../src/fab/facilitator/settle';
-import type { WalletClient } from '../../../src/config';
+import type { AgenticPayClient } from '../../../src/config';
 import type { PaymentPayload, PaymentRequirements } from '@x402/core/types';
 import type { FABPayloadV2 } from '../../../src/types';
 import { FAB_SCHEME } from '../../../src/constants';
 import { FAB_SENTINEL_PAY_TO } from '../../../src/constants';
-import { createMockWalletClient } from '../../helpers/mock-wallet-client';
+import { createMockAgenticPayClient } from '../../helpers/mock-agentic-pay-client';
 
 /**
  * FAB Facilitator Unit Tests
  * 
- * Tests the facilitator scheme with mock wallet client.
- * In production, the facilitator fetches the wallet's public key from JWKS endpoint
- * and calls the wallet provider's API to verify and capture payments.
+ * Tests the facilitator scheme with mock Agentic Pay client.
+ * In production, the facilitator fetches the Agentic Pay's public key from JWKS endpoint
+ * and calls the Agentic Pay provider's API to verify and capture payments.
  */
 
 describe('FAB Facilitator Scheme', () => {
-  let walletClient: WalletClient;
+  let agenticPayClient: AgenticPayClient;
   let privateKey: jose.KeyLike;
   let publicKey: jose.KeyLike;
   let scheme: FABScheme;
-  const walletId = 'wallet-test-456';
+  const agenticPayId = 'agentic-pay-test-456';
 
   beforeEach(async () => {
-    // Create mock wallet client
-    const mock = await createMockWalletClient(walletId);
-    walletClient = mock.walletClient;
+    // Create mock Agentic Pay client
+    const mock = await createMockAgenticPayClient(agenticPayId);
+    agenticPayClient = mock.agenticPayClient;
     privateKey = mock.privateKey;
     publicKey = mock.publicKey;
 
     scheme = new FABScheme({
-      walletId,
-      walletClient
+      agenticPayId,
+      agenticPayClient
     });
   });
 
   describe('Scheme', () => {
-    it('should return correct extra data with wallet ID', () => {
+    it('should return correct extra data with Agentic Pay ID', () => {
       const extra = scheme.getExtra('fab:test');
       expect(extra).toBeDefined();
-      expect(extra?.walletId).toBe(walletId);
+      expect(extra?.agenticPayId).toBe(agenticPayId);
     });
 
     it('should return signer addresses', () => {
@@ -50,7 +50,7 @@ describe('FAB Facilitator Scheme', () => {
       expect(addresses).toBeDefined();
       expect(Array.isArray(addresses)).toBe(true);
       expect(addresses).toHaveLength(1);
-      expect(addresses[0]).toBe(walletId);
+      expect(addresses[0]).toBe(agenticPayId);
     });
 
     it('should verify payment payload', async () => {
@@ -62,18 +62,18 @@ describe('FAB Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_123',
         price: { amount: '1.50', currency: 'USD' },
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         capture: 'manual',
         reference: 'TEST'
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
 
-      // Create payment token (signed by wallet)
+      // Create payment token (signed by Agentic Pay)
       const transactionId = 'fab:test:txn_123';
       const paymentToken = await new jose.SignJWT({
-        iss: walletId,
-        sub: walletId,
+        iss: agenticPayId,
+        sub: agenticPayId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -98,14 +98,14 @@ describe('FAB Facilitator Scheme', () => {
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
 
       const result = await scheme.verify(payload, requirements);
       expect(result.isValid).toBe(true);
-      expect(result.payer).toBe(walletId);
+      expect(result.payer).toBe(agenticPayId);
     });
 
     it('should settle payment', async () => {
@@ -116,7 +116,7 @@ describe('FAB Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_123',
         price: { amount: '1.50', currency: 'USD' },
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         capture: 'manual',
         reference: 'TEST'
       } as any)
@@ -125,8 +125,8 @@ describe('FAB Facilitator Scheme', () => {
 
       const transactionId = 'fab:test:txn_123';
       const paymentToken = await new jose.SignJWT({
-        iss: walletId,
-        sub: walletId,
+        iss: agenticPayId,
+        sub: agenticPayId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -151,7 +151,7 @@ describe('FAB Facilitator Scheme', () => {
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
@@ -172,7 +172,7 @@ describe('FAB Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_123',
         price: { amount: '1.50', currency: 'USD' },
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         capture: 'manual',
         reference: 'TEST'
       } as any)
@@ -181,8 +181,8 @@ describe('FAB Facilitator Scheme', () => {
 
       const transactionId = 'fab:test:txn_123';
       const paymentToken = await new jose.SignJWT({
-        iss: walletId,
-        sub: walletId,
+        iss: agenticPayId,
+        sub: agenticPayId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -207,7 +207,7 @@ describe('FAB Facilitator Scheme', () => {
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
@@ -217,9 +217,9 @@ describe('FAB Facilitator Scheme', () => {
         transactionId
       };
 
-      const result = await verifyPayment(walletClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
       expect(result.isValid).toBe(true);
-      expect(result.payer).toBe(walletId);
+      expect(result.payer).toBe(agenticPayId);
     });
 
     it('should reject payment with invalid signature', async () => {
@@ -233,7 +233,7 @@ describe('FAB Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_123',
         price: { amount: '1.50', currency: 'USD' },
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         capture: 'manual',
         reference: 'TEST'
       } as any)
@@ -243,8 +243,8 @@ describe('FAB Facilitator Scheme', () => {
       const transactionId = 'fab:test:txn_123';
       // Sign with wrong key
       const paymentToken = await new jose.SignJWT({
-        iss: walletId,
-        sub: walletId,
+        iss: agenticPayId,
+        sub: agenticPayId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -269,7 +269,7 @@ describe('FAB Facilitator Scheme', () => {
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
@@ -279,7 +279,7 @@ describe('FAB Facilitator Scheme', () => {
         transactionId
       };
 
-      const result = await verifyPayment(walletClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe('verification_failed');
     });
@@ -292,7 +292,7 @@ describe('FAB Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) - 3600, // Expired 1 hour ago
         jti: 'quote_123',
         price: { amount: '1.50', currency: 'USD' },
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         capture: 'manual',
         reference: 'TEST'
       } as any)
@@ -301,8 +301,8 @@ describe('FAB Facilitator Scheme', () => {
 
       const transactionId = 'fab:test:txn_123';
       const paymentToken = await new jose.SignJWT({
-        iss: walletId,
-        sub: walletId,
+        iss: agenticPayId,
+        sub: agenticPayId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000) - 7200,
         exp: Math.floor(Date.now() / 1000) - 3600, // Expired
@@ -327,7 +327,7 @@ describe('FAB Facilitator Scheme', () => {
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
@@ -337,7 +337,7 @@ describe('FAB Facilitator Scheme', () => {
         transactionId
       };
 
-      const result = await verifyPayment(walletClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe('verification_failed');
     });
@@ -350,7 +350,7 @@ describe('FAB Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_123',
         price: { amount: '1.50', currency: 'USD' },
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         capture: 'manual',
         reference: 'TEST'
       } as any)
@@ -359,8 +359,8 @@ describe('FAB Facilitator Scheme', () => {
 
       const transactionId = 'fab:test:txn_123';
       const paymentToken = await new jose.SignJWT({
-        iss: walletId,
-        sub: walletId,
+        iss: agenticPayId,
+        sub: agenticPayId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -385,7 +385,7 @@ describe('FAB Facilitator Scheme', () => {
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
@@ -395,7 +395,7 @@ describe('FAB Facilitator Scheme', () => {
         transactionId
       };
 
-      const result = await verifyPayment(walletClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
       expect(result.isValid).toBe(true);
     });
 
@@ -407,7 +407,7 @@ describe('FAB Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_123',
         price: { amount: '1.50', currency: 'USD' },
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         capture: 'manual',
         reference: 'TEST'
       } as any)
@@ -416,8 +416,8 @@ describe('FAB Facilitator Scheme', () => {
 
       const transactionId = 'fab:test:txn_123';
       const paymentToken = await new jose.SignJWT({
-        iss: walletId,
-        sub: walletId,
+        iss: agenticPayId,
+        sub: agenticPayId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -442,7 +442,7 @@ describe('FAB Facilitator Scheme', () => {
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
@@ -452,7 +452,7 @@ describe('FAB Facilitator Scheme', () => {
         transactionId
       };
 
-      const result = await verifyPayment(walletClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
       expect(result.isValid).toBe(true);
     });
 
@@ -465,7 +465,7 @@ describe('FAB Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_correct',
         price: { amount: '1.50', currency: 'USD' },
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         capture: 'manual',
         reference: 'TEST'
       } as any)
@@ -480,7 +480,7 @@ describe('FAB Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_different',
         price: { amount: '0.50', currency: 'USD' }, // Different price!
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         capture: 'manual',
         reference: 'TEST'
       } as any)
@@ -490,8 +490,8 @@ describe('FAB Facilitator Scheme', () => {
       const transactionId = 'fab:test:txn_123';
       // Payment token contains different quote token than requirements
       const paymentToken = await new jose.SignJWT({
-        iss: walletId,
-        sub: walletId,
+        iss: agenticPayId,
+        sub: agenticPayId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -516,7 +516,7 @@ describe('FAB Facilitator Scheme', () => {
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
         extra: { quoteToken: correctQuoteToken } as unknown as Record<string, unknown> // Expecting correct quote
       };
@@ -526,7 +526,7 @@ describe('FAB Facilitator Scheme', () => {
         transactionId
       };
 
-      const result = await verifyPayment(walletClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe('verification_failed');
       expect(result.invalidMessage).toContain('Quote token mismatch');
@@ -540,7 +540,7 @@ describe('FAB Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_123',
         price: { amount: '1.50', currency: 'USD' },
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         capture: 'manual',
         reference: 'TEST'
       } as any)
@@ -552,8 +552,8 @@ describe('FAB Facilitator Scheme', () => {
 
       // Payment token contains one transaction ID
       const paymentToken = await new jose.SignJWT({
-        iss: walletId,
-        sub: walletId,
+        iss: agenticPayId,
+        sub: agenticPayId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -578,7 +578,7 @@ describe('FAB Facilitator Scheme', () => {
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
@@ -588,7 +588,7 @@ describe('FAB Facilitator Scheme', () => {
         transactionId: differentTransactionId
       };
 
-      const result = await verifyPayment(walletClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe('verification_failed');
       expect(result.invalidMessage).toContain('Transaction ID mismatch');
@@ -602,7 +602,7 @@ describe('FAB Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_123',
         price: { amount: '1.50', currency: 'USD' },
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         capture: 'manual',
         reference: 'TEST'
       } as any)
@@ -612,8 +612,8 @@ describe('FAB Facilitator Scheme', () => {
       const transactionId = 'fab:test:txn_123';
       // Payment token missing quote_token in payment_context
       const paymentToken = await new jose.SignJWT({
-        iss: walletId,
-        sub: walletId,
+        iss: agenticPayId,
+        sub: agenticPayId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -638,7 +638,7 @@ describe('FAB Facilitator Scheme', () => {
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
@@ -648,7 +648,7 @@ describe('FAB Facilitator Scheme', () => {
         transactionId
       };
 
-      const result = await verifyPayment(walletClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe('verification_failed');
     });
@@ -670,7 +670,7 @@ describe('FAB Facilitator Scheme', () => {
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
         extra: {}
       };
@@ -680,7 +680,7 @@ describe('FAB Facilitator Scheme', () => {
         transactionId
       };
 
-      const result = await settlePayment(walletClient, payload, requirements, fabPayload);
+      const result = await settlePayment(agenticPayClient, payload, requirements, fabPayload);
       expect(result.success).toBe(true);
       expect(result.transaction).toBe(transactionId);
       expect(result.network).toBe('fab:test');
@@ -701,7 +701,7 @@ describe('FAB Facilitator Scheme', () => {
         network: 'fab:test',
         amount: '2.50',
         asset: 'iso4217:USD',
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
         extra: {}
       };
@@ -711,7 +711,7 @@ describe('FAB Facilitator Scheme', () => {
         transactionId
       };
 
-      const result = await settlePayment(walletClient, payload, requirements, fabPayload);
+      const result = await settlePayment(agenticPayClient, payload, requirements, fabPayload);
       expect(result.success).toBe(true);
       expect(result.transaction).toBe(transactionId);
     });
@@ -731,7 +731,7 @@ describe('FAB Facilitator Scheme', () => {
         network: 'fab:test',
         amount: '3.50',
         asset: 'iso4217:USD',
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
         extra: {}
       };
@@ -741,7 +741,7 @@ describe('FAB Facilitator Scheme', () => {
         transactionId
       };
 
-      const result = await settlePayment(walletClient, payload, requirements, fabPayload);
+      const result = await settlePayment(agenticPayClient, payload, requirements, fabPayload);
       // Current implementation always succeeds, but structure is correct
       expect(result).toHaveProperty('success');
       expect(result).toHaveProperty('transaction');
@@ -758,7 +758,7 @@ describe('FAB Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_sentinel',
         price: { amount: '1.50', currency: 'USD' },
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         capture: 'manual',
         reference: 'TEST'
       } as any)
@@ -767,8 +767,8 @@ describe('FAB Facilitator Scheme', () => {
 
       const transactionId = 'fab:test:txn_sentinel';
       const paymentToken = await new jose.SignJWT({
-        iss: walletId,
-        sub: walletId,
+        iss: agenticPayId,
+        sub: agenticPayId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -804,9 +804,9 @@ describe('FAB Facilitator Scheme', () => {
         transactionId
       };
 
-      const result = await verifyPayment(walletClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
       expect(result.isValid).toBe(true);
-      expect(result.payer).toBe(walletId);
+      expect(result.payer).toBe(agenticPayId);
     });
 
     it('should settle payment when requirements.payTo is the sentinel value', async () => {
@@ -835,7 +835,7 @@ describe('FAB Facilitator Scheme', () => {
         transactionId
       };
 
-      const result = await settlePayment(walletClient, payload, requirements, fabPayload);
+      const result = await settlePayment(agenticPayClient, payload, requirements, fabPayload);
       expect(result.success).toBe(true);
       expect(result.transaction).toBe(transactionId);
     });

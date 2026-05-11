@@ -22,7 +22,7 @@ describe('CustomAuthenticator', () => {
     });
 
     const request: AuthenticatedRequest = {
-      url: 'https://wallet.example.com/transactions',
+      url: 'https://pay.example.com/transactions',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -38,7 +38,7 @@ describe('CustomAuthenticator', () => {
   it('should validate that custom function returns AuthenticatedRequest', async () => {
     const invalidAuth = vi.fn(async () => ({
       // Missing required fields
-      url: 'https://wallet.example.com/transactions',
+      url: 'https://pay.example.com/transactions',
     }));
 
     const authenticator = new CustomAuthenticator({
@@ -47,7 +47,7 @@ describe('CustomAuthenticator', () => {
     });
 
     const request: AuthenticatedRequest = {
-      url: 'https://wallet.example.com/transactions',
+      url: 'https://pay.example.com/transactions',
       method: 'POST',
       headers: {},
     };
@@ -68,7 +68,7 @@ describe('CustomAuthenticator', () => {
     });
 
     const request: AuthenticatedRequest = {
-      url: 'https://wallet.example.com/transactions',
+      url: 'https://pay.example.com/transactions',
       method: 'POST',
       headers: {},
     };
@@ -95,7 +95,7 @@ describe('CustomAuthenticator', () => {
     });
 
     const request: AuthenticatedRequest = {
-      url: 'https://wallet.example.com/transactions',
+      url: 'https://pay.example.com/transactions',
       method: 'POST',
       headers: {},
       body: '{"test": true}',
@@ -103,7 +103,7 @@ describe('CustomAuthenticator', () => {
 
     const result = await authenticator.authenticate(request);
 
-    expect(result.url).toBe('https://wallet.example.com/transactions?authenticated=true');
+    expect(result.url).toBe('https://pay.example.com/transactions?authenticated=true');
     expect(result.headers['X-Signature']).toBe('sig-123');
   });
 });

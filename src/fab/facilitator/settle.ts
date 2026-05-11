@@ -3,31 +3,31 @@
  */
 
 import { PaymentPayload, PaymentRequirements, SettleResponse } from '@x402/core/types';
-import type { WalletClientForFacilitator } from '../../config';
+import type { AgenticPayClientForFacilitator } from '../../config';
 import { FABPayloadV2 } from '../../types';
 import { decodeQuoteToken } from '../../utils';
 
 /**
  * Settle a FAB payment
  * 
- * In FAB, settlement is handled by the wallet provider's backend.
- * This calls the wallet provider's /capture endpoint to:
+ * In FAB, settlement is handled by the Agentic Pay provider's backend.
+ * This calls the Agentic Pay provider's /capture endpoint to:
  * 1. Capture the held funds
- * 2. Transfer to the service's wallet account
+ * 2. Transfer to the service's Agentic Pay account
  * 3. Record the settlement
  * 
  * Note: This function uses requirements.amount and requirements.asset (which are real
  * values, not sentinels). It does NOT use requirements.payTo or requirements.maxTimeoutSeconds,
  * which contain sentinel values in FAB (see spec §2.4).
  * 
- * @param walletClient - Wallet client for settlement
+ * @param agenticPayClient - Agentic Pay client for settlement
  * @param payload - Payment payload
  * @param requirements - Payment requirements
  * @param fabPayload - FAB-specific payload
  * @returns Settlement response
  */
 export async function settlePayment(
-  walletClient: WalletClientForFacilitator,
+  agenticPayClient: AgenticPayClientForFacilitator,
   payload: PaymentPayload,
   requirements: PaymentRequirements,
   fabPayload: FABPayloadV2
@@ -37,8 +37,8 @@ export async function settlePayment(
     const amount = requirements.amount;
     const currency = requirements.asset.replace('iso4217:', '');
     
-    // Call wallet provider to capture payment
-    const captureResult = await walletClient.capturePayment(
+    // Call Agentic Pay provider to capture payment
+    const captureResult = await agenticPayClient.capturePayment(
       fabPayload.transactionId,
       amount,
       currency

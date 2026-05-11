@@ -15,12 +15,12 @@ export interface SigningKeysConfig {
 }
 
 /**
- * Wallet endpoint configuration
+ * Agentic Pay endpoint configuration
  * All endpoints are standardized and derived from baseUrl
  */
-export interface WalletConfig {
+export interface AgenticPayConfig {
   /**
-   * Base URL for wallet provider (e.g., 'https://wallet.aws.com')
+   * Base URL for Agentic Pay provider (e.g., 'https://pay.aws.amazon.com')
    * 
    * Standardized endpoints:
    * - POST ${baseUrl}/transactions - authorize payment
@@ -30,23 +30,23 @@ export interface WalletConfig {
   baseUrl: string;
   
   /**
-   * Optional authentication configuration for wallet API calls
+   * Optional authentication configuration for Agentic Pay API calls
    * Supports API Key, AWS SigV4, OAuth2, and custom authentication
    */
   auth?: AuthConfig;
 }
 
 /**
- * Client-side wallet operations
+ * Client-side Agentic Pay operations
  * Used by FABClientScheme to authorize payments
  */
-export interface WalletClientForClient {
+export interface AgenticPayClientForClient {
   /**
-   * Authorize a payment with the wallet provider
-   * Calls wallet's POST /transactions endpoint
+   * Authorize a payment with the Agentic Pay provider
+   * Calls Agentic Pay's POST /transactions endpoint
    * 
    * @param payload - Payment authorization request
-   * @returns Transaction ID and signed payment token from wallet
+   * @returns Transaction ID and signed payment token from Agentic Pay
    */
   authorize(payload: {
     network: string;
@@ -54,21 +54,21 @@ export interface WalletClientForClient {
     currency: string;
     payTo: string;
     quoteToken: string;
-    walletId: string;
+    agenticPayId: string;
   }): Promise<{
     transactionId: string;
-    paymentToken: string; // JWT signed by wallet provider
+    paymentToken: string; // JWT signed by Agentic Pay provider
   }>;
 }
 
 /**
- * Facilitator-side wallet operations
+ * Facilitator-side Agentic Pay operations
  * Used by FABFacilitatorScheme to verify and settle payments
  */
-export interface WalletClientForFacilitator {
+export interface AgenticPayClientForFacilitator {
   /**
    * Verify a payment token's signature
-   * Fetches wallet's public keys from JWKS endpoint and verifies
+   * Fetches Agentic Pay's public keys from JWKS endpoint and verifies
    * 
    * @param token - Payment token JWT to verify
    * @returns Decoded and verified payment token payload
@@ -86,8 +86,8 @@ export interface WalletClientForFacilitator {
   }>;
   
   /**
-   * Capture/settle a payment with the wallet provider
-   * Calls wallet's POST /capture endpoint
+   * Capture/settle a payment with the Agentic Pay provider
+   * Calls Agentic Pay's POST /capture endpoint
    * 
    * @param transactionId - Transaction ID from payment token
    * @param amount - Amount to capture
@@ -106,31 +106,31 @@ export interface WalletClientForFacilitator {
 }
 
 /**
- * Combined interface for full wallet client
- * Used when implementing a complete wallet client
+ * Combined interface for full Agentic Pay client
+ * Used when implementing a complete Agentic Pay client
  */
-export interface WalletClient extends WalletClientForClient, WalletClientForFacilitator {}
+export interface AgenticPayClient extends AgenticPayClientForClient, AgenticPayClientForFacilitator {}
 
 /**
  * Client scheme configuration
  */
 export type FABClientSchemeConfig = 
-  | { walletId: string; wallet: WalletConfig }
-  | { walletId: string; walletClient: WalletClientForClient; auth?: AuthConfig };
+  | { agenticPayId: string; agenticPay: AgenticPayConfig }
+  | { agenticPayId: string; agenticPayClient: AgenticPayClientForClient; auth?: AuthConfig };
 
 /**
  * Server scheme configuration
  */
 export type FABServerSchemeConfig = 
-  | { signingKeys: SigningKeysConfig; serviceUrl: string; wallet?: WalletConfig }
+  | { signingKeys: SigningKeysConfig; serviceUrl: string; agenticPay?: AgenticPayConfig }
   | { signer: ServiceFABSigner };
 
 /**
  * Facilitator scheme configuration
  */
 export type FABFacilitatorSchemeConfig = 
-  | { walletId: string; wallet: WalletConfig }
-  | { walletId: string; walletClient: WalletClientForFacilitator; auth?: AuthConfig };
+  | { agenticPayId: string; agenticPay: AgenticPayConfig }
+  | { agenticPayId: string; agenticPayClient: AgenticPayClientForFacilitator; auth?: AuthConfig };
 
 /**
  * Service signer interface (for custom implementations)

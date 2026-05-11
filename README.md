@@ -1,17 +1,17 @@
 # FAB x402 Extension
 
-TypeScript extension for the x402 protocol that adds support for FAB (Federated Application Billing) - fiat payments through trusted wallet providers.
+TypeScript extension for the x402 protocol that adds support for FAB (Federated Application Billing) - fiat payments through trusted Agentic Pay providers.
 
 ## What is FAB?
 
-FAB enables HTTP APIs to accept fiat payments (USD, EUR, etc.) using the x402 protocol. Instead of cryptocurrency, FAB uses trusted wallet providers (like AWS Wallet) that handle the actual money movement, while your API just verifies signed payment tokens.
+FAB enables HTTP APIs to accept fiat payments (USD, EUR, etc.) using the x402 protocol. Instead of cryptocurrency, FAB uses trusted Agentic Pay providers (like AWS Agentic Pay) that handle the actual money movement, while your API just verifies signed payment tokens.
 
 ## Requirements
 
 - **Node.js**: 18.0.0 or higher (for `crypto.webcrypto` support)
 - **TypeScript**: 5.0+ (optional, for development)
 
-**Note**: This SDK is designed for Node.js environments (servers, backend services, AI agents). For browser-based clients, use the wallet provider's JavaScript SDK instead.
+**Note**: This SDK is designed for Node.js environments (servers, backend services, AI agents). For browser-based clients, use the Agentic Pay provider's JavaScript SDK instead.
 
 ## Installation
 
@@ -38,8 +38,8 @@ const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
 
 // Create server with base config
 const fabServer = createFABResourceServer({
-  walletBaseUrl: 'https://wallet.aws.com',
-  walletId: 'your-wallet-id',
+  agenticPayBaseUrl: 'https://pay.aws.amazon.com',
+  agenticPayId: 'your-agentic-pay-id',
   signingKeys: {
     privateKey,
     publicKey: await jose.exportJWK(publicKey),
@@ -61,7 +61,7 @@ const server = await fabServer.initialize();
 const requirements = await server.buildPaymentRequirements({
   scheme: 'fab',
   network: 'fab:aws',
-  payTo: 'your-wallet-id',
+  payTo: 'your-agentic-pay-id',
   price: 0.15,
 });
 
@@ -80,18 +80,18 @@ if (result.isValid) {
 
 ### For API Consumers (Making Payments)
 
-Pay for protected endpoints using your wallet:
+Pay for protected endpoints using your Agentic Pay:
 
 ```typescript
 import { createFABClient } from '@x402/fab';
 
 // Create client with base config
 const fabClient = createFABClient({
-  walletBaseUrl: 'https://wallet.aws.com',
-  walletId: 'your-wallet-id',
-  walletAuth: {
+  agenticPayBaseUrl: 'https://pay.aws.amazon.com',
+  agenticPayId: 'your-agentic-pay-id',
+  agenticPayAuth: {
     type: 'apiKey',
-    apiKey: process.env.WALLET_API_KEY
+    apiKey: process.env.AGENTIC_PAY_API_KEY
   }
 });
 
@@ -118,13 +118,13 @@ FAB supports network-aware facilitator routing. You register which networks FAB 
 import { createFABResourceServer } from '@x402/fab';
 
 const fabServer = createFABResourceServer({
-  walletBaseUrl: 'https://wallet.aws.com',
-  walletId: 'my-wallet',
+  agenticPayBaseUrl: 'https://pay.aws.amazon.com',
+  agenticPayId: 'my-agentic-pay',
   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
   serviceUrl: 'https://api.example.com',
 });
 
-// FAB handles these networks via your wallet provider
+// FAB handles these networks via your Agentic Pay provider
 fabServer.registerNetwork('fab:aws');
 fabServer.registerNetwork('eip155:8453');
 
@@ -133,7 +133,7 @@ fabServer.registerNetwork('eip155:8453');
 const server = await fabServer.initialize();
 ```
 
-The precedence model works because `x402ResourceServer` accepts multiple facilitator clients. During `initialize()`, the FAB facilitator claims its networks first, and the default facilitator fills in the rest. A `networkFilter` on `WalletFacilitatorClient` ensures the wallet only claims the networks you explicitly registered.
+The precedence model works because `x402ResourceServer` accepts multiple facilitator clients. During `initialize()`, the FAB facilitator claims its networks first, and the default facilitator fills in the rest. A `networkFilter` on `AgenticPayFacilitatorClient` ensures Agentic Pay only claims the networks you explicitly registered.
 
 ### One-Liner (Convenience Builder)
 
@@ -144,8 +144,8 @@ import { buildFABResourceServer } from '@x402/fab';
 
 const server = await buildFABResourceServer({
   fabNetworks: ['fab:aws', 'eip155:8453'],
-  walletBaseUrl: 'https://wallet.aws.com',
-  walletId: 'my-wallet',
+  agenticPayBaseUrl: 'https://pay.aws.amazon.com',
+  agenticPayId: 'my-agentic-pay',
   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
   serviceUrl: 'https://api.example.com',
 });
@@ -157,9 +157,9 @@ If you need more control, you can still register schemes manually:
 
 ```typescript
 import { x402ResourceServer } from '@x402/core/server';
-import { FABServerScheme, WalletFacilitatorClient, registerFABNetworks } from '@x402/fab';
+import { FABServerScheme, AgenticPayFacilitatorClient, registerFABNetworks } from '@x402/fab';
 
-const facilitatorClient = new WalletFacilitatorClient('https://wallet.aws.com');
+const facilitatorClient = new AgenticPayFacilitatorClient('https://pay.aws.amazon.com');
 const server = new x402ResourceServer(facilitatorClient);
 
 // Helper to register FAB for multiple networks in one call
@@ -173,16 +173,16 @@ await server.initialize();
 
 ## Authentication
 
-FAB supports multiple authentication methods for wallet communication:
+FAB supports multiple authentication methods for Agentic Pay communication:
 
 ### API Key (Simplest)
 
 ```typescript
-wallet: {
-  baseUrl: 'https://wallet.example.com',
+Agentic Pay: {
+  baseUrl: 'https://pay.example.com',
   auth: {
     type: 'apiKey',
-    apiKey: process.env.WALLET_API_KEY
+    apiKey: process.env.AGENTIC_PAY_API_KEY
   }
 }
 ```
@@ -190,13 +190,13 @@ wallet: {
 ### OAuth2 (With Token Refresh)
 
 ```typescript
-wallet: {
-  baseUrl: 'https://wallet.example.com',
+Agentic Pay: {
+  baseUrl: 'https://pay.example.com',
   auth: {
     type: 'oauth2',
     accessToken: process.env.OAUTH_ACCESS_TOKEN,
     refreshToken: process.env.OAUTH_REFRESH_TOKEN,
-    tokenEndpoint: 'https://wallet.example.com/oauth/token',
+    tokenEndpoint: 'https://pay.example.com/oauth/token',
     onTokenRefresh: (newToken) => {
       // Save refreshed token
     }
@@ -207,8 +207,8 @@ wallet: {
 ### AWS SigV4 (For AWS Services)
 
 ```typescript
-wallet: {
-  baseUrl: 'https://wallet.aws.com',
+Agentic Pay: {
+  baseUrl: 'https://pay.aws.amazon.com',
   auth: {
     type: 'awsSigV4',
     credentials: {
@@ -223,8 +223,8 @@ wallet: {
 ### Custom Authentication
 
 ```typescript
-wallet: {
-  baseUrl: 'https://wallet.example.com',
+Agentic Pay: {
+  baseUrl: 'https://pay.example.com',
   auth: {
     type: 'custom',
     authenticate: async (request) => {
@@ -250,13 +250,13 @@ const dpopKeyPair = await generateDPoPKeyPair('ES256');
 // Create a DPoP proof for a specific request
 const proof = await createDPoPProof(dpopKeyPair, {
   method: 'POST',
-  url: 'https://wallet.aws.com/transactions',
+  url: 'https://pay.aws.amazon.com/transactions',
 });
 
 // Server-side: verify the proof
 const result = await verifyDPoPProof(proof, {
   method: 'POST',
-  url: 'https://wallet.aws.com/transactions',
+  url: 'https://pay.aws.amazon.com/transactions',
 });
 ```
 
@@ -305,13 +305,13 @@ new FABServerScheme({ signer: customSigner })
 
 ### Preconfigured Networks
 
-For known wallet providers:
+For known Agentic Pay providers:
 
 ```typescript
 import { FABAWSClientScheme, FABAWSServerScheme } from '@x402/fab';
 
-// AWS Wallet preconfigured
-const client = new FABAWSClientScheme({ walletId: 'your-wallet-id' });
+// AWS Agentic Pay preconfigured
+const client = new FABAWSClientScheme({ agenticPayId: 'your-agentic-pay-id' });
 const server = new FABAWSServerScheme({ signingKeys, serviceUrl });
 ```
 
@@ -319,24 +319,24 @@ const server = new FABAWSServerScheme({ signingKeys, serviceUrl });
 
 1. Client requests protected resource
 2. Service returns 402 Payment Required with quote token
-3. Client sends quote to wallet for authorization
-4. Wallet returns signed payment token
+3. Client sends quote to Agentic Pay for authorization
+4. Agentic Pay returns signed payment token
 5. Client retries request with payment token
-6. Service verifies payment with wallet (via facilitator)
+6. Service verifies payment with Agentic Pay (via facilitator)
 7. Service settles payment (capture)
 8. Service delivers resource
 
-The wallet provider acts as both payment issuer and facilitator - no separate facilitator service needed.
+The Agentic Pay provider acts as both payment issuer and facilitator - no separate facilitator service needed.
 
-## Wallet Compatibility
+## Agentic Pay Compatibility
 
-FAB is wallet provider agnostic. Any wallet provider can work with this SDK as long as it implements the standard HTTP API interface:
+FAB is Agentic Pay provider agnostic. Any Agentic Pay provider can work with this SDK as long as it implements the standard HTTP API interface:
 
-### Required Wallet Endpoints
+### Required Agentic Pay Endpoints
 
 **For Clients (end users):**
 - `POST /transactions` - Create/authorize a new transaction
-  - Request: `{ network, amount, currency, payTo, quoteToken, walletId }`
+  - Request: `{ network, amount, currency, payTo, quoteToken, agenticPayId }`
   - Response: `{ transactionId, paymentToken }`
 
 **For Services (merchants/facilitators):**
@@ -352,20 +352,20 @@ FAB is wallet provider agnostic. Any wallet provider can work with this SDK as l
 
 FAB's security is based on cryptographic signatures, not transaction state lookups:
 
-1. **Payment token signature** - Proves the wallet authorized the transaction
+1. **Payment token signature** - Proves Agentic Pay authorized the transaction
 2. **Quote token signature** - Proves the service issued the quote
 3. **Amount verification** - Ensures amounts in both tokens match
 4. **Service-side idempotency** - Services track processed transaction IDs to prevent double-spending
 
-The signed payment token IS the proof of payment. Services should maintain their own records of processed transactions rather than querying wallet state.
+The signed payment token IS the proof of payment. Services should maintain their own records of processed transactions rather than querying Agentic Pay state.
 
 ### Authentication Flexibility
 
-The facilitator client accepts any authentication mechanism via `WalletFacilitatorAuthConfig`:
+The facilitator client accepts any authentication mechanism via `AgenticPayFacilitatorAuthConfig`:
 
 ```typescript
-const facilitatorClient = new WalletFacilitatorClient(
-  'https://wallet.example.com',
+const facilitatorClient = new AgenticPayFacilitatorClient(
+  'https://pay.example.com',
   {
     getAuthHeaders: async () => ({
       'Authorization': 'Bearer token',
@@ -376,13 +376,13 @@ const facilitatorClient = new WalletFacilitatorClient(
 ```
 
 This means you can integrate with:
-- AWS Wallet (using SigV4)
+- AWS Agentic Pay (using SigV4)
 - Stripe (using API keys)
 - PayPal (using OAuth2)
-- Custom wallet implementations
+- Custom Agentic Pay implementations
 - Any provider that exposes the standard REST API
 
-The SDK doesn't care about the wallet provider's internal implementation - only that it exposes the required HTTP interface and issues JWT tokens signed with published keys.
+The SDK doesn't care about the Agentic Pay provider's internal implementation - only that it exposes the required HTTP interface and issues JWT tokens signed with published keys.
 
 ## Express Middleware
 
@@ -396,8 +396,8 @@ const app = express();
 app.use(express.json());
 
 app.use(fabPaymentMiddleware({
-  walletBaseUrl: 'https://wallet.aws.com',
-  walletId: 'my-wallet',
+  agenticPayBaseUrl: 'https://pay.aws.amazon.com',
+  agenticPayId: 'my-agentic-pay',
   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
   serviceUrl: 'https://api.example.com',
   networks: ['fab:aws'],
@@ -405,7 +405,7 @@ app.use(fabPaymentMiddleware({
     'GET /api/premium': {
       price: 0.15,
       network: 'fab:aws',
-      payTo: 'seller-wallet-id',
+      payTo: 'seller-agentic-pay-id',
     },
   },
 }));
@@ -423,8 +423,8 @@ The middleware handles 402 generation, payment verification, and auto-capture se
 Working examples in `examples/` directory:
 
 ```bash
-# Terminal 1: Start mock wallet server
-npm run example:wallet
+# Terminal 1: Start mock Agentic Pay server
+npm run example:Agentic Pay
 
 # Terminal 2: Start test service
 npm run example:service
@@ -446,14 +446,14 @@ See [examples/README.md](./examples/README.md) for details.
 
 ```typescript
 interface FABClientSchemeConfig {
-  walletId: string;                    // Your wallet identifier
-  // Option A: Provide wallet config (DefaultWalletClient created automatically)
-  wallet: {
-    baseUrl: string;                   // Wallet provider URL
+  agenticPayId: string;                    // Your Agentic Pay identifier
+  // Option A: Provide Agentic Pay config (DefaultAgenticPayClient created automatically)
+  Agentic Pay: {
+    baseUrl: string;                   // Agentic Pay provider URL
     auth?: AuthConfig;                 // Authentication config
   };
-  // Option B: Provide a custom wallet client
-  walletClient: WalletClientForClient; // Custom wallet client implementation
+  // Option B: Provide a custom Agentic Pay client
+  agenticPayClient: AgenticPayClientForClient; // Custom Agentic Pay client implementation
 }
 ```
 
@@ -469,7 +469,7 @@ type FABServerSchemeConfig =
         alg: 'RS256' | 'ES256';
       };
       serviceUrl: string;
-      wallet?: { baseUrl: string };
+      Agentic Pay?: { baseUrl: string };
     }
   // Option B: Provide a custom signer
   | { signer: ServiceFABSigner };
@@ -554,8 +554,8 @@ Core implementation complete (v0.1.0):
 
 Known limitations:
 - AWS SigV4 auth is a simplified placeholder (production use needs `@aws-sdk/signature-v4`)
-- Quote token signature verification in the in-process facilitator is best-effort (silently swallows failures); `WalletFacilitatorClient` verifies fully
-- Settlement in the in-process facilitator is a placeholder (use `WalletFacilitatorClient` for real capture)
+- Quote token signature verification in the in-process facilitator is best-effort (silently swallows failures); `AgenticPayFacilitatorClient` verifies fully
+- Settlement in the in-process facilitator is a placeholder (use `AgenticPayFacilitatorClient` for real capture)
 
 See [tasks.md](./docs/tasks.md) for full status and roadmap.
 

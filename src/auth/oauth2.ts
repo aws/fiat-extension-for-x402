@@ -103,13 +103,13 @@ export class OAuth2Authenticator implements Authenticator {
       );
     }
 
-    const data = await response.json();
+    const data = await response.json() as Record<string, unknown>;
 
     if (!data.access_token) {
       throw new InvalidCredentialsError('oauth2', 'No access token in refresh response');
     }
 
-    this.accessToken = data.access_token;
+    this.accessToken = data.access_token as string;
 
     // Notify callback
     if (this.onTokenRefresh) {

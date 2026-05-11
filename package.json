@@ -67,7 +67,7 @@
     "billing",
     "http-402",
     "fiat",
-    "wallet"
+    "agentic-pay"
   ],
   "author": "",
   "license": "MIT",

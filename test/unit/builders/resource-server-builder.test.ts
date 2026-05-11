@@ -4,7 +4,7 @@ import type { FABResourceServerConfig } from '../../../src/builders/resource-ser
 import { ValidationError } from '../../../src/types';
 import * as jose from 'jose';
 
-// Mock fetch globally for wallet /.well-known/x402-supported
+// Mock fetch globally for Agentic Pay /.well-known/x402-supported
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
@@ -21,7 +21,7 @@ describe('buildFABResourceServer', () => {
     };
   });
 
-  function mockWalletSupported(networks: string[]) {
+  function mockAgenticPaySupported(networks: string[]) {
     mockFetch.mockImplementation(async (url: string) => {
       if (url.includes('/.well-known/x402-supported')) {
         return {
@@ -31,10 +31,10 @@ describe('buildFABResourceServer', () => {
               x402Version: 2,
               scheme: 'fab',
               network: n,
-              extra: { walletId: 'test-wallet' },
+              extra: { agenticPayId: 'test-agentic-pay' },
             })),
             extensions: [],
-            signers: { 'fab:*': ['test-wallet'] },
+            signers: { 'fab:*': ['test-agentic-pay'] },
           }),
         };
       }
@@ -57,12 +57,12 @@ describe('buildFABResourceServer', () => {
   }
 
   it('should build server with FAB schemes for specified networks', async () => {
-    mockWalletSupported(['fab:aws', 'eip155:8453']);
+    mockAgenticPaySupported(['fab:aws', 'eip155:8453']);
 
     const server = await buildFABResourceServer({
       fabNetworks: ['fab:aws', 'eip155:8453'],
-      walletBaseUrl: 'https://wallet.example.com',
-      walletId: 'test-wallet',
+      agenticPayBaseUrl: 'https://pay.example.com',
+      agenticPayId: 'test-agentic-pay',
       signingKeys,
       serviceUrl: 'https://api.example.com',
     });
@@ -72,12 +72,12 @@ describe('buildFABResourceServer', () => {
   });
 
   it('should include default facilitator when disableDefaultFallback is false', async () => {
-    mockWalletSupported(['fab:aws']);
+    mockAgenticPaySupported(['fab:aws']);
 
     const server = await buildFABResourceServer({
       fabNetworks: ['fab:aws'],
-      walletBaseUrl: 'https://wallet.example.com',
-      walletId: 'test-wallet',
+      agenticPayBaseUrl: 'https://pay.example.com',
+      agenticPayId: 'test-agentic-pay',
       signingKeys,
       serviceUrl: 'https://api.example.com',
       disableDefaultFallback: false,
@@ -86,37 +86,37 @@ describe('buildFABResourceServer', () => {
     // FAB network should be registered
     expect(server.hasRegisteredScheme('fab:aws', 'fab')).toBe(true);
     // Both facilitator clients were queried during initialize().
-    // The wallet's x402-supported endpoint is one call, and the default
+    // The Agentic Pay's x402-supported endpoint is one call, and the default
     // facilitator's /supported endpoint is another. Both go through fetch.
     const allCalls = mockFetch.mock.calls.map((c: any) => c[0] as string);
-    const walletCall = allCalls.find((u: string) => u.includes('wallet.example.com'));
+    const agenticPayCall = allCalls.find((u: string) => u.includes('pay.example.com'));
     const defaultCall = allCalls.find((u: string) => u.includes('x402.org'));
-    expect(walletCall).toBeDefined();
+    expect(agenticPayCall).toBeDefined();
     expect(defaultCall).toBeDefined();
   });
 
   it('should exclude default facilitator when disableDefaultFallback is true', async () => {
-    mockWalletSupported(['fab:aws']);
+    mockAgenticPaySupported(['fab:aws']);
 
     const server = await buildFABResourceServer({
       fabNetworks: ['fab:aws'],
-      walletBaseUrl: 'https://wallet.example.com',
-      walletId: 'test-wallet',
+      agenticPayBaseUrl: 'https://pay.example.com',
+      agenticPayId: 'test-agentic-pay',
       signingKeys,
       serviceUrl: 'https://api.example.com',
       disableDefaultFallback: true,
     });
 
     expect(server.hasRegisteredScheme('fab:aws', 'fab')).toBe(true);
-    // Only the wallet's x402-supported should have been called
+    // Only the Agentic Pay's x402-supported should have been called
     const supportedCalls = mockFetch.mock.calls.filter(
       (c: any) => c[0].includes('x402-supported')
     );
     expect(supportedCalls.length).toBe(1);
   });
 
-  it('should apply network filter so wallet only claims specified networks', async () => {
-    // Wallet supports both fab:aws and fab:test, but we only want fab:aws
+  it('should apply network filter so Agentic Pay only claims specified networks', async () => {
+    // Agentic Pay supports both fab:aws and fab:test, but we only want fab:aws
     mockFetch.mockImplementation(async (url: string) => {
       if (url.includes('/.well-known/x402-supported')) {
         return {
@@ -142,8 +142,8 @@ describe('buildFABResourceServer', () => {
 
     const server = await buildFABResourceServer({
       fabNetworks: ['fab:aws'],
-      walletBaseUrl: 'https://wallet.example.com',
-      walletId: 'test-wallet',
+      agenticPayBaseUrl: 'https://pay.example.com',
+      agenticPayId: 'test-agentic-pay',
       signingKeys,
       serviceUrl: 'https://api.example.com',
     });
@@ -158,20 +158,20 @@ describe('buildFABResourceServer', () => {
     await expect(
       buildFABResourceServer({
         fabNetworks: [],
-        walletBaseUrl: 'https://wallet.example.com',
-        walletId: 'test-wallet',
+        agenticPayBaseUrl: 'https://pay.example.com',
+        agenticPayId: 'test-agentic-pay',
         signingKeys,
         serviceUrl: 'https://api.example.com',
       })
     ).rejects.toThrow(ValidationError);
   });
 
-  it('should throw on invalid walletBaseUrl', async () => {
+  it('should throw on invalid agenticPayBaseUrl', async () => {
     await expect(
       buildFABResourceServer({
         fabNetworks: ['fab:aws'],
-        walletBaseUrl: 'not-a-url',
-        walletId: 'test-wallet',
+        agenticPayBaseUrl: 'not-a-url',
+        agenticPayId: 'test-agentic-pay',
         signingKeys,
         serviceUrl: 'https://api.example.com',
       })
@@ -182,8 +182,8 @@ describe('buildFABResourceServer', () => {
     await expect(
       buildFABResourceServer({
         fabNetworks: ['fab:aws'],
-        walletBaseUrl: 'https://wallet.example.com',
-        walletId: 'test-wallet',
+        agenticPayBaseUrl: 'https://pay.example.com',
+        agenticPayId: 'test-agentic-pay',
         signingKeys: undefined as any,
         serviceUrl: 'https://api.example.com',
       })

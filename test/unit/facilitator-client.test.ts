@@ -12,9 +12,9 @@ describe('InProcessFacilitatorClient', () => {
       const schemes = new Map();
       schemes.set('fab:test', new FABFacilitatorScheme({
         signingKeys: { privateKey, publicKey: jwk, alg: 'RS256' },
-        walletId: 'test-wallet',
-        wallet: {
-          baseUrl: 'https://wallet.test.com'
+        agenticPayId: 'test-agentic-pay',
+        agenticPay: {
+          baseUrl: 'https://pay.test.com'
         }
       }));
       
@@ -36,13 +36,13 @@ describe('InProcessFacilitatorClient', () => {
       const schemes = new Map();
       schemes.set('fab:test1', new FABFacilitatorScheme({
         signingKeys: { privateKey: pk1, publicKey: jwk1, alg: 'RS256' },
-        walletId: 'wallet-1',
-        wallet: { baseUrl: 'https://wallet1.test.com' }
+        agenticPayId: 'agentic-pay-1',
+        agenticPay: { baseUrl: 'https://pay1.test.com' }
       }));
       schemes.set('fab:test2', new FABFacilitatorScheme({
         signingKeys: { privateKey: pk2, publicKey: jwk2, alg: 'RS256' },
-        walletId: 'wallet-2',
-        wallet: { baseUrl: 'https://wallet2.test.com' }
+        agenticPayId: 'agentic-pay-2',
+        agenticPay: { baseUrl: 'https://pay2.test.com' }
       }));
       
       const client = new InProcessFacilitatorClient(schemes);
@@ -57,9 +57,9 @@ describe('InProcessFacilitatorClient', () => {
       
       const scheme = new FABFacilitatorScheme({
         signingKeys: { privateKey, publicKey: jwk, alg: 'RS256' },
-        walletId: 'test-wallet',
-        wallet: {
-          baseUrl: 'https://wallet.test.com'
+        agenticPayId: 'test-agentic-pay',
+        agenticPay: {
+          baseUrl: 'https://pay.test.com'
         }
       });
       

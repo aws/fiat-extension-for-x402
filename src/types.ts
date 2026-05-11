@@ -106,7 +106,7 @@ export interface QuoteTokenPrice {
 export interface QuoteTokenPayload {
   /** Issuer - service identity */
   iss: string;
-  /** Audience - target wallet provider(s) */
+  /** Audience - target Agentic Pay provider(s) */
   aud: string | string[];
   /** Issued at timestamp */
   iat: number;
@@ -116,7 +116,7 @@ export interface QuoteTokenPayload {
   jti: string;
   /** Price (single or multiple currency options) */
   price: QuoteTokenPrice | QuoteTokenPrice[];
-  /** Payment recipient - seller's wallet ID */
+  /** Payment recipient - seller's Agentic Pay ID */
   payTo: string;
   /** Capture mode */
   capture: CaptureMode;
@@ -134,7 +134,7 @@ export interface QuoteTokenPayload {
  * Payment context embedded in payment token
  */
 export interface PaymentContext {
-  /** Transaction ID from wallet (format: {network}:{id}) */
+  /** Transaction ID from Agentic Pay (format: {network}:{id}) */
   transaction_id: string;
   /** Original quote token (signed JWT from service) */
   quote_token: string;
@@ -142,10 +142,10 @@ export interface PaymentContext {
 
 /**
  * Payment token JWT payload
- * This is the structure of the signed JWT from the wallet
+ * This is the structure of the signed JWT from Agentic Pay
  */
 export interface PaymentTokenPayload {
-  /** Issuer - wallet provider identity */
+  /** Issuer - Agentic Pay provider identity */
   iss: string;
   /** Subject - client/buyer identity */
   sub: string;
@@ -168,9 +168,9 @@ export interface PaymentTokenPayload {
  * FAB payload for x402 PaymentPayload
  */
 export interface FABPayloadV2 {
-  /** Payment token (signed JWT from wallet) */
+  /** Payment token (signed JWT from Agentic Pay) */
   paymentToken: string;
-  /** Transaction ID from wallet */
+  /** Transaction ID from Agentic Pay */
   transactionId: string;
 }
 

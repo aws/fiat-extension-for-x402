@@ -14,7 +14,7 @@ describe('OAuth2Authenticator', () => {
     });
 
     const request: AuthenticatedRequest = {
-      url: 'https://wallet.example.com/transactions',
+      url: 'https://pay.example.com/transactions',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ describe('OAuth2Authenticator', () => {
     });
 
     const request: AuthenticatedRequest = {
-      url: 'https://wallet.example.com/transactions',
+      url: 'https://pay.example.com/transactions',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

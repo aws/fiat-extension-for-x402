@@ -4,7 +4,7 @@
 
 import * as jose from 'jose';
 import { PaymentPayload, PaymentRequirements, VerifyResponse } from '@x402/core/types';
-import type { WalletClientForFacilitator } from '../../config';
+import type { AgenticPayClientForFacilitator } from '../../config';
 import { FABPayloadV2, FABPaymentExtra, MismatchError } from '../../types';
 import { extractQuoteFromPayment, decodeQuoteToken, fetchServiceJWKS } from '../../utils';
 
@@ -12,7 +12,7 @@ import { extractQuoteFromPayment, decodeQuoteToken, fetchServiceJWKS } from '../
  * Verify a FAB payment
  * 
  * Verification steps:
- * 1. Verify payment token signature via wallet client (wallet's key)
+ * 1. Verify payment token signature vian Agentic Pay provider client (Agentic Pay's key)
  * 2. Extract quote token from payment context
  * 3. Verify quote token string matches requirements
  * 4. Verify quote token signature (service's key via JWKS)
@@ -24,21 +24,21 @@ import { extractQuoteFromPayment, decodeQuoteToken, fetchServiceJWKS } from '../
  * is the authoritative source for payment details. The facilitator verifies the quote
  * token's signature and content directly.
  * 
- * @param walletClient - Wallet client for verification
+ * @param agenticPayClient - Agentic Pay client for verification
  * @param payload - Payment payload
  * @param requirements - Payment requirements
  * @param fabPayload - FAB-specific payload
  * @returns Verification response
  */
 export async function verifyPayment(
-  walletClient: WalletClientForFacilitator,
+  agenticPayClient: AgenticPayClientForFacilitator,
   payload: PaymentPayload,
   requirements: PaymentRequirements,
   fabPayload: FABPayloadV2
 ): Promise<VerifyResponse> {
   try {
-    // 1. Verify payment token signature (wallet's signature)
-    const paymentJWT = await walletClient.verifyPaymentToken(fabPayload.paymentToken);
+    // 1. Verify payment token signature (Agentic Pay's signature)
+    const paymentJWT = await agenticPayClient.verifyPaymentToken(fabPayload.paymentToken);
 
     // 2. Extract quote token from payment
     const quoteToken = extractQuoteFromPayment(paymentJWT);
@@ -62,7 +62,7 @@ export async function verifyPayment(
       } catch (jwksError) {
         // If JWKS fetch fails (e.g., no network, no endpoint), log but don't block
         // The quote token string match in step 3 is still a valid check
-        // This is a best-effort verification — the wallet already verified the quote
+        // This is a best-effort verification — Agentic Pay already verified the quote
         // when it authorized the transaction
       }
     }

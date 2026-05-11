@@ -26,12 +26,12 @@ import { ValidationError } from '../types';
  * Does not include networks — those are added via `registerNetwork`.
  */
 export interface FABClientOptions {
-  /** Wallet base URL */
-  walletBaseUrl: string;
-  /** Wallet ID */
-  walletId: string;
-  /** Optional: wallet auth config */
-  walletAuth?: AuthConfig;
+  /** Agentic Pay base URL */
+  agenticPayBaseUrl: string;
+  /** Agentic Pay ID */
+  agenticPayId: string;
+  /** Optional: Agentic Pay auth config */
+  agenticPayAuth?: AuthConfig;
   /** Optional: DPoP configuration */
   dpop?: { keyPair: DPoPKeyPair; enabled: boolean };
   /** Optional: existing x402Client to add FAB networks to */
@@ -55,9 +55,9 @@ export interface FABClient {
  */
 export interface FABClientConfig {
   fabNetworks: Network[];
-  walletBaseUrl: string;
-  walletId: string;
-  walletAuth?: AuthConfig;
+  agenticPayBaseUrl: string;
+  agenticPayId: string;
+  agenticPayAuth?: AuthConfig;
   dpop?: { keyPair: DPoPKeyPair; enabled: boolean };
   existingClient?: x402Client;
 }
@@ -65,13 +65,13 @@ export interface FABClientConfig {
 // ── Implementation ─────────────────────────────────────────────────
 
 function validateClientConfig(config: FABClientOptions): void {
-  if (!config.walletBaseUrl) {
-    throw new ValidationError('walletBaseUrl is required');
+  if (!config.agenticPayBaseUrl) {
+    throw new ValidationError('agenticPayBaseUrl is required');
   }
   try {
-    new URL(config.walletBaseUrl);
+    new URL(config.agenticPayBaseUrl);
   } catch {
-    throw new ValidationError(`Invalid walletBaseUrl: ${config.walletBaseUrl}`);
+    throw new ValidationError(`Invalid agenticPayBaseUrl: ${config.agenticPayBaseUrl}`);
   }
 }
 
@@ -82,9 +82,9 @@ function validateClientConfig(config: FABClientOptions): void {
  * @example
  * ```typescript
  * const client = createFABClient({
- *   walletBaseUrl: 'https://wallet.aws.com',
- *   walletId: 'my-wallet',
- *   walletAuth: { type: 'apiKey', apiKey: process.env.WALLET_API_KEY },
+ *   agenticPayBaseUrl: 'https://pay.aws.amazon.com',
+ *   agenticPayId: 'my-agentic-pay',
+ *   agenticPayAuth: { type: 'apiKey', apiKey: process.env.AGENTIC_PAY_API_KEY },
  * });
  *
  * client.registerNetwork('fab:aws');
@@ -101,10 +101,10 @@ export function createFABClient(config: FABClientOptions): FABClient {
 
   // Single reusable scheme instance (stateless w.r.t. network)
   const fabClientScheme = new FABClientScheme({
-    walletId: config.walletId,
-    wallet: {
-      baseUrl: config.walletBaseUrl,
-      auth: config.walletAuth,
+    agenticPayId: config.agenticPayId,
+    agenticPay: {
+      baseUrl: config.agenticPayBaseUrl,
+      auth: config.agenticPayAuth,
     },
   });
 
@@ -140,9 +140,9 @@ export function buildFABClient(config: FABClientConfig): x402Client {
   }
 
   const c = createFABClient({
-    walletBaseUrl: config.walletBaseUrl,
-    walletId: config.walletId,
-    walletAuth: config.walletAuth,
+    agenticPayBaseUrl: config.agenticPayBaseUrl,
+    agenticPayId: config.agenticPayId,
+    agenticPayAuth: config.agenticPayAuth,
     dpop: config.dpop,
     existingClient: config.existingClient,
   });

@@ -1,34 +1,34 @@
 /**
- * Mock wallet client for testing
- * Simulates wallet provider behavior without making HTTP calls
+ * Mock Agentic Pay client for testing
+ * Simulates Agentic Pay provider behavior without making HTTP calls
  */
 
 import * as jose from 'jose';
-import type { WalletClient } from '../../src/config';
+import type { AgenticPayClient } from '../../src/config';
 import { generateTransactionId } from '../../src/utils';
 
 /**
- * Create a mock wallet client for testing
- * Uses in-memory key pairs to simulate wallet provider signing
+ * Create a mock Agentic Pay client for testing
+ * Uses in-memory key pairs to simulate Agentic Pay provider signing
  */
-export async function createMockWalletClient(walletId: string = 'test-wallet-123'): Promise<{
-  walletClient: WalletClient;
+export async function createMockAgenticPayClient(agenticPayId: string = 'test-agentic-pay-123'): Promise<{
+  agenticPayClient: AgenticPayClient;
   privateKey: jose.KeyLike;
   publicKey: jose.KeyLike;
 }> {
   // Generate test key pair
   const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
   
-  const walletClient: WalletClient = {
+  const agenticPayClient: AgenticPayClient = {
     // Client-side: authorize payment
     authorize: async (payload) => {
-      const transactionId = generateTransactionId(payload.network, walletId);
+      const transactionId = generateTransactionId(payload.network, agenticPayId);
       
-      // Create payment token (simulating wallet provider signing)
+      // Create payment token (simulating Agentic Pay provider signing)
       const now = Math.floor(Date.now() / 1000);
       const paymentTokenPayload = {
-        iss: walletId,
-        sub: walletId,
+        iss: agenticPayId,
+        sub: agenticPayId,
         aud: payload.payTo,
         iat: now,
         exp: now + 300,
@@ -76,7 +76,7 @@ export async function createMockWalletClient(walletId: string = 'test-wallet-123
   };
   
   return {
-    walletClient,
+    agenticPayClient,
     privateKey,
     publicKey
   };

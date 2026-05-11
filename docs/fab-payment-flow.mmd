@@ -1,7 +1,7 @@
 sequenceDiagram
     participant Client as Client (API Consumer)
     participant Service as Service (API Provider)
-    participant AP as Agentic Pay (Wallet)
+    participant AP as Agentic Pay (Agentic Pay)
 
     Note over Client,AP: FAB Payment Flow
 
@@ -10,7 +10,7 @@ sequenceDiagram
     Service-->>Client: 3. 402 Payment Required<br/>WWW-Authenticate: x402<br/>{ quoteToken, price, network }
 
     Client->>Client: 4. Extract quoteToken from 402 response
-    Client->>AP: 5. POST /transactions<br/>{ quoteToken, network, amount, currency, walletId }
+    Client->>AP: 5. POST /transactions<br/>{ quoteToken, network, amount, currency, agenticPayId }
     AP->>AP: 6. Verify quote token signature<br/>Authorize transaction
     AP-->>Client: 7. { paymentToken (signed JWT), transactionId }
 

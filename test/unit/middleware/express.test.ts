@@ -68,8 +68,8 @@ function createMockRes(): Response & { _status: number; _json: any; _headers: Re
 }
 
 const baseConfig: FABMiddlewareConfig = {
-  walletBaseUrl: 'https://wallet.example.com',
-  walletId: 'test-wallet',
+  agenticPayBaseUrl: 'https://pay.example.com',
+  agenticPayId: 'test-agentic-pay',
   signingKeys: {
     privateKey: {} as any,
     publicKey: { kty: 'RSA' } as any,
@@ -81,7 +81,7 @@ const baseConfig: FABMiddlewareConfig = {
     'GET /api/premium': {
       price: 0.15,
       network: 'fab:aws' as any,
-      payTo: 'seller-wallet',
+      payTo: 'seller-pay',
       asset: 'iso4217:USD',
     },
   },
@@ -149,7 +149,7 @@ describe('fabPaymentMiddleware', () => {
           'GET /api/*': {
             price: 0.15,
             network: 'fab:aws' as any,
-            payTo: 'seller-wallet',
+            payTo: 'seller-pay',
           },
         },
       };
@@ -173,7 +173,7 @@ describe('fabPaymentMiddleware', () => {
           '/api/premium': {
             price: 0.15,
             network: 'fab:aws' as any,
-            payTo: 'seller-wallet',
+            payTo: 'seller-pay',
           },
         },
       };

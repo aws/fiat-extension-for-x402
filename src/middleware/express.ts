@@ -17,8 +17,8 @@
  * app.use(express.json());
  *
  * app.use(fabPaymentMiddleware({
- *   walletBaseUrl: 'https://wallet.aws.com',
- *   walletId: 'my-wallet',
+ *   agenticPayBaseUrl: 'https://pay.aws.amazon.com',
+ *   agenticPayId: 'my-agentic-pay',
  *   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
  *   serviceUrl: 'https://api.example.com',
  *   networks: ['fab:aws'],
@@ -26,7 +26,7 @@
  *     'GET /api/premium': {
  *       price: 0.15,
  *       network: 'fab:aws',
- *       payTo: 'seller-wallet-id',
+ *       payTo: 'seller-agentic-pay-id',
  *       asset: 'iso4217:USD',
  *     },
  *   },
@@ -42,7 +42,7 @@ import type { Request, Response, NextFunction } from 'express';
 import type { Network } from '@x402/core/types';
 import type { x402ResourceServer } from '@x402/core/server';
 import type { SigningKeysConfig } from '../config';
-import type { WalletFacilitatorAuthConfig } from '../wallet-facilitator-client';
+import type { AgenticPayFacilitatorAuthConfig } from '../agentic-pay-facilitator-client';
 import { createFABResourceServer } from '../builders/resource-server-builder';
 import { ValidationError } from '../types';
 
@@ -56,7 +56,7 @@ export interface FABRouteConfig {
   price: number | string;
   /** Network to use (e.g., 'fab:aws') */
   network: Network;
-  /** Recipient wallet ID */
+  /** Recipient Agentic Pay ID */
   payTo: string;
   /** Asset identifier (e.g., 'iso4217:USD'). Used in PaymentInfo only; the scheme derives the asset from the price. */
   asset?: string;
@@ -84,10 +84,10 @@ export type FABRoutesConfig = Record<string, FABRouteConfig>;
  * Middleware configuration.
  */
 export interface FABMiddlewareConfig {
-  /** Wallet provider base URL */
-  walletBaseUrl: string;
-  /** Wallet ID for the FAB facilitator */
-  walletId: string;
+  /** Agentic Pay provider base URL */
+  agenticPayBaseUrl: string;
+  /** Agentic Pay ID for the FAB facilitator */
+  agenticPayId: string;
   /** Service signing keys for quote tokens */
   signingKeys: SigningKeysConfig;
   /** Service URL (used as issuer in quote tokens) */
@@ -96,8 +96,8 @@ export interface FABMiddlewareConfig {
   networks: Network[];
   /** Route payment configurations */
   routes: FABRoutesConfig;
-  /** Optional wallet auth for facilitator API calls */
-  walletAuth?: WalletFacilitatorAuthConfig;
+  /** Optional Agentic Pay auth for facilitator API calls */
+  agenticPayAuth?: AgenticPayFacilitatorAuthConfig;
   /** Disable default x402 facilitator fallback. Defaults to false. */
   disableDefaultFallback?: boolean;
 
@@ -255,11 +255,11 @@ export function fabPaymentMiddleware(
   function getServer(): Promise<x402ResourceServer> {
     if (!serverPromise) {
       const fabServer = createFABResourceServer({
-        walletBaseUrl: config.walletBaseUrl,
-        walletId: config.walletId,
+        agenticPayBaseUrl: config.agenticPayBaseUrl,
+        agenticPayId: config.agenticPayId,
         signingKeys: config.signingKeys,
         serviceUrl: config.serviceUrl,
-        walletAuth: config.walletAuth,
+        agenticPayAuth: config.agenticPayAuth,
       });
 
       for (const network of config.networks) {

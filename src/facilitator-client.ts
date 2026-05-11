@@ -34,8 +34,8 @@ import type {
  * // Create facilitator with FAB scheme
  * const facilitator = new x402Facilitator()
  *   .register('fab:aws', new FABFacilitatorScheme({
- *     walletId: 'my-wallet',
- *     wallet: { baseUrl: 'https://wallet.example.com' }
+ *     agenticPayId: 'my-agentic-pay',
+ *     agenticPay: { baseUrl: 'https://pay.example.com' }
  *   }));
  * 
  * // Wrap in client

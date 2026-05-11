@@ -21,7 +21,7 @@ describe('createFABResourceServer', () => {
         return {
           ok: true,
           json: async () => ({
-            kinds: networks.map(n => ({ x402Version: 2, scheme: 'fab', network: n, extra: { walletId: 'w' } })),
+            kinds: networks.map(n => ({ x402Version: 2, scheme: 'fab', network: n, extra: { agenticPayId: 'w' } })),
             extensions: [], signers: {},
           }),
         };
@@ -33,7 +33,7 @@ describe('createFABResourceServer', () => {
     });
   }
 
-  const base = { walletBaseUrl: 'https://wallet.example.com', walletId: 'w', serviceUrl: 'https://api.example.com' };
+  const base = { agenticPayBaseUrl: 'https://pay.example.com', agenticPayId: 'w', serviceUrl: 'https://api.example.com' };
 
   it('should create server and register networks individually', async () => {
     mockSupported(['fab:aws', 'eip155:8453']);
@@ -68,11 +68,11 @@ describe('createFABResourceServer', () => {
     await expect(s.initialize()).rejects.toThrow(ValidationError);
   });
 
-  it('should throw on invalid walletBaseUrl', () => {
-    expect(() => createFABResourceServer({ walletBaseUrl: 'bad', walletId: 'w', signingKeys: keys, serviceUrl: 'https://a.com' })).toThrow(ValidationError);
+  it('should throw on invalid agenticPayBaseUrl', () => {
+    expect(() => createFABResourceServer({ agenticPayBaseUrl: 'bad', agenticPayId: 'w', signingKeys: keys, serviceUrl: 'https://a.com' })).toThrow(ValidationError);
   });
 
   it('should throw on missing serviceUrl', () => {
-    expect(() => createFABResourceServer({ walletBaseUrl: 'https://w.com', walletId: 'w', signingKeys: keys, serviceUrl: '' })).toThrow(ValidationError);
+    expect(() => createFABResourceServer({ agenticPayBaseUrl: 'https://w.com', agenticPayId: 'w', signingKeys: keys, serviceUrl: '' })).toThrow(ValidationError);
   });
 });

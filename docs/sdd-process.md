@@ -24,7 +24,7 @@ The project maintains two levels of specification:
 
 ### System Spec (`docs/spec.md`)
 - Business context and domain model
-- Personas and their interactions (API providers, API consumers, wallet providers)
+- Personas and their interactions (API providers, API consumers, Agentic Pay providers)
 - All requirements in EARS syntax, validated against INCOSE guidelines
 - Non-functional requirements (performance, security, compatibility, testability)
 - Correctness properties (formal invariants for property-based testing)

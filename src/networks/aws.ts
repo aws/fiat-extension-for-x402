@@ -1,6 +1,6 @@
 /**
  * AWS-specific FAB scheme implementations
- * Pre-configured for AWS Wallet with sensible defaults
+ * Pre-configured for AWS Agentic Pay with sensible defaults
  */
 
 import { FABScheme as FABClientSchemeBase } from '../fab/client/scheme';
@@ -9,24 +9,24 @@ import { FABScheme as FABFacilitatorSchemeBase } from '../fab/facilitator/scheme
 import type { SigningKeysConfig } from '../config';
 
 /**
- * AWS Wallet base URL
+ * AWS Agentic Pay base URL
  */
-const AWS_WALLET_BASE_URL = 'https://wallet.aws.com';
+const AWS_AGENTIC_PAY_BASE_URL = 'https://pay.aws.amazon.com';
 
 /**
  * AWS-specific FAB client scheme
- * Pre-configured for AWS Wallet
+ * Pre-configured for AWS Agentic Pay
  */
 export class FABAWSClientScheme extends FABClientSchemeBase {
   /**
    * Create a new AWS FAB client scheme
-   * @param config - Client configuration with wallet ID
+   * @param config - Client configuration with Agentic Pay ID
    */
-  constructor(config: { walletId: string }) {
+  constructor(config: { agenticPayId: string }) {
     super({
-      walletId: config.walletId,
-      wallet: {
-        baseUrl: AWS_WALLET_BASE_URL
+      agenticPayId: config.agenticPayId,
+      agenticPay: {
+        baseUrl: AWS_AGENTIC_PAY_BASE_URL
       }
     });
   }
@@ -34,7 +34,7 @@ export class FABAWSClientScheme extends FABClientSchemeBase {
 
 /**
  * AWS-specific FAB server scheme
- * Pre-configured for AWS Wallet
+ * Pre-configured for AWS Agentic Pay
  */
 export class FABAWSServerScheme extends FABServerSchemeBase {
   /**
@@ -45,8 +45,8 @@ export class FABAWSServerScheme extends FABServerSchemeBase {
     super({
       signingKeys: config.signingKeys,
       serviceUrl: config.serviceUrl,
-      wallet: {
-        baseUrl: AWS_WALLET_BASE_URL
+      agenticPay: {
+        baseUrl: AWS_AGENTIC_PAY_BASE_URL
       }
     });
   }
@@ -54,18 +54,18 @@ export class FABAWSServerScheme extends FABServerSchemeBase {
 
 /**
  * AWS-specific FAB facilitator scheme
- * Pre-configured for AWS Wallet
+ * Pre-configured for AWS Agentic Pay
  */
 export class FABAWSFacilitatorScheme extends FABFacilitatorSchemeBase {
   /**
    * Create a new AWS FAB facilitator scheme
-   * @param walletId - The wallet ID to use (defaults to 'aws-wallet')
+   * @param agenticPayId - Agentic Pay ID to use (defaults to 'aws-agentic-pay')
    */
-  constructor(walletId: string = 'aws-wallet') {
+  constructor(agenticPayId: string = 'aws-agentic-pay') {
     super({
-      walletId,
-      wallet: {
-        baseUrl: AWS_WALLET_BASE_URL
+      agenticPayId,
+      agenticPay: {
+        baseUrl: AWS_AGENTIC_PAY_BASE_URL
       }
     });
   }

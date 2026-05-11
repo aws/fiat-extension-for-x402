@@ -7,8 +7,8 @@ describe('buildFABClient (legacy convenience builder)', () => {
   it('should register FAB client scheme for all specified networks', () => {
     const client = buildFABClient({
       fabNetworks: ['fab:aws', 'eip155:8453'],
-      walletBaseUrl: 'https://wallet.example.com',
-      walletId: 'test-wallet',
+      agenticPayBaseUrl: 'https://pay.example.com',
+      agenticPayId: 'test-agentic-pay',
     });
     expect(client).toBeInstanceOf(x402Client);
   });
@@ -17,8 +17,8 @@ describe('buildFABClient (legacy convenience builder)', () => {
     const existing = new x402Client();
     const client = buildFABClient({
       fabNetworks: ['fab:aws'],
-      walletBaseUrl: 'https://wallet.example.com',
-      walletId: 'test-wallet',
+      agenticPayBaseUrl: 'https://pay.example.com',
+      agenticPayId: 'test-agentic-pay',
       existingClient: existing,
     });
     expect(client).toBe(existing);
@@ -27,24 +27,24 @@ describe('buildFABClient (legacy convenience builder)', () => {
   it('should throw on empty fabNetworks', () => {
     expect(() => buildFABClient({
       fabNetworks: [],
-      walletBaseUrl: 'https://wallet.example.com',
-      walletId: 'test-wallet',
+      agenticPayBaseUrl: 'https://pay.example.com',
+      agenticPayId: 'test-agentic-pay',
     })).toThrow(ValidationError);
   });
 
-  it('should throw on invalid walletBaseUrl', () => {
+  it('should throw on invalid agenticPayBaseUrl', () => {
     expect(() => buildFABClient({
       fabNetworks: ['fab:aws'],
-      walletBaseUrl: 'not-a-url',
-      walletId: 'test-wallet',
+      agenticPayBaseUrl: 'not-a-url',
+      agenticPayId: 'test-agentic-pay',
     })).toThrow(ValidationError);
   });
 
-  it('should throw on missing walletBaseUrl', () => {
+  it('should throw on missing agenticPayBaseUrl', () => {
     expect(() => buildFABClient({
       fabNetworks: ['fab:aws'],
-      walletBaseUrl: '',
-      walletId: 'test-wallet',
+      agenticPayBaseUrl: '',
+      agenticPayId: 'test-agentic-pay',
     })).toThrow(ValidationError);
   });
 });
@@ -52,8 +52,8 @@ describe('buildFABClient (legacy convenience builder)', () => {
 describe('createFABClient (two-phase API)', () => {
   it('should create client and register networks individually', () => {
     const fabClient = createFABClient({
-      walletBaseUrl: 'https://wallet.example.com',
-      walletId: 'test-wallet',
+      agenticPayBaseUrl: 'https://pay.example.com',
+      agenticPayId: 'test-agentic-pay',
     });
     fabClient.registerNetwork('fab:aws');
     fabClient.registerNetwork('eip155:8453');
@@ -62,8 +62,8 @@ describe('createFABClient (two-phase API)', () => {
 
   it('should support method chaining on registerNetwork', () => {
     const fabClient = createFABClient({
-      walletBaseUrl: 'https://wallet.example.com',
-      walletId: 'test-wallet',
+      agenticPayBaseUrl: 'https://pay.example.com',
+      agenticPayId: 'test-agentic-pay',
     });
     const result = fabClient
       .registerNetwork('fab:aws')
@@ -73,8 +73,8 @@ describe('createFABClient (two-phase API)', () => {
 
   it('should be idempotent — registering same network twice is fine', () => {
     const fabClient = createFABClient({
-      walletBaseUrl: 'https://wallet.example.com',
-      walletId: 'test-wallet',
+      agenticPayBaseUrl: 'https://pay.example.com',
+      agenticPayId: 'test-agentic-pay',
     });
     fabClient.registerNetwork('fab:aws');
     fabClient.registerNetwork('fab:aws');
@@ -83,8 +83,8 @@ describe('createFABClient (two-phase API)', () => {
 
   it('should expose createPaymentPayload from the underlying client', () => {
     const fabClient = createFABClient({
-      walletBaseUrl: 'https://wallet.example.com',
-      walletId: 'test-wallet',
+      agenticPayBaseUrl: 'https://pay.example.com',
+      agenticPayId: 'test-agentic-pay',
     });
     expect(typeof fabClient.createPaymentPayload).toBe('function');
   });
@@ -92,25 +92,25 @@ describe('createFABClient (two-phase API)', () => {
   it('should add networks to an existing x402Client', () => {
     const existing = new x402Client();
     const fabClient = createFABClient({
-      walletBaseUrl: 'https://wallet.example.com',
-      walletId: 'test-wallet',
+      agenticPayBaseUrl: 'https://pay.example.com',
+      agenticPayId: 'test-agentic-pay',
       existingClient: existing,
     });
     fabClient.registerNetwork('fab:aws');
     expect(fabClient.client).toBe(existing);
   });
 
-  it('should throw on invalid walletBaseUrl', () => {
+  it('should throw on invalid agenticPayBaseUrl', () => {
     expect(() => createFABClient({
-      walletBaseUrl: 'not-a-url',
-      walletId: 'test-wallet',
+      agenticPayBaseUrl: 'not-a-url',
+      agenticPayId: 'test-agentic-pay',
     })).toThrow(ValidationError);
   });
 
-  it('should throw on missing walletBaseUrl', () => {
+  it('should throw on missing agenticPayBaseUrl', () => {
     expect(() => createFABClient({
-      walletBaseUrl: '',
-      walletId: 'test-wallet',
+      agenticPayBaseUrl: '',
+      agenticPayId: 'test-agentic-pay',
     })).toThrow(ValidationError);
   });
 });

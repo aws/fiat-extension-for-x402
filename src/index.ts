@@ -14,27 +14,27 @@ export { FABAWSClientScheme, FABAWSServerScheme, FABAWSFacilitatorScheme } from 
 // Configuration types
 export type {
   SigningKeysConfig,
-  WalletConfig,
-  WalletClientForClient,
-  WalletClientForFacilitator,
-  WalletClient,
+  AgenticPayConfig,
+  AgenticPayClientForClient,
+  AgenticPayClientForFacilitator,
+  AgenticPayClient,
   FABClientSchemeConfig,
   FABServerSchemeConfig,
   FABFacilitatorSchemeConfig,
   ServiceFABSigner as ServiceFABSignerInterface
 } from './config';
 
-// Wallet client implementation
-export { DefaultWalletClient } from './wallet-client';
+// Agentic Pay client implementation
+export { DefaultAgenticPayClient } from './agentic-pay-client';
 
 // Facilitator client implementation
 export { InProcessFacilitatorClient } from './facilitator-client';
-export { WalletFacilitatorClient } from './wallet-facilitator-client';
-export type { WalletFacilitatorAuthConfig } from './wallet-facilitator-client';
+export { AgenticPayFacilitatorClient } from './agentic-pay-facilitator-client';
+export type { AgenticPayFacilitatorAuthConfig } from './agentic-pay-facilitator-client';
 
 // Signers
-export { toServiceFABSigner, toWalletFABSigner } from './signer';
-export type { ServiceFABSigner, WalletFABSigner } from './signer';
+export { toServiceFABSigner, toAgenticPayFABSigner } from './signer';
+export type { ServiceFABSigner, AgenticPayFABSigner } from './signer';
 
 // Types
 export type {
@@ -94,15 +94,15 @@ export {
   clearServiceJWKSCache
 } from './utils';
 
-// Wallet Discovery
+// Agentic Pay Discovery
 export {
-  getWalletBaseUrl,
-  discoverWalletEndpoints,
-  fetchWalletPublicKeys,
+  getAgenticPayBaseUrl,
+  discoverAgenticPayEndpoints,
+  fetchAgenticPayPublicKeys,
   clearDiscoveryCache,
   clearJWKSCache
 } from './discovery';
-export type { WalletDiscoveryMetadata } from './discovery';
+export type { AgenticPayDiscoveryMetadata } from './discovery';
 
 // DPoP (Demonstrating Proof-of-Possession)
 export {

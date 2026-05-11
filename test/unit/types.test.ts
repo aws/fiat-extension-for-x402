@@ -76,13 +76,13 @@ describe('Payment Types', () => {
           amount: '0.15',
           currency: 'USD',
         },
-        payTo: 'wallet-weather-co-aws',
+        payTo: 'pay-weather-co-aws',
         capture: 'manual',
         reference: 'WEATHER_DATA_TIER1',
       };
       expect(payload.iss).toBe('https://api.weather.com');
       expect(payload.price).toBeDefined();
-      expect(payload.payTo).toBe('wallet-weather-co-aws');
+      expect(payload.payTo).toBe('pay-weather-co-aws');
     });
 
     it('should accept quote token payload with array of prices', () => {
@@ -96,7 +96,7 @@ describe('Payment Types', () => {
           { amount: '0.15', currency: 'USD' },
           { amount: '0.12', currency: 'EUR' },
         ],
-        payTo: 'wallet-weather-co-aws',
+        payTo: 'pay-weather-co-aws',
         capture: 'manual',
         reference: 'WEATHER_DATA_TIER1',
       };
@@ -115,7 +115,7 @@ describe('Payment Types', () => {
           amount: '0.15',
           currency: 'USD',
         },
-        payTo: 'wallet-weather-co-aws',
+        payTo: 'pay-weather-co-aws',
         capture: 'manual',
         reference: 'WEATHER_DATA_TIER1',
       };
@@ -134,7 +134,7 @@ describe('Payment Types', () => {
           amount: '0.15',
           currency: 'USD',
         },
-        payTo: 'wallet-weather-co-aws',
+        payTo: 'pay-weather-co-aws',
         capture: 'manual',
         reference: 'WEATHER_DATA_TIER1',
         settlement: {
@@ -172,7 +172,7 @@ describe('Payment Types', () => {
   describe('PaymentTokenPayload', () => {
     it('should accept minimal payment token payload', () => {
       const payload: PaymentTokenPayload = {
-        iss: 'https://wallet.aws.com',
+        iss: 'https://pay.aws.amazon.com',
         sub: 'client_uuid_555',
         aud: 'https://api.weather.com',
         iat: 1735689600,
@@ -182,7 +182,7 @@ describe('Payment Types', () => {
           quote_token: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
         },
       };
-      expect(payload.iss).toBe('https://wallet.aws.com');
+      expect(payload.iss).toBe('https://pay.aws.amazon.com');
       expect(payload.sub).toBe('client_uuid_555');
       expect(payload.payment_context).toBeDefined();
       expect(payload.cnf).toBeUndefined();
@@ -190,7 +190,7 @@ describe('Payment Types', () => {
 
     it('should accept payment token payload with DPoP confirmation', () => {
       const payload: PaymentTokenPayload = {
-        iss: 'https://wallet.aws.com',
+        iss: 'https://pay.aws.amazon.com',
         sub: 'client_uuid_555',
         aud: 'https://api.weather.com',
         iat: 1735689600,

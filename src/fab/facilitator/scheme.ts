@@ -1,7 +1,7 @@
 /**
  * FAB Facilitator Scheme Implementation
  * 
- * In FAB, the "facilitator" role is played by the wallet provider,
+ * In FAB, the "facilitator" role is played by the Agentic Pay provider,
  * which verifies and settles payments.
  */
 
@@ -13,38 +13,38 @@ import {
   VerifyResponse,
   Network
 } from '@x402/core/types';
-import type { FABFacilitatorSchemeConfig, WalletClientForFacilitator } from '../../config';
-import { DefaultWalletClient } from '../../wallet-client';
+import type { FABFacilitatorSchemeConfig, AgenticPayClientForFacilitator } from '../../config';
+import { DefaultAgenticPayClient } from '../../agentic-pay-client';
 import { FABPayloadV2, ValidationError } from '../../types';
 import { verifyPayment } from './verify';
 import { settlePayment } from './settle';
 import { FAB_SCHEME, FAB_CAIP_FAMILY } from '../../constants';
 
 /**
- * FAB facilitator implementation for wallet providers.
+ * FAB facilitator implementation for Agentic Pay providers.
  * Verifies and settles payments.
  */
 export class FABScheme implements SchemeNetworkFacilitator {
   readonly scheme = FAB_SCHEME;
   readonly caipFamily = FAB_CAIP_FAMILY;
-  private readonly walletClient: WalletClientForFacilitator;
-  private readonly walletId: string;
+  private readonly agenticPayClient: AgenticPayClientForFacilitator;
+  private readonly agenticPayId: string;
 
   /**
    * Create a new FAB facilitator scheme
-   * @param config - Facilitator configuration with wallet client or config
+   * @param config - Facilitator configuration with Agentic Pay client or config
    */
   constructor(config: FABFacilitatorSchemeConfig) {
-    // Store wallet ID
-    this.walletId = config.walletId;
+    // Store Agentic Pay ID
+    this.agenticPayId = config.agenticPayId;
     
     // Determine if we have a custom client or need to create default
-    if ('walletClient' in config) {
-      this.walletClient = config.walletClient;
-    } else if ('wallet' in config) {
-      this.walletClient = new DefaultWalletClient(config.wallet);
+    if ('agenticPayClient' in config) {
+      this.agenticPayClient = config.agenticPayClient;
+    } else if ('agenticPay' in config) {
+      this.agenticPayClient = new DefaultAgenticPayClient(config.agenticPay);
     } else {
-      throw new ValidationError('FABFacilitatorScheme requires either walletClient or wallet configuration');
+      throw new ValidationError('FABFacilitatorScheme requires either agenticPayClient or Agentic Pay configuration');
     }
   }
 
@@ -52,11 +52,11 @@ export class FABScheme implements SchemeNetworkFacilitator {
    * Get mechanism-specific extra data for the supported kinds endpoint
    * 
    * @param network - Network identifier
-   * @returns Extra data with wallet ID
+   * @returns Extra data with Agentic Pay ID
    */
   getExtra(network: Network): Record<string, unknown> | undefined {
     return {
-      walletId: this.walletId
+      agenticPayId: this.agenticPayId
     };
   }
 
@@ -64,10 +64,10 @@ export class FABScheme implements SchemeNetworkFacilitator {
    * Get signer addresses used by this facilitator
    * 
    * @param network - Network identifier
-   * @returns Array with wallet ID
+   * @returns Array with Agentic Pay ID
    */
   getSigners(network: string): string[] {
-    return [this.walletId];
+    return [this.agenticPayId];
   }
 
   /**
@@ -82,7 +82,7 @@ export class FABScheme implements SchemeNetworkFacilitator {
     requirements: PaymentRequirements
   ): Promise<VerifyResponse> {
     const fabPayload = payload.payload as unknown as FABPayloadV2;
-    return verifyPayment(this.walletClient, payload, requirements, fabPayload);
+    return verifyPayment(this.agenticPayClient, payload, requirements, fabPayload);
   }
 
   /**
@@ -97,6 +97,6 @@ export class FABScheme implements SchemeNetworkFacilitator {
     requirements: PaymentRequirements
   ): Promise<SettleResponse> {
     const fabPayload = payload.payload as unknown as FABPayloadV2;
-    return settlePayment(this.walletClient, payload, requirements, fabPayload);
+    return settlePayment(this.agenticPayClient, payload, requirements, fabPayload);
   }
 }

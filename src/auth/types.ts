@@ -1,5 +1,5 @@
 /**
- * Authentication types for client-to-wallet communication
+ * Authentication types for client-to-agentic-pay communication
  */
 
 /**

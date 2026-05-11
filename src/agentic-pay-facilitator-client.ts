@@ -1,12 +1,12 @@
 /**
- * Wallet Facilitator Client
+ * Agentic Pay Facilitator Client
  * 
  * Implements FacilitatorClient interface by verifying payment tokens cryptographically.
- * In FAB, the wallet provider IS the facilitator - no separate facilitator service needed.
+ * In FAB, the Agentic Pay provider IS the facilitator - no separate facilitator service needed.
  * 
  * This adapter translates x402 facilitator calls to cryptographic verification:
  * - verify() → verifies JWT signatures (payment token + quote token)
- * - settle() → calls wallet's /capture endpoint
+ * - settle() → calls Agentic Pay's /capture endpoint
  * - getSupported() → fetches from /.well-known/x402-supported
  * 
  * Security is based on signatures, not transaction state lookups.
@@ -26,56 +26,56 @@ import { FABPayloadV2, FABPaymentExtra } from './types';
 import { decodeQuoteToken } from './utils';
 
 /**
- * Optional authentication configuration for wallet API calls
+ * Optional authentication configuration for Agentic Pay API calls
  */
-export interface WalletFacilitatorAuthConfig {
+export interface AgenticPayFacilitatorAuthConfig {
   /**
-   * Function to get authentication headers for wallet API calls
+   * Function to get authentication headers for Agentic Pay API calls
    * @returns Headers to include in requests
    */
   getAuthHeaders?: () => Promise<Record<string, string>>;
 }
 
 /**
- * Wallet Facilitator Client
+ * Agentic Pay Facilitator Client
  * 
- * Calls wallet provider's API to verify and settle payments.
- * The wallet provider serves as the facilitator in FAB.
+ * Calls Agentic Pay provider's API to verify and settle payments.
+ * The Agentic Pay provider serves as the facilitator in FAB.
  */
-export class WalletFacilitatorClient implements FacilitatorClient {
+export class AgenticPayFacilitatorClient implements FacilitatorClient {
   private jwksCache: Map<string, { jwks: jose.JSONWebKeySet; timestamp: number }> = new Map();
   private readonly JWKS_CACHE_TTL = 3600000; // 1 hour
-  private readonly authConfig?: WalletFacilitatorAuthConfig;
+  private readonly authConfig?: AgenticPayFacilitatorAuthConfig;
   private readonly networkFilter?: Set<Network>;
 
   /**
-   * Create a new wallet facilitator client
+   * Create a new Agentic Pay facilitator client
    * 
-   * @param walletBaseUrl - Base URL of the wallet provider (e.g., 'https://wallet.aws.com')
+   * @param agenticPayBaseUrl - Base URL of the Agentic Pay provider (e.g., 'https://pay.aws.amazon.com')
    * @param authConfig - Optional authentication configuration
    * @param networkFilter - Optional set of networks to claim. When set, getSupported()
-   *   filters the wallet's response to only include kinds whose network is in this set.
+   *   filters the Agentic Pay's response to only include kinds whose network is in this set.
    *   This prevents the FAB facilitator from shadowing the default facilitator for
    *   networks the integrator didn't intend to handle via FAB.
    */
   constructor(
-    private readonly walletBaseUrl: string,
-    authConfig?: WalletFacilitatorAuthConfig,
+    private readonly agenticPayBaseUrl: string,
+    authConfig?: AgenticPayFacilitatorAuthConfig,
     networkFilter?: Set<Network>
   ) {
     // Remove trailing slash if present
-    this.walletBaseUrl = walletBaseUrl.replace(/\/$/, '');
+    this.agenticPayBaseUrl = agenticPayBaseUrl.replace(/\/$/, '');
     this.authConfig = authConfig;
     this.networkFilter = networkFilter;
   }
 
   /**
-   * Get supported payment kinds from wallet
+   * Get supported payment kinds from Agentic Pay
    * 
    * @returns Supported payment kinds and extensions
    */
   async getSupported(): Promise<SupportedResponse> {
-    const response = await fetch(`${this.walletBaseUrl}/.well-known/x402-supported`);
+    const response = await fetch(`${this.agenticPayBaseUrl}/.well-known/x402-supported`);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch supported kinds: ${response.statusText}`);
@@ -99,7 +99,7 @@ export class WalletFacilitatorClient implements FacilitatorClient {
    * Verify a payment by checking JWT signatures
    * 
    * Security model:
-   * 1. Verify payment token signature (proves wallet authorized it)
+   * 1. Verify payment token signature (proves Agentic Pay authorized it)
    * 2. Verify quote token signature (proves service issued it)
    * 3. Verify amounts match (prevents tampering)
    * 
@@ -118,13 +118,13 @@ export class WalletFacilitatorClient implements FacilitatorClient {
       const fabPayload = payload.payload as unknown as FABPayloadV2;
       const extra = requirements.extra as unknown as FABPaymentExtra;
 
-      // 1. Fetch wallet's JWKS
-      const walletJWKS = await this.fetchJWKS(this.walletBaseUrl);
+      // 1. Fetch Agentic Pay's JWKS
+      const agenticPayJWKS = await this.fetchJWKS(this.agenticPayBaseUrl);
 
       // 2. Verify payment token signature
       const { payload: paymentTokenPayload } = await jose.jwtVerify(
         fabPayload.paymentToken,
-        jose.createLocalJWKSet(walletJWKS)
+        jose.createLocalJWKSet(agenticPayJWKS)
       );
 
       // 3. Check payment token expiry
@@ -194,7 +194,7 @@ export class WalletFacilitatorClient implements FacilitatorClient {
   }
 
   /**
-   * Settle a payment by capturing it with the wallet
+   * Settle a payment by capturing it with Agentic Pay
    * 
    * @param payload - Payment payload to settle
    * @param requirements - Payment requirements
@@ -219,12 +219,12 @@ export class WalletFacilitatorClient implements FacilitatorClient {
         };
       }
 
-      // 2. Call wallet's capture endpoint
+      // 2. Call Agentic Pay's capture endpoint
       const authHeaders = this.authConfig?.getAuthHeaders 
         ? await this.authConfig.getAuthHeaders() 
         : {};
       
-      const captureResponse = await fetch(`${this.walletBaseUrl}/capture`, {
+      const captureResponse = await fetch(`${this.agenticPayBaseUrl}/capture`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

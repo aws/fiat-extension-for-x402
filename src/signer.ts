@@ -1,9 +1,9 @@
 /**
  * Signer interfaces and adapters for FAB JWT operations
  * 
- * FAB uses JWT signing instead of crypto wallet signing.
+ * FAB uses JWT signing instead of crypto Agentic Pay signing.
  * This module provides interfaces and adapter functions for both
- * service-side (quote token signing) and wallet-side (payment token signing).
+ * service-side (quote token signing) and Agentic Pay-side (payment token signing).
  */
 
 import * as jose from 'jose';
@@ -34,9 +34,9 @@ export interface ServiceFABSigner {
 }
 
 /**
- * Signer for wallet-side operations (payment token signing)
+ * Signer for Agentic Pay-side operations (payment token signing)
  */
-export interface WalletFABSigner {
+export interface AgenticPayFABSigner {
   /**
    * Sign a payment token JWT
    * @param payload - Payment token payload to sign
@@ -51,8 +51,8 @@ export interface WalletFABSigner {
   getPublicKey(): jose.JWK;
   
   /**
-   * Get wallet addresses (for facilitator supported endpoint)
-   * @returns Array of wallet IDs
+   * Get Agentic Pay addresses (for facilitator supported endpoint)
+   * @returns Array of Agentic Pay IDs
    */
   getAddresses(): string[];
 }
@@ -100,12 +100,12 @@ export function toServiceFABSigner(
 }
 
 /**
- * Convert a jose KeyLike to a WalletFABSigner
+ * Convert a jose KeyLike to a AgenticPayFABSigner
  * 
  * @param privateKey - Private key for signing (RS256 or ES256)
  * @param publicKey - Public key in JWK format
- * @param walletId - Wallet identifier
- * @returns WalletFABSigner instance
+ * @param agenticPayId - Agentic Pay identifier
+ * @returns AgenticPayFABSigner instance
  * 
  * @example
  * ```typescript
@@ -114,18 +114,18 @@ export function toServiceFABSigner(
  * const { privateKey, publicKey } = await generateKeyPair('RS256');
  * const publicJWK = await exportJWK(publicKey);
  * 
- * const signer = toWalletFABSigner(
+ * const signer = toAgenticPayFABSigner(
  *   privateKey,
  *   publicJWK,
- *   'wallet-provider-id'
+ *   'agentic-pay-provider-id'
  * );
  * ```
  */
-export function toWalletFABSigner(
+export function toAgenticPayFABSigner(
   privateKey: jose.KeyLike,
   publicKey: jose.JWK,
-  walletId: string
-): WalletFABSigner {
+  agenticPayId: string
+): AgenticPayFABSigner {
   return {
     async signPayment(payload: PaymentTokenPayload): Promise<string> {
       return await new jose.SignJWT(payload as any)
@@ -136,7 +136,7 @@ export function toWalletFABSigner(
       return publicKey;
     },
     getAddresses(): string[] {
-      return [walletId];
+      return [agenticPayId];
     }
   };
 }

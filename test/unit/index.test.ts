@@ -16,7 +16,7 @@ describe('FAB Package Exports', () => {
 
   it('should export signer functions', () => {
     expect(FAB.toServiceFABSigner).toBeDefined();
-    expect(FAB.toWalletFABSigner).toBeDefined();
+    expect(FAB.toAgenticPayFABSigner).toBeDefined();
   });
 
   it('should export error classes', () => {

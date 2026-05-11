@@ -1,22 +1,22 @@
 /**
- * Wallet Endpoint Discovery
+ * Agentic Pay Endpoint Discovery
  * 
- * Utilities for discovering wallet provider endpoints via OIDC discovery.
+ * Utilities for discovering Agentic Pay provider endpoints via OIDC discovery.
  */
 
 /**
- * Wallet discovery metadata (OIDC Discovery response)
+ * Agentic Pay discovery metadata (OIDC Discovery response)
  */
-export interface WalletDiscoveryMetadata {
-  /** Wallet's canonical identifier (matches iss claim in Payment JWTs) */
+export interface AgenticPayDiscoveryMetadata {
+  /** Agentic Pay's canonical identifier (matches iss claim in Payment JWTs) */
   issuer: string;
-  /** URL where services can fetch wallet's public keys */
+  /** URL where services can fetch Agentic Pay's public keys */
   jwks_uri: string;
   /** URL where clients create payment transactions */
   payment_endpoint: string;
   /** URL template for capture endpoint */
   capture_endpoint: string;
-  /** Settlement methods this wallet supports */
+  /** Settlement methods this Agentic Pay provider supports */
   supported_settlement_methods?: string[];
   /** Algorithms used to sign Payment JWTs */
   signing_alg_values_supported?: string[];
@@ -32,7 +32,7 @@ export interface WalletDiscoveryMetadata {
  * Cache for discovery metadata
  */
 const discoveryCache = new Map<string, {
-  metadata: WalletDiscoveryMetadata;
+  metadata: AgenticPayDiscoveryMetadata;
   expiresAt: number;
 }>();
 
@@ -50,21 +50,21 @@ const jwksCache = new Map<string, {
 const networkRegistry = new Map<string, string>();
 
 /**
- * Register a network's wallet base URL
+ * Register a network's Agentic Pay base URL
  * 
  * @param network - Network identifier (e.g., 'fab:aws')
- * @param baseUrl - Wallet base URL (e.g., 'https://wallet.aws.com')
+ * @param baseUrl - Agentic Pay base URL (e.g., 'https://pay.aws.amazon.com')
  * 
  * @example
  * ```typescript
  * // Register AWS FAB network
- * registerNetwork('fab:aws', 'https://wallet.aws.com');
+ * registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
  * 
  * // Register custom FAB network
- * registerNetwork('fab:custom', 'https://custom-wallet.example.com');
+ * registerNetwork('fab:custom', 'https://custom-pay.example.com');
  * 
  * // Register internal FAB network
- * registerNetwork('fab:internal', 'https://internal-wallet.corp.com');
+ * registerNetwork('fab:internal', 'https://internal-pay.corp.com');
  * ```
  */
 export function registerNetwork(network: string, baseUrl: string): void {
@@ -137,26 +137,26 @@ export function clearNetworkRegistry(): void {
 }
 
 /**
- * Get wallet base URL from network identifier
+ * Get Agentic Pay base URL from network identifier
  * 
- * Looks up the wallet base URL from the registry. If not found, throws an error.
+ * Looks up Agentic Pay base URL from the registry. If not found, throws an error.
  * You must register networks using registerNetwork() before calling this.
  * 
  * @param network - Network identifier (e.g., 'fab:aws')
- * @returns Wallet base URL
+ * @returns Agentic Pay base URL
  * @throws Error if network identifier is invalid or not registered
  * 
  * @example
  * ```typescript
  * // Register first
- * registerNetwork('fab:aws', 'https://wallet.aws.com');
+ * registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
  * 
  * // Then get
- * const baseUrl = getWalletBaseUrl('fab:aws');
- * // → "https://wallet.aws.com"
+ * const baseUrl = getAgenticPayBaseUrl('fab:aws');
+ * // → "https://pay.aws.amazon.com"
  * ```
  */
-export function getWalletBaseUrl(network: string): string {
+export function getAgenticPayBaseUrl(network: string): string {
   // Validate network format: scheme:provider
   const parts = network.split(':');
   if (parts.length !== 2) {
@@ -183,23 +183,23 @@ export function getWalletBaseUrl(network: string): string {
 }
 
 /**
- * Discover wallet endpoints via OIDC discovery
+ * Discover Agentic Pay endpoints via OIDC discovery
  * 
- * Fetches the wallet's OIDC discovery document to get endpoint URLs
+ * Fetches the Agentic Pay's OIDC discovery document to get endpoint URLs
  * and supported capabilities.
  * 
  * @param network - Network identifier (e.g., 'fab:aws')
  * @param options - Discovery options
- * @returns Wallet discovery metadata
+ * @returns Agentic Pay discovery metadata
  * 
  * @example
  * ```typescript
- * const metadata = await discoverWalletEndpoints('fab:aws');
+ * const metadata = await discoverAgenticPayEndpoints('fab:aws');
  * console.log(metadata.payment_endpoint);
- * // → 'https://wallet.aws.com/v1/transactions'
+ * // → 'https://pay.aws.amazon.com/v1/transactions'
  * ```
  */
-export async function discoverWalletEndpoints(
+export async function discoverAgenticPayEndpoints(
   network: string,
   options: {
     /** Skip cache and force fresh fetch */
@@ -207,7 +207,7 @@ export async function discoverWalletEndpoints(
     /** Custom fetch function (for testing) */
     fetch?: typeof globalThis.fetch;
   } = {}
-): Promise<WalletDiscoveryMetadata> {
+): Promise<AgenticPayDiscoveryMetadata> {
   const fetchFn = options.fetch || globalThis.fetch;
   
   // Check cache
@@ -219,17 +219,17 @@ export async function discoverWalletEndpoints(
   }
   
   // Fetch discovery document
-  const baseUrl = getWalletBaseUrl(network);
+  const baseUrl = getAgenticPayBaseUrl(network);
   const discoveryUrl = `${baseUrl}/.well-known/openid-configuration`;
   
   const response = await fetchFn(discoveryUrl);
   if (!response.ok) {
     throw new Error(
-      `Failed to discover wallet endpoints for ${network}: ${response.status} ${response.statusText}`
+      `Failed to discover Agentic Pay endpoints for ${network}: ${response.status} ${response.statusText}`
     );
   }
   
-  const metadata = await response.json() as WalletDiscoveryMetadata;
+  const metadata = await response.json() as AgenticPayDiscoveryMetadata;
   
   // Validate required fields
   if (!metadata.issuer || !metadata.jwks_uri || !metadata.payment_endpoint) {
@@ -248,7 +248,7 @@ export async function discoverWalletEndpoints(
 }
 
 /**
- * Fetch wallet's public keys (JWKS) for signature verification
+ * Fetch Agentic Pay's public keys (JWKS) for signature verification
  * 
  * @param network - Network identifier (e.g., 'fab:aws')
  * @param options - Fetch options
@@ -256,11 +256,11 @@ export async function discoverWalletEndpoints(
  * 
  * @example
  * ```typescript
- * const jwks = await fetchWalletPublicKeys('fab:aws');
+ * const jwks = await fetchAgenticPayPublicKeys('fab:aws');
  * // Use with jose library to verify signatures
  * ```
  */
-export async function fetchWalletPublicKeys(
+export async function fetchAgenticPayPublicKeys(
   network: string,
   options: {
     /** Skip cache and force fresh fetch */
@@ -272,7 +272,7 @@ export async function fetchWalletPublicKeys(
   const fetchFn = options.fetch || globalThis.fetch;
   
   // Get JWKS URI from discovery
-  const metadata = await discoverWalletEndpoints(network, options);
+  const metadata = await discoverAgenticPayEndpoints(network, options);
   const jwksUri = metadata.jwks_uri;
   
   // Check cache
@@ -287,7 +287,7 @@ export async function fetchWalletPublicKeys(
   const response = await fetchFn(jwksUri);
   if (!response.ok) {
     throw new Error(
-      `Failed to fetch wallet public keys from ${jwksUri}: ${response.status} ${response.statusText}`
+      `Failed to fetch Agentic Pay public keys from ${jwksUri}: ${response.status} ${response.statusText}`
     );
   }
   

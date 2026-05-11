@@ -92,10 +92,10 @@ export function extractQuoteFromPayment(payment: PaymentTokenPayload): string {
 /**
  * Generate a transaction ID
  * @param network - Network identifier (e.g., "fab:*")
- * @param walletId - Wallet identifier
+ * @param agenticPayId - Agentic Pay identifier
  * @returns Transaction ID in format {network}:{uniqueId}
  */
-export function generateTransactionId(network: string, walletId: string): string {
+export function generateTransactionId(network: string, agenticPayId: string): string {
   const uniqueId = crypto.randomUUID().replace(/-/g, '').substring(0, 16);
   return `${network}:${uniqueId}`;
 }

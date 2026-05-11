@@ -55,7 +55,7 @@ describe('FAB Server Scheme', () => {
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
-      payTo: 'service-wallet',
+      payTo: 'service-pay',
       maxTimeoutSeconds: 3600,
       extra: {}
     };
@@ -64,7 +64,7 @@ describe('FAB Server Scheme', () => {
       x402Version: 2,
       scheme: FAB_SCHEME,
       network: 'fab:test' as const,
-      extra: { walletId: 'wallet-123' }
+      extra: { agenticPayId: 'agentic-pay-123' }
     };
 
     const result = await scheme.enhancePaymentRequirements(
@@ -94,7 +94,7 @@ describe('FAB Server Scheme', () => {
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
-      payTo: 'service-wallet',
+      payTo: 'service-pay',
       maxTimeoutSeconds: 3600,
       extra: {}
     };
@@ -103,7 +103,7 @@ describe('FAB Server Scheme', () => {
       x402Version: 2,
       scheme: FAB_SCHEME,
       network: 'fab:test' as const,
-      extra: { walletId: 'wallet-123' }
+      extra: { agenticPayId: 'agentic-pay-123' }
     };
 
     const result = await scheme.enhancePaymentRequirements(
@@ -140,7 +140,7 @@ describe('FAB Server Scheme', () => {
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
-      payTo: 'service-wallet',
+      payTo: 'service-pay',
       maxTimeoutSeconds: 3600,
       extra: {}
     };
@@ -149,7 +149,7 @@ describe('FAB Server Scheme', () => {
       x402Version: 2,
       scheme: FAB_SCHEME,
       network: 'fab:test' as const,
-      extra: { walletId: 'wallet-123' }
+      extra: { agenticPayId: 'agentic-pay-123' }
     };
 
     it('should set payTo to FAB_SENTINEL_PAY_TO in enhanced requirements', async () => {
@@ -185,7 +185,7 @@ describe('FAB Server Scheme', () => {
 
       // Inner quote token payTo is the real value
       const decoded = jose.decodeJwt((result.extra as any).quoteToken);
-      expect((decoded as any).payTo).toBe('service-wallet');
+      expect((decoded as any).payTo).toBe('service-pay');
     });
 
     it('should keep amount and asset as real values (not sentinels)', async () => {

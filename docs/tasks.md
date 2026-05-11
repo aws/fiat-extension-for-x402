@@ -49,7 +49,7 @@ Breakdown by Module:
 - Type definitions (all FAB types)
 - Scheme implementations (Client, Server, Facilitator)
 - InProcessFacilitatorClient for demos/testing
-- WalletFacilitatorClient for production
+- AgenticPayFacilitatorClient for production
 - JWT utilities (decode, verify, extract)
 - Transaction ID utilities
 - Money parsing utilities
@@ -66,7 +66,7 @@ Breakdown by Module:
 - Custom authentication
 - Authentication factory pattern
 - Authentication error types
-- Integration with WalletClient
+- Integration with AgenticPayClient
 - 28 unit tests
 
 **DPoP Implementation (Task 15):**
@@ -82,12 +82,12 @@ Breakdown by Module:
 - Core documentation (design, requirements, tasks)
 - Authentication guide
 - DPoP guide
-- Wallet discovery guide
+- Agentic Pay discovery guide
 - SDK explanation
 - Working examples with unified logging
 
 **Examples:**
-- Mock wallet server
+- Mock Agentic Pay server
 - Test service with FAB protection
 - Test client with payment flow
 - Authentication examples
@@ -116,8 +116,8 @@ Currently no tasks in progress.
 ### Known Limitations
 
 1. **AWS SigV4**: Simplified placeholder - production should use @aws-sdk/signature-v4
-2. **OIDC Discovery**: Stub implementation, needs real OIDC client
-3. **Settlement**: Placeholder logic, needs backend integration
+2. **Quote Token Verification (In-Process)**: The in-process facilitator's quote signature check is best-effort (silently swallows failures). `AgenticPayFacilitatorClient` verifies fully. Task 27 tracks making it mandatory.
+3. **Settlement (In-Process)**: The in-process facilitator returns a placeholder. `AgenticPayFacilitatorClient` calls `POST /capture` correctly.
 4. **Zod Schemas**: Types exist but Zod schemas not fully implemented
 
 ### Dependencies
@@ -416,7 +416,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
 
 - [ ] 10. JWT Operations - Combined Verification
   - [ ] 10.1 Implement verifyPaymentAndQuote function
-    - Verify payment token with wallet key
+    - Verify payment token with Agentic Pay key
     - Extract and verify quote token with service key
     - Check quote token consistency between accepted and payment JWT
     - Throw MismatchError on inconsistency
@@ -433,15 +433,15 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
     - Test signature failures
     - Test expiry handling
 
-- [ ] 11. Wallet Client Implementation
-  - [ ] 11.1 Implement WalletClient class constructor
+- [ ] 11. Agentic Pay Client Implementation
+  - [ ] 11.1 Implement AgenticPayClient class constructor
     - Accept baseUrl and authentication configuration
     - Support multiple auth methods (API key, AWS SigV4, OAuth2, custom)
     - Store configuration
-    - Export from client/wallet-client.ts
+    - Export from client/agentic-pay-client.ts
     - _Requirements: 8.2_
 
-  - [ ] 11.2 Implement wallet authentication mechanisms
+  - [ ] 11.2 Implement Agentic Pay authentication mechanisms
     - [ ] 11.2.1 Implement API key authentication
       - Add API key to request headers
       - Support custom header names
@@ -475,14 +475,14 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
   - [ ]* 11.5 Write unit tests for createTransaction (mocked HTTP)
     - Test successful transaction creation
     - Test validation errors
-    - Test wallet error responses
+    - Test Agentic Pay error responses
     - Test network errors
     - Test with different auth methods
 
   - [x] 11.6 ~~Implement getTransactionStatus method~~ (NOT NEEDED)
     - Payment token signature is sufficient proof
     - Services track processed transaction IDs for idempotency
-    - Wallet state lookup is unnecessary
+    - Agentic Pay state lookup is unnecessary
 
   - [x]* 11.7 ~~Write unit tests for getTransactionStatus~~ (NOT NEEDED)
     - Test not found errors
@@ -498,26 +498,26 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
     - TransactionRequest
     - TransactionResponse
     - TransactionStatus
-    - Export from client/wallet-client.ts and client/auth.ts
+    - Export from client/agentic-pay-client.ts and client/auth.ts
     - _Requirements: 8.7, 8.8_
 
 - [ ] 12. Service Implementation
   - [ ] 12.1 Implement FABService class constructor
-    - Accept ServiceConfig (serviceUrl, signingKey, acceptedWallets)
+    - Accept ServiceConfig (serviceUrl, signingKey, acceptedProviders)
     - Store configuration
     - Export from service/fab-service.ts
     - _Requirements: 9.2_
 
   - [ ] 12.2 Implement generate402Response method
-    - Generate quote token for each accepted wallet
+    - Generate quote token for each accepted Agentic Pay
     - Build FABPaymentRequired structure
     - Include all FAB-specific fields in extra
     - Return complete 402 response
     - _Requirements: 9.3, 9.4, 9.5_
 
   - [ ]* 12.3 Write unit tests for generate402Response
-    - Test single wallet scenario
-    - Test multiple wallet scenario
+    - Test single Agentic Pay scenario
+    - Test multiple Agentic Pay scenario
     - Test with all optional fields
     - Test with minimal fields
 
@@ -647,7 +647,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
     - Export from types/dpop.ts
     - _Requirements: 15.10, 15.11, 15.12_
 
-  - [ ] 15.11 Update WalletClient to support DPoP
+  - [ ] 15.11 Update AgenticPayClient to support DPoP
     - Add optional dpop_jwk parameter to createTransaction
     - Document DPoP usage in JSDoc
     - _Requirements: 15.13_
@@ -691,7 +691,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
 
   - [ ] 16.4 Create client-side example
     - Show 402 parsing
-    - Show wallet interaction
+    - Show Agentic Pay interaction
     - Show DPoP key generation and proof creation
     - Show payment submission with DPoP
     - Include error handling
@@ -712,7 +712,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
 
   - [ ] 16.7 Add reference to FAB protocol spec
     - Link to fab-x402-payment-structure-proposal.md
-    - Link to wallet-spec.md (Appendix A.3 for DPoP)
+    - Link to Agentic Pay-spec.md (Appendix A.3 for DPoP)
     - Link to fab.md
     - _Requirements: 10.8_
 
@@ -748,33 +748,33 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
     - _Requirements: 13.1, 13.2, 13.3, 13.8_
 
 - [ ] 18. Security Hardening
-  - [ ] 17.1 Implement input validation for all external inputs
+  - [ ] 18.1 Implement input validation for all external inputs
     - Validate URLs to prevent injection
     - Validate JWT algorithms (whitelist RS256, ES256)
     - Validate token expiry before processing
     - _Requirements: 14.1, 14.3, 14.4_
 
-  - [ ] 17.2 Implement constant-time comparison for signatures
+  - [ ] 18.2 Implement constant-time comparison for signatures
     - Use crypto.timingSafeEqual where applicable
     - _Requirements: 14.2_
 
-  - [ ] 17.3 Implement secure random for JTI
+  - [ ] 18.3 Implement secure random for JTI
     - Use crypto.randomUUID()
     - _Requirements: 14.6_
 
-  - [ ] 17.4 Add security documentation
+  - [ ] 18.4 Add security documentation
     - Document security considerations
     - Provide secure usage examples
     - Warn about common pitfalls
     - _Requirements: 14.8_
 
-  - [ ]* 17.5 Run security audit
+  - [ ]* 18.5 Run security audit
     - Check for sensitive data logging
     - Verify no private keys in errors
     - Test URL validation
     - Test JWT algorithm validation
 
-- [ ] 18. Build and Distribution
+- [ ] 18b. Build and Distribution
   - [ ] 18.1 Configure tsup for dual builds
     - ESM output
     - CommonJS output
@@ -826,7 +826,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
 - [ ] 20. Final Integration Testing
   - [ ]* 20.1 Write end-to-end integration tests
     - Complete service-to-client flow
-    - Multiple wallet providers
+    - Multiple Agentic Pay providers
     - Error scenarios
     - Recovery scenarios
 
@@ -864,45 +864,48 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
     - Verify installation works
     - _Requirements: 12.8_
 
-- [ ] 22. Implement WalletFacilitatorClient (Replaces InProcessFacilitatorClient)
-  - [ ] 22.1 Create WalletFacilitatorClient class
-    - Implement FacilitatorClient interface from @x402/core/http
-    - Accept walletBaseUrl in constructor
-    - Store base URL for API calls
-    - Export from src/wallet-facilitator-client.ts
-    - _Purpose: Adapter that translates x402 FacilitatorClient interface to wallet provider's API_
+- [x]* 22. Implement AgenticPayFacilitatorClient (Replaces InProcessFacilitatorClient)
 
-  - [ ] 22.2 Implement getSupported() method
-    - Fetch from `${walletBaseUrl}/.well-known/x402-supported`
+  **Status (implemented):** Core `AgenticPayFacilitatorClient` class implemented in `src/agentic-pay-facilitator-client.ts`. Implements `FacilitatorClient` interface with full `verify()` (JWT signature verification against Agentic Pay JWKS + service JWKS, amount matching), `settle()` (calls `POST /capture`), and `getSupported()` (fetches `/.well-known/x402-supported` with optional network filter). JWKS caching with 1-hour TTL. Remaining subtasks (22.5 unit tests, 22.7 integration tests, 22.8 example updates, 22.9 deprecation, 22.10 docs) are deferred.
+
+  - [x] 22.1 Create AgenticPayFacilitatorClient class
+    - Implement FacilitatorClient interface from @x402/core/http
+    - Accept agenticPayBaseUrl in constructor
+    - Store base URL for API calls
+    - Export from src/agentic-pay-facilitator-client.ts
+    - _Purpose: Adapter that translates x402 FacilitatorClient interface to Agentic Pay provider's API_
+
+  - [x] 22.2 Implement getSupported() method
+    - Fetch from `${agenticPayBaseUrl}/.well-known/x402-supported`
     - Parse and return SupportedResponse
     - Handle network errors gracefully
     - Cache response with TTL (optional optimization)
-    - _Returns: List of supported payment kinds (schemes/networks) that wallet can facilitate_
+    - _Returns: List of supported payment kinds (schemes/networks) that Agentic Pay can facilitate_
 
-  - [ ] 22.3 Implement verify() method
+  - [x] 22.3 Implement verify() method
     - Extract payment token from PaymentPayload
-    - Fetch wallet's JWKS from `${walletBaseUrl}/.well-known/jwks.json`
-    - Verify payment token JWT signature using wallet's public key
+    - Fetch Agentic Pay's JWKS from `${agenticPayBaseUrl}/.well-known/jwks.json`
+    - Verify payment token JWT signature using Agentic Pay's public key
     - Extract quote token from payment token's payment_context
     - Fetch service's JWKS (from quote token's iss field + /.well-known/jwks.json)
     - Verify quote token JWT signature using service's public key
     - Validate quote token matches requirements.extra.quoteToken
-    - Check transaction exists via `GET ${walletBaseUrl}/transactions/${transactionId}`
+    - Check transaction exists via `GET ${agenticPayBaseUrl}/transactions/${transactionId}`
     - Validate amounts and currencies match between quote, requirements, and transaction
     - Return VerifyResponse with valid: true/false and details
     - _Purpose: Verifies payment token and quote token signatures, checks transaction validity_
 
-  - [ ] 22.4 Implement settle() method
+  - [x] 22.4 Implement settle() method
     - Call this.verify() first to ensure payment is valid
     - If verification fails, return SettleResponse with settled: false
     - Extract transactionId and amount/currency from payload
-    - Call `POST ${walletBaseUrl}/capture` with transaction details
+    - Call `POST ${agenticPayBaseUrl}/capture` with transaction details
     - Parse capture response
     - Return SettleResponse with settled: true/false and settlement details
-    - _Purpose: Captures/settles the payment by calling wallet's capture endpoint_
+    - _Purpose: Captures/settles the payment by calling Agentic Pay's capture endpoint_
 
-  - [ ]* 22.5 Write unit tests for WalletFacilitatorClient
-    - Mock fetch calls to wallet endpoints
+  - [ ]* 22.5 Write unit tests for AgenticPayFacilitatorClient
+    - Mock fetch calls to Agentic Pay endpoints
     - Test getSupported() with valid response
     - Test getSupported() with network error
     - Test verify() with valid payment
@@ -914,11 +917,11 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
     - Test settle() with failed verification
     - Test settle() with capture failure
 
-  - [ ] 22.6 Add wallet endpoint: GET /.well-known/x402-supported
-    - Add to mock-wallet-server.ts
+  - [ ] 22.6 Add Agentic Pay endpoint: GET /.well-known/x402-supported
+    - Add to mock-agentic-pay-server.ts
     - Return SupportedResponse with x402Version: 2
     - Include supported kinds array with fab:test entry
-    - Include walletId in extra field
+    - Include agenticPayId in extra field
     - _Example response:_
       ```json
       {
@@ -927,47 +930,47 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
           "x402Version": 2,
           "scheme": "fab",
           "network": "fab:test",
-          "extra": { "walletId": "test-wallet-provider" }
+          "extra": { "agenticPayId": "test-agentic-pay-provider" }
         }]
       }
       ```
 
   - [ ]* 22.7 Write integration tests for complete flow
-    - Start mock wallet server
-    - Create WalletFacilitatorClient pointing to mock wallet
+    - Start mock Agentic Pay server
+    - Create AgenticPayFacilitatorClient pointing to mock Agentic Pay
     - Test getSupported() returns fab:test
     - Create valid payment payload
     - Test verify() succeeds
     - Test settle() succeeds
     - Test end-to-end flow with x402ResourceServer
 
-  - [ ] 22.8 Update examples to use WalletFacilitatorClient
+  - [ ] 22.8 Update examples to use AgenticPayFacilitatorClient
     - Replace InProcessFacilitatorClient usage in test-service.ts
-    - Update to: `const facilitatorClient = new WalletFacilitatorClient('http://localhost:3001')`
+    - Update to: `const facilitatorClient = new AgenticPayFacilitatorClient('http://localhost:3001')`
     - Remove x402Facilitator and FABFacilitatorScheme imports
     - Simplify example code significantly
-    - Update comments to explain wallet-as-facilitator pattern
+    - Update comments to explain agentic-pay-as-facilitator pattern
 
   - [ ] 22.9 Deprecate InProcessFacilitatorClient
     - Add @deprecated JSDoc comment
-    - Update documentation to recommend WalletFacilitatorClient
+    - Update documentation to recommend AgenticPayFacilitatorClient
     - Keep for backward compatibility but mark as legacy
     - Add deprecation notice in README
 
   - [ ] 22.10 Update architecture documentation
-    - Update design.md to explain wallet-as-facilitator pattern
+    - Update design.md to explain agentic-pay-as-facilitator pattern
     - Remove separate facilitator service from architecture diagrams
-    - Update flow diagrams to show direct wallet communication
+    - Update flow diagrams to show direct Agentic Pay communication
     - Explain why FAB doesn't need separate facilitator (unlike crypto schemes)
-    - Document that wallet provider IS the facilitator in FAB
+    - Document that Agentic Pay provider IS the facilitator in FAB
 
-- [x] 23. Client to Wallet Authentication
+- [x] 23. Client to Agentic Pay Authentication
   - [x] 23.1 Design authentication architecture
-    - Define authentication flow between client application and wallet provider
+    - Define authentication flow between client application and Agentic Pay provider
     - Support multiple authentication methods (API key, AWS SigV4, OAuth2, custom)
     - Design credential management and storage patterns
     - Document security considerations for each auth method
-    - _Purpose: Enable secure client-to-wallet communication for payment authorization_
+    - _Purpose: Enable secure client-to-Agentic Pay communication for payment authorization_
 
   - [x] 23.2 Define authentication interfaces and types
     - [ ] 23.2.1 Create base AuthConfig type (union of all auth methods)
@@ -1115,7 +1118,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
       - Test with each auth config type
     - Export from src/auth/factory.ts
 
-  - [ ] 23.8 Update WalletClient to use authentication
+  - [ ] 23.8 Update AgenticPayClient to use authentication
     - [ ] 23.8.1 Add auth parameter to constructor
       - Accept optional AuthConfig
       - Create authenticator using factory
@@ -1123,7 +1126,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
     - [ ] 23.8.2 Apply authentication to all requests
       - Update createTransaction to authenticate requests
       - Update getTransactionStatus to authenticate requests
-      - Update any other wallet API calls
+      - Update any other Agentic Pay API calls
     - [ ] 23.8.3 Handle authentication errors
       - Catch authentication failures
       - Throw typed AuthenticationError
@@ -1138,30 +1141,30 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
   - [ ] 23.9 Update FABClientScheme to support authentication
     - [ ] 23.9.1 Add auth parameter to constructor
       - Accept optional AuthConfig
-      - Pass to WalletClient constructor
+      - Pass to AgenticPayClient constructor
     - [ ] 23.9.2 Update createPaymentPayload method
-      - Ensure wallet client uses authentication
+      - Ensure Agentic Pay client uses authentication
       - Handle authentication errors gracefully
     - [ ]* 23.9.3 Write integration tests
-      - Test payment creation with authenticated wallet client
+      - Test payment creation with authenticated Agentic Pay client
       - Test with different auth methods
 
   - [ ] 23.10 Add authentication examples
     - [ ] 23.10.1 Create API key example
       ```typescript
       const client = new FABClientScheme({
-        walletId: 'my-wallet',
+        agenticPayId: 'my-agentic-pay',
         auth: {
           type: 'apiKey',
-          apiKey: process.env.WALLET_API_KEY,
-          headerName: 'X-Wallet-API-Key'
+          apiKey: process.env.AGENTIC_PAY_API_KEY,
+          headerName: 'X-AgenticPay-API-Key'
         }
       });
       ```
     - [ ] 23.10.2 Create AWS SigV4 example
       ```typescript
       const client = new FABClientScheme({
-        walletId: 'aws-wallet',
+        agenticPayId: 'aws-agentic-pay',
         auth: {
           type: 'awsSigV4',
           credentials: {
@@ -1176,12 +1179,12 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
     - [ ] 23.10.3 Create OAuth2 example
       ```typescript
       const client = new FABClientScheme({
-        walletId: 'oauth-wallet',
+        agenticPayId: 'oauth-agentic-pay',
         auth: {
           type: 'oauth2',
           accessToken: 'current-access-token',
           refreshToken: 'refresh-token',
-          tokenEndpoint: 'https://wallet.example.com/oauth/token',
+          tokenEndpoint: 'https://pay.example.com/oauth/token',
           onTokenRefresh: (newToken) => {
             // Save new token
             saveToken(newToken);
@@ -1192,7 +1195,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
     - [ ] 23.10.4 Create custom auth example
       ```typescript
       const client = new FABClientScheme({
-        walletId: 'custom-wallet',
+        agenticPayId: 'custom-agentic-pay',
         auth: {
           type: 'custom',
           authenticate: async (request) => {
@@ -1218,8 +1221,8 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
       - Rotate API keys regularly
       - Use IAM roles when running on AWS
       - Implement token refresh for OAuth2
-      - Use HTTPS for all wallet communication
-      - Validate wallet certificates
+      - Use HTTPS for all Agentic Pay communication
+      - Validate Agentic Pay certificates
       - Handle credential expiration gracefully
     - [ ] 23.11.2 Document credential storage patterns
       - Environment variables
@@ -1244,7 +1247,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
       - Show authentication configuration
       - Use environment variables for credentials
 
-  - [ ] 23.13 Update mock wallet server for testing
+  - [ ] 23.13 Update mock Agentic Pay server for testing
     - [ ] 23.13.1 Add authentication middleware
       - Support API key validation
       - Support mock AWS SigV4 validation
@@ -1279,7 +1282,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
     - Test complete payment flow with OAuth2 auth
     - Test authentication failure scenarios
     - Test credential refresh scenarios
-    - Test with real mock wallet server
+    - Test with real mock Agentic Pay server
 
 ## Notes
 
@@ -1306,7 +1309,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
   - [ ] 24.1 Design middleware architecture
     - [ ] 24.1.1 Define middleware configuration interface
       - signingKey: CryptoKey (for JWT verification)
-      - acceptedWallets: WalletConfig[] (list of trusted wallets)
+      - acceptedProviders: AgenticPayConfig[] (list of trusted Agentic Pays)
       - quoteTokenTTL?: number (default: 300 seconds)
       - paymentTokenTTL?: number (default: 3600 seconds)
       - onAuthorize?: (req, payment) => Promise<void> (custom authorization logic)
@@ -1320,7 +1323,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
     - [ ] 24.1.3 Design request/response flow
       - Parse X402 payment requests from request body
       - Extract FAB payment requirements
-      - Validate wallet credentials
+      - Validate Agentic Pay credentials
       - Generate quote tokens
       - Verify payment tokens
       - Execute capture logic
@@ -1343,7 +1346,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
       - Return X402PaymentResponse with quote token
     - [ ] 24.2.3 Implement capture endpoint
       - Parse payment token from request
-      - Verify payment token with wallet public key
+      - Verify payment token with Agentic Pay public key
       - Verify quote token
       - Call onCapture hook if provided
       - Return capture confirmation
@@ -1354,7 +1357,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
     - [ ] 24.2.5 Implement manifest endpoint
       - Serve static payment method manifest
       - Include supported payment methods
-      - Include wallet discovery information
+      - Include Agentic Pay discovery information
 
   - [ ] 24.3 Add request validation
     - [ ] 24.3.1 Validate content-type headers
@@ -1416,8 +1419,8 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
       
       app.use('/payments', fabMiddleware({
         signingKey: await loadSigningKey(),
-        acceptedWallets: [
-          { id: 'aws-wallet', publicKey: await loadWalletKey() }
+        acceptedProviders: [
+          { id: 'aws-agentic-pay', publicKey: await loadAgenticPayKey() }
         ],
         onAuthorize: async (req, payment) => {
           // Custom authorization logic
@@ -1486,7 +1489,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
       - fab_verify_payment: Verify a payment token
       - fab_capture_payment: Capture an authorized payment
       - fab_get_payment_status: Get payment status
-      - fab_discover_wallet: Discover wallet endpoints
+      - fab_discover_Agentic Pay: Discover Agentic Pay endpoints
     - [ ] 25.1.2 Define tool input schemas
       - Use JSON Schema for tool parameters
       - Validate all inputs
@@ -1502,44 +1505,44 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
       - Configure server metadata
       - Register tool handlers
     - [ ] 25.2.2 Implement fab_create_payment tool
-      - Accept payment parameters (amount, currency, walletId, etc.)
+      - Accept payment parameters (amount, currency, agenticPayId, etc.)
       - Create FABClientScheme instance
       - Generate payment request
       - Return payment request and quote token
     - [ ] 25.2.3 Implement fab_verify_payment tool
-      - Accept payment token and wallet public key
+      - Accept payment token and Agentic Pay public key
       - Verify token signature
       - Verify token expiration
       - Return verification result and payment details
     - [ ] 25.2.4 Implement fab_capture_payment tool
       - Accept payment token and quote token
       - Verify both tokens
-      - Call wallet capture endpoint
+      - Call Agentic Pay capture endpoint
       - Return capture confirmation
     - [ ] 25.2.5 Implement fab_get_payment_status tool
-      - Accept transaction ID and wallet URL
-      - Query wallet status endpoint
+      - Accept transaction ID and Agentic Pay URL
+      - Query Agentic Pay status endpoint
       - Return payment status
-    - [ ] 25.2.6 Implement fab_discover_wallet tool
-      - Accept wallet identifier or URL
-      - Perform wallet discovery
-      - Return wallet endpoints and capabilities
+    - [ ] 25.2.6 Implement fab_discover_Agentic Pay tool
+      - Accept Agentic Pay identifier or URL
+      - Perform Agentic Pay discovery
+      - Return Agentic Pay endpoints and capabilities
 
   - [ ] 25.3 Add configuration management
     - [ ] 25.3.1 Support environment-based configuration
-      - Read wallet configurations from environment variables
+      - Read Agentic Pay configurations from environment variables
       - Read signing keys from secure storage
-      - Support multiple wallet profiles
+      - Support multiple Agentic Pay profiles
     - [ ] 25.3.2 Support configuration file
       - JSON or YAML configuration file
-      - Define wallet profiles
+      - Define Agentic Pay profiles
       - Define default settings
     - [ ] 25.3.3 Support runtime configuration
       - Allow tools to accept configuration overrides
       - Validate configuration at runtime
 
   - [ ] 25.4 Add authentication support
-    - [ ] 25.4.1 Support wallet authentication in tools
+    - [ ] 25.4.1 Support Agentic Pay authentication in tools
       - Accept auth config in tool parameters
       - Use authentication system from Task 23
       - Support all auth methods (API key, AWS SigV4, OAuth2, custom)
@@ -1566,11 +1569,11 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
       import { createFABMCPServer } from '@x402/fab-extension/mcp';
       
       const server = createFABMCPServer({
-        wallets: [
+        Agentic Pays: [
           {
-            id: 'aws-wallet',
-            url: 'https://wallet.aws.example.com',
-            publicKey: await loadWalletKey()
+            id: 'aws-agentic-pay',
+            url: 'https://pay.aws.example.com',
+            publicKey: await loadAgenticPayKey()
           }
         ],
         signingKey: await loadSigningKey()
@@ -1599,7 +1602,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
       - Test error responses
     - [ ]* 25.7.3 End-to-end tests
       - Test complete payment flow via MCP tools
-      - Test with mock wallet server
+      - Test with mock Agentic Pay server
       - Test error scenarios
 
   - [ ] 25.8 Document MCP server
@@ -1624,13 +1627,13 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
 
 - [ ] 26. Facilitator Extensibility Analysis
 
-  Explore and justify the facilitator as a translation layer between X402 and the wallet from an extensibility and scalability perspective.
+  Explore and justify the facilitator as a translation layer between X402 and Agentic Pay from an extensibility and scalability perspective.
 
   - [ ] 26.1 Document current facilitator architecture
-    - [ ] 26.1.1 Analyze WalletFacilitatorClient implementation
+    - [ ] 26.1.1 Analyze AgenticPayFacilitatorClient implementation
       - Review current responsibilities
       - Identify coupling points with X402
-      - Identify coupling points with wallet
+      - Identify coupling points with Agentic Pay
       - Document data flow
     - [ ] 26.1.2 Document facilitator interface
       - FacilitatorClient interface from @x402/core/http
@@ -1638,35 +1641,35 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
       - Input/output types
       - Error handling
     - [ ] 26.1.3 Identify translation responsibilities
-      - X402 PaymentRequest → Wallet authorization request
-      - Wallet authorization response → X402 PaymentResponse
-      - X402 capture request → Wallet capture request
-      - Wallet capture response → X402 capture response
-      - Error mapping between X402 and wallet
+      - X402 PaymentRequest → Agentic Pay authorization request
+      - Agentic Pay authorization response → X402 PaymentResponse
+      - X402 capture request → Agentic Pay capture request
+      - Agentic Pay capture response → X402 capture response
+      - Error mapping between X402 and Agentic Pay
 
   - [ ] 26.2 Analyze extensibility requirements
     - [ ] 26.2.1 Identify extension points
-      - Supporting new wallet types (beyond AWS wallet)
+      - Supporting new Agentic Pay types (beyond AWS Agentic Pay)
       - Supporting new payment methods (beyond FAB)
       - Supporting new authentication methods
       - Supporting new settlement methods
       - Supporting custom payment flows
     - [ ] 26.2.2 Analyze current extensibility limitations
-      - Hard-coded wallet API assumptions
+      - Hard-coded Agentic Pay API assumptions
       - Limited error mapping
       - Fixed data transformation logic
       - Lack of plugin architecture
     - [ ] 26.2.3 Define extensibility goals
-      - Support multiple wallet implementations without code changes
+      - Support multiple Agentic Pay implementations without code changes
       - Support custom payment flows via configuration
-      - Support wallet-specific features
+      - Support Agentic Pay-specific features
       - Support versioning and backward compatibility
 
   - [ ] 26.3 Analyze scalability requirements
     - [ ] 26.3.1 Identify scalability concerns
       - Request volume handling
       - Concurrent payment processing
-      - Wallet API rate limiting
+      - Agentic Pay API rate limiting
       - Token caching and validation
       - State management
     - [ ] 26.3.2 Analyze current scalability limitations
@@ -1677,14 +1680,14 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
       - No circuit breaker pattern
     - [ ] 26.3.3 Define scalability goals
       - Support high request volumes
-      - Minimize wallet API calls
-      - Handle wallet API failures gracefully
+      - Minimize Agentic Pay API calls
+      - Handle Agentic Pay API failures gracefully
       - Support horizontal scaling
       - Support distributed deployments
 
   - [ ] 26.4 Propose facilitator architecture improvements
     - [ ] 26.4.1 Design plugin architecture
-      - Define WalletAdapter interface
+      - Define Agentic PayAdapter interface
         - authorize(request): Promise<response>
         - capture(request): Promise<response>
         - getStatus(transactionId): Promise<status>
@@ -1694,29 +1697,29 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
       - Support adapter versioning
     - [ ] 26.4.2 Design middleware pipeline
       - Pre-processing middleware (validation, logging)
-      - Translation middleware (X402 ↔ wallet)
+      - Translation middleware (X402 ↔ Agentic Pay)
       - Post-processing middleware (error mapping, response formatting)
       - Support custom middleware injection
     - [ ] 26.4.3 Design caching layer
-      - Cache wallet public keys
-      - Cache wallet discovery results
+      - Cache Agentic Pay public keys
+      - Cache Agentic Pay discovery results
       - Cache token validation results
       - Support cache invalidation
       - Support distributed caching (Redis)
     - [ ] 26.4.4 Design retry and circuit breaker
       - Implement exponential backoff retry
-      - Implement circuit breaker for wallet APIs
+      - Implement circuit breaker for Agentic Pay APIs
       - Support configurable retry policies
       - Support fallback strategies
 
   - [ ] 26.5 Create proof-of-concept implementations
-    - [ ] 26.5.1 Implement WalletAdapter interface
+    - [ ] 26.5.1 Implement Agentic PayAdapter interface
       - Create base adapter class
-      - Implement AWS wallet adapter
-      - Implement mock wallet adapter for testing
+      - Implement AWS Agentic Pay adapter
+      - Implement mock Agentic Pay adapter for testing
     - [ ] 26.5.2 Implement adapter registry
-      - Register adapters by wallet type
-      - Select adapter based on wallet identifier
+      - Register adapters by Agentic Pay type
+      - Select adapter based on Agentic Pay identifier
       - Support adapter fallback
     - [ ] 26.5.3 Implement middleware pipeline
       - Create middleware interface
@@ -1736,14 +1739,14 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
       - Measure cache hit rates
       - Compare with current implementation
     - [ ] 26.6.2 Create extensibility tests
-      - Test adding new wallet adapter
+      - Test adding new Agentic Pay adapter
       - Test adding custom middleware
       - Test adapter versioning
       - Test backward compatibility
     - [ ] 26.6.3 Create scalability tests
       - Test with high request volumes
       - Test with concurrent requests
-      - Test with wallet API failures
+      - Test with Agentic Pay API failures
       - Test horizontal scaling
 
   - [ ] 26.7 Document findings and recommendations
@@ -1785,7 +1788,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
       - Show adapter examples
       - Show middleware examples
 
-  - _Requirements: Justify facilitator architecture, ensure extensibility for multiple wallets, ensure scalability for production use_
+  - _Requirements: Justify facilitator architecture, ensure extensibility for multiple Agentic Pays, ensure scalability for production use_
 
 - [ ] 27. OIDC Discovery and Quote Token Signature Verification
 
@@ -1796,13 +1799,13 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
   **Context:**
   - `fetchServicePublicKey()` in `src/utils.ts` is deprecated — replaced by `fetchServiceJWKS()` which is fully implemented with 1-hour TTL caching and `clearServiceJWKSCache()` for invalidation.
   - The in-process facilitator (`src/fab/facilitator/verify.ts`) already calls `fetchServiceJWKS` and `jose.jwtVerify` on the quote token, but wraps it in a try/catch that silently swallows failures. This makes quote signature verification best-effort rather than mandatory.
-  - The `WalletFacilitatorClient` (`src/wallet-facilitator-client.ts`) independently fetches service JWKS and verifies the quote token signature — that path is complete.
+  - The `AgenticPayFacilitatorClient` (`src/agentic-pay-facilitator-client.ts`) independently fetches service JWKS and verifies the quote token signature — that path is complete.
   - `test/unit/service-jwks.test.ts` has 7 tests covering `fetchServiceJWKS` and `clearServiceJWKSCache`.
   - `test/unit/fab/quote-verification.test.ts` exists as a placeholder with a single `.todo` test.
 
   **What's done (subtasks 27.1, 27.3):**
   - `fetchServiceJWKS()` is implemented with caching and cache clearing (subtask 27.1 ✅)
-  - Decision documented: quote verification stays in facilitator verify logic, not in `WalletClientForFacilitator` (subtask 27.3 ✅)
+  - Decision documented: quote verification stays in facilitator verify logic, not in `AgenticPayClientForFacilitator` (subtask 27.3 ✅)
 
   **What remains:**
 
@@ -1832,7 +1835,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
     - _Validates: FAB-FAC-003a, FAB-FAC-003b_
 
   - [ ] 27.6 Update integration test
-    - Update `test/integrations/fab-test.test.ts` to set up a service JWKS endpoint (the mock wallet server already serves `/.well-known/jwks.json` for the wallet; the test service needs to serve its own JWKS)
+    - Update `test/integrations/fab-test.test.ts` to set up a service JWKS endpoint (the mock Agentic Pay server already serves `/.well-known/jwks.json` for Agentic Pay; the test service needs to serve its own JWKS)
     - Verify the full flow now includes quote token signature verification
     - Target: 1-2 additional assertions in existing test(s)
 
@@ -1861,16 +1864,18 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
 
   **Estimated test count:** 6 new unit tests + 1-2 integration assertions
   **Dependencies:** None (fetchServiceJWKS is already implemented)
-  **Risk:** Low-medium — making quote verification mandatory could break integration tests that don't serve a service JWKS endpoint. The mock wallet server in examples already serves JWKS, but the test harness may need a mock service JWKS endpoint added.
+  **Risk:** Low-medium — making quote verification mandatory could break integration tests that don't serve a service JWKS endpoint. The mock Agentic Pay server in examples already serves JWKS, but the test harness may need a mock service JWKS endpoint added.
 
   **Estimated test count:** 13-18 new tests
   **Files modified:** `src/utils.ts`, `src/fab/facilitator/verify.ts`, `src/config.ts` (optional), `test/unit/utils.test.ts`, `test/unit/fab/facilitator.test.ts`, `test/integrations/fab-test.test.ts`, `docs/spec.md`, `README.md`
   **Dependencies:** None (self-contained)
 
 
-- [ ] 28. Sentinel Values for x402 Core Protocol Fields (`payTo`, `maxTimeoutSeconds`)
+- [x] 28. Sentinel Values for x402 Core Protocol Fields (`payTo`, `maxTimeoutSeconds`)
 
-  Replace the redundant `payTo` and `maxTimeoutSeconds` fields in the x402 `PaymentRequirements` with well-defined sentinel values. In FAB, the signed quote token is the authoritative source for payment details (recipient, pricing, expiry). The outer `PaymentRequirements` fields `payTo` and `maxTimeoutSeconds` are required by the `@x402/core` type contract but are semantically redundant for FAB — the wallet and facilitator already use the quote token. This task makes that explicit by using sentinel values and documenting the convention.
+  Replace the redundant `payTo` and `maxTimeoutSeconds` fields in the x402 `PaymentRequirements` with well-defined sentinel values. In FAB, the signed quote token is the authoritative source for payment details (recipient, pricing, expiry). The outer `PaymentRequirements` fields `payTo` and `maxTimeoutSeconds` are required by the `@x402/core` type contract but are semantically redundant for FAB — Agentic Pay and facilitator already use the quote token. This task makes that explicit by using sentinel values and documenting the convention.
+
+  **Status (implemented):** `FAB_SENTINEL_PAY_TO` constant defined in `src/constants.ts`. `enhancePaymentRequirements` in `src/fab/server/scheme.ts` sets `payTo` to the sentinel and `maxTimeoutSeconds` to `exp - iat`. Spec updated with FAB-CON-007, FAB-SRV-016, FAB-SRV-017.
 
   **Motivation:**
   - `payTo` in `PaymentRequirements` duplicates `payTo` inside the signed quote token. The quote token is the source of truth because it's signed by the service; the outer field is unsigned and could be tampered with.
@@ -1878,7 +1883,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
   - Clients and facilitators in FAB already ignore these outer fields in favor of the quote token. Making them sentinels formalizes what's already true.
 
   **Design decisions:**
-  - `payTo` sentinel: `"urn:x402:fab:see-quote"` — a URN that is clearly not a real address, signals "look at the quote token", and won't collide with any wallet ID or blockchain address.
+  - `payTo` sentinel: `"urn:x402:fab:see-quote"` — a URN that is clearly not a real address, signals "look at the quote token", and won't collide with any Agentic Pay ID or blockchain address.
   - `maxTimeoutSeconds` sentinel: derived from the quote token's `exp - iat` (i.e., the quote validity window). This keeps the field numerically meaningful for any x402 middleware that might inspect it, while still being derived from the quote rather than independently configured.
   - Both sentinels are set in `enhancePaymentRequirements` (server scheme), which is the last touch before the 402 response is sent. The base requirements from `x402ResourceServer.buildPaymentRequirements` still set `payTo` from `resourceConfig.payTo` and `maxTimeoutSeconds` from config, but the FAB server scheme overrides them.
 
@@ -1929,7 +1934,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
 
   - [ ] 28.9 Write unit tests in `test/unit/fab/client.test.ts`
     - Test: `createPaymentPayload` works correctly when `paymentRequirements.payTo` is the sentinel value `'urn:x402:fab:see-quote'` — it should still extract `payTo` from the quote token's `iss` field
-    - Test: `createPaymentPayload` does not pass the sentinel value to `walletClient.authorize()` — it passes `quote.iss` instead
+    - Test: `createPaymentPayload` does not pass the sentinel value to `agenticPayClient.authorize()` — it passes `quote.iss` instead
     - Target: 2 new tests
 
   - [ ] 28.10 Write unit tests in `test/unit/fab/facilitator.test.ts`
@@ -1981,8 +1986,12 @@ _Moved from `spec.md`. Tracks implementation state against the formal EARS requi
 | Constants (FAB-CON-*) | ✅ Complete | Unit |
 | Authentication (FAB-AUTH-*) | ✅ Complete | 28 tests |
 | DPoP (FAB-DPOP-*) | ✅ Complete | 33 tests |
-| Wallet Client (FAB-WCL-*) | ✅ Complete | Unit |
+| Agentic Pay Client (FAB-WCL-*) | ✅ Complete | Unit |
 | InProcess Facilitator (FAB-FCL-001) | ✅ Complete | Integration |
+| AgenticPayFacilitatorClient (FAB-FCL-002–010) | ✅ Complete | Unit + Integration |
+| Builders / Network Routing (FAB-BLD-*) | ✅ Complete | Unit + Integration |
+| Sentinel Values (FAB-CON-007, FAB-SRV-016–017) | ✅ Complete | Unit |
+| Express Middleware (FAB-MWR-001–014) | ✅ Core Complete | 15 tests |
 
 Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 
@@ -1991,20 +2000,18 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 | ID | Area | Limitation |
 |----|------|------------|
 | FAB-AUTH-005 | AWS SigV4 | Simplified placeholder; production use requires `@aws-sdk/signature-v4`. |
-| FAB-FCL-002–005 | WalletFacilitatorClient | HTTP-based facilitator client is defined but wallet API integration is stubbed. |
-| FAB-FAC-007 | Settlement | Returns success placeholder; actual fund capture requires wallet backend integration. |
-| FAB-DSC-003 | JWKS Fetching | OIDC discovery for service public keys is stubbed; quote token signature verification is skipped in facilitator. |
+| FAB-FAC-003a | Quote Token Verification (In-Process) | The in-process facilitator (`src/fab/facilitator/verify.ts`) wraps quote token signature verification in a try/catch that silently swallows failures, making it best-effort. The `AgenticPayFacilitatorClient` verifies fully. Task 27 tracks making this mandatory. |
+| FAB-FAC-007 | Settlement (In-Process) | The in-process facilitator returns a success placeholder; actual fund capture requires Agentic Pay backend integration. The `AgenticPayFacilitatorClient` calls `POST /capture` correctly. |
 
 ### Not Yet Implemented
 
 | Area | Description |
 |------|-------------|
 | OIDC Discovery / Quote Verification (Task 27) | `fetchServiceJWKS` implemented with caching. Remaining: make quote signature verification mandatory in in-process facilitator (currently best-effort), add unit tests, update integration tests. |
-| Sentinel Values for Core Fields (Task 28) | Replace redundant `payTo` and `maxTimeoutSeconds` with sentinel values; quote token is authoritative. |
 | Zod Validation Schemas | Comprehensive runtime validation schemas (types exist, Zod schemas not fully wired). |
 | Express Middleware (Task 24) | Core middleware implemented (`fabPaymentMiddleware`). Storage abstraction, logging/observability, and advanced examples deferred. |
 | MCP Server Tool (Task 25) | Model Context Protocol server exposing FAB tools for AI agents. |
-| Facilitator Extensibility (Task 26) | Analysis and abstraction for multi-wallet-provider extensibility. |
+| Facilitator Extensibility (Task 26) | Analysis and abstraction for multi-Agentic Pay-provider extensibility. |
 | Property-Based Tests | `fast-check` property tests for correctness properties FAB-PROP-001 through FAB-PROP-014. |
 | CI/CD Pipeline | Automated testing, coverage enforcement, and npm publishing. |
 | Performance Benchmarks | Formal measurement against FAB-PRF-001 through FAB-PRF-004. |
@@ -2028,8 +2035,8 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 | FAB-CON-007 | `src/constants.ts` | `test/unit/fab/server.test.ts` |
 | FAB-AUTH-001–008 | `src/auth/*.ts` | `test/unit/auth/*.test.ts` |
 | FAB-DPOP-001–017 | `src/dpop/*.ts` | `test/unit/dpop/*.test.ts` |
-| FAB-WCL-001–010 | `src/wallet-client.ts`, `src/config.ts` | `test/unit/facilitator-client.test.ts` |
-| FAB-FCL-001–010 | `src/facilitator-client.ts`, `src/wallet-facilitator-client.ts` | `test/integrations/fab-test.test.ts` |
+| FAB-WCL-001–010 | `src/agentic-pay-client.ts`, `src/config.ts` | `test/unit/facilitator-client.test.ts` |
+| FAB-FCL-001–010 | `src/facilitator-client.ts`, `src/agentic-pay-facilitator-client.ts` | `test/integrations/fab-test.test.ts` |
 | FAB-DSC-001–014 | `src/discovery.ts` | `test/unit/discovery.test.ts` |
 | FAB-NET-001–005 | `src/networks/*.ts` | `test/unit/networks/*.test.ts` |
 | FAB-WCOMPAT-001–007 | (external interface) | `test/integrations/fab-test.test.ts` |
@@ -2037,7 +2044,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 | FAB-PROP-001–015 | (cross-cutting) | planned: `fast-check` property tests |
 | FAB-BLD-001–003, 005 | `src/builders/resource-server-builder.ts` | `test/unit/builders/resource-server-builder.test.ts`, `test/integrations/multi-facilitator.test.ts` |
 | FAB-BLD-002 | `src/builders/client-builder.ts` | `test/unit/builders/client-builder.test.ts` |
-| FAB-BLD-004 | `src/wallet-facilitator-client.ts` | `test/unit/builders/wallet-facilitator-network-filter.test.ts` |
+| FAB-BLD-004 | `src/agentic-pay-facilitator-client.ts` | `test/unit/builders/agentic-pay-facilitator-network-filter.test.ts` |
 | FAB-BLD-006 | `src/builders/register.ts` | `test/integrations/multi-facilitator.test.ts` |
 | FAB-MWR-001–014 | `src/middleware/express.ts` | `test/unit/middleware/express.test.ts` |
 
@@ -2058,11 +2065,11 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 | Constants (FAB-CON) | 7 |
 | Authentication (FAB-AUTH) | 8 |
 | DPoP (FAB-DPOP) | 17 |
-| Wallet Client (FAB-WCL) | 10 |
+| Agentic Pay Client (FAB-WCL) | 10 |
 | Facilitator Client (FAB-FCL) | 10 |
-| Wallet Discovery (FAB-DSC) | 14 |
+| Agentic Pay Discovery (FAB-DSC) | 14 |
 | Pre-configured Networks (FAB-NET) | 5 |
-| Wallet Provider Contract (FAB-WCOMPAT) | 7 |
+| Agentic Pay Provider Contract (FAB-WCOMPAT) | 7 |
 | Exported Stubs (FAB-STUB) | 1 |
 | Performance (FAB-PRF) | 4 |
 | Security (FAB-SEC) | 6 |
@@ -2073,9 +2080,11 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 | Express Middleware (FAB-MWR) | 14 |
 | **Total** | **209** |
 
-- [ ] 29. Refactor Registration: Network-Aware Facilitator Routing with Default Fallback
+- [x] 29. Refactor Registration: Network-Aware Facilitator Routing with Default Fallback
 
   Refactor the registration model so that the FAB facilitator only handles explicitly registered networks, while all other networks fall back to the official x402 facilitator (`https://x402.org/facilitator`). Today, both the buyer (client) and seller (server) sides require manual, per-network registration of FAB schemes. This task introduces a single "register these networks for FAB" entry point that wires up client, server, and facilitator schemes for the specified networks, and lets everything else pass through to the default `HTTPFacilitatorClient`.
+
+  **Status (implemented):** `createFABResourceServer` and `createFABClient` builders implemented in `src/builders/resource-server-builder.ts` and `src/builders/client-builder.ts`. Two-phase API (`registerNetwork` → `initialize`) with network filter on `AgenticPayFacilitatorClient`, default `HTTPFacilitatorClient` fallback, idempotent registration, and method chaining. Legacy `buildFABResourceServer` / `buildFABClient` convenience functions delegate to the two-phase API.
 
   **Motivation:**
   - Currently, every network that FAB should handle must be individually registered on the client (`x402Client.register`), the server (`x402ResourceServer.register`), and the facilitator (`x402Facilitator.register`). This is repetitive and error-prone.
@@ -2090,7 +2099,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
   1. `createFABResourceServer(config)` returns a `FABResourceServer` object with a `registerNetwork(network, options?)` method.
   2. Networks are added one at a time (or chained): `server.registerNetwork('fab:aws').registerNetwork('eip155:8453')`.
   3. `server.initialize()` fetches supported kinds from facilitators and returns the underlying `x402ResourceServer`.
-  4. The FAB facilitator (wallet-based) is registered for the specified networks. The default `HTTPFacilitatorClient` acts as catch-all for any network not claimed by FAB.
+  4. The FAB facilitator (Agentic Pay-based) is registered for the specified networks. The default `HTTPFacilitatorClient` acts as catch-all for any network not claimed by FAB.
 
   **Client side:**
   1. `createFABClient(config)` returns a `FABClient` object with a `registerNetwork(network)` method.
@@ -2107,18 +2116,18 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
       interface FABResourceServerConfig {
         /** Networks that FAB should handle (e.g., ['fab:aws', 'eip155:8453']) */
         fabNetworks: Network[];
-        /** Wallet base URL for the FAB facilitator */
-        walletBaseUrl: string;
-        /** Wallet ID for the FAB facilitator */
-        walletId: string;
+        /** Agentic Pay base URL for the FAB facilitator */
+        agenticPayBaseUrl: string;
+        /** Agentic Pay ID for the FAB facilitator */
+        agenticPayId: string;
         /** Service signing keys for quote tokens */
         signingKeys: SigningKeysConfig;
         /** Service URL (used as issuer in quote tokens) */
         serviceUrl: string;
-        /** Optional: wallet auth config for facilitator API calls */
-        walletAuth?: WalletFacilitatorAuthConfig;
-        /** Optional: wallet auth config for wallet client (used by facilitator scheme) */
-        walletClientAuth?: AuthConfig;
+        /** Optional: Agentic Pay auth config for facilitator API calls */
+        agenticPayAuth?: AgenticPayFacilitatorAuthConfig;
+        /** Optional: Agentic Pay auth config for Agentic Pay client (used by facilitator scheme) */
+        agenticPayClientAuth?: AuthConfig;
         /** Optional: custom default facilitator URL (defaults to https://x402.org/facilitator) */
         defaultFacilitatorUrl?: string;
         /** Optional: disable default facilitator fallback entirely */
@@ -2126,7 +2135,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
       }
       ```
     - [ ] 29.1.2 Implement `buildFABResourceServer(config)` factory function
-      - Create a `WalletFacilitatorClient` (or `InProcessFacilitatorClient`) for the FAB networks
+      - Create a `AgenticPayFacilitatorClient` (or `InProcessFacilitatorClient`) for the FAB networks
       - Create an `HTTPFacilitatorClient` for the default fallback (unless `disableDefaultFallback` is true)
       - Instantiate `x402ResourceServer` with `[fabFacilitatorClient, defaultFacilitatorClient]` (FAB first for precedence)
       - For each network in `fabNetworks`, call `server.register(network, new FABServerScheme({...}))` with the provided signing keys and service URL
@@ -2134,10 +2143,10 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
       - Return the configured `x402ResourceServer`
     - [ ] 29.1.3 Handle edge cases
       - Validate `fabNetworks` is non-empty
-      - Validate wallet URL is a valid URL
+      - Validate Agentic Pay URL is a valid URL
       - Validate signing keys are present
       - If `disableDefaultFallback` is true, only pass the FAB facilitator client
-      - If a network in `fabNetworks` is not supported by the wallet's `/.well-known/x402-supported` response, log a warning (the wallet may not support it yet)
+      - If a network in `fabNetworks` is not supported by the Agentic Pay's `/.well-known/x402-supported` response, log a warning (Agentic Pay may not support it yet)
 
   - [ ] 29.2 Create `FABClientBuilder` in `src/builders/client-builder.ts`
     - [ ] 29.2.1 Define `FABClientConfig` interface
@@ -2145,23 +2154,23 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
       interface FABClientConfig {
         /** Networks to register FAB client schemes for */
         fabNetworks: Network[];
-        /** Wallet base URL */
-        walletBaseUrl: string;
-        /** Wallet ID */
-        walletId: string;
-        /** Optional: wallet auth config */
-        walletAuth?: AuthConfig;
+        /** Agentic Pay base URL */
+        agenticPayBaseUrl: string;
+        /** Agentic Pay ID */
+        agenticPayId: string;
+        /** Optional: Agentic Pay auth config */
+        agenticPayAuth?: AuthConfig;
         /** Optional: DPoP configuration */
         dpop?: { keyPair: DPoPKeyPair; enabled: boolean };
       }
       ```
     - [ ] 29.2.2 Implement `buildFABClient(config)` factory function
-      - Create a single `FABClientScheme` instance configured with the wallet
-      - For each network in `fabNetworks`, call `client.register(network, fabClientScheme)` — the same `FABClientScheme` instance can be reused across networks because the scheme is stateless w.r.t. network (the network is passed through to the wallet)
+      - Create a single `FABClientScheme` instance configured with Agentic Pay
+      - For each network in `fabNetworks`, call `client.register(network, fabClientScheme)` — the same `FABClientScheme` instance can be reused across networks because the scheme is stateless w.r.t. network (the network is passed through to Agentic Pay)
       - Return the configured `x402Client`
     - [ ] 29.2.3 Handle edge cases
       - Validate `fabNetworks` is non-empty
-      - Validate wallet URL
+      - Validate Agentic Pay URL
       - Allow passing an existing `x402Client` instance to add FAB networks to (for composability with non-FAB schemes the client may also support)
 
   - [ ] 29.3 Update `InProcessFacilitatorClient` to support multi-facilitator composition
@@ -2169,21 +2178,21 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
     - [ ] 29.3.2 The `x402ResourceServer` constructor accepts `FacilitatorClient | FacilitatorClient[]`. Verify that passing `[inProcessFabClient, httpDefaultClient]` gives FAB precedence for registered networks and falls back to HTTP for others.
     - [ ] 29.3.3 No code changes expected — this subtask is verification of existing behavior. Document findings.
 
-  - [ ] 29.4 Update `WalletFacilitatorClient.getSupported()` to scope to registered networks
-    - [ ] 29.4.1 Currently `WalletFacilitatorClient.getSupported()` returns whatever the wallet's `/.well-known/x402-supported` endpoint returns. This is correct — the wallet declares what it supports, and the `x402ResourceServer.initialize()` maps those to facilitator clients.
-    - [ ] 29.4.2 However, if the wallet declares support for networks that the integrator did NOT include in `fabNetworks`, those networks would still be claimed by the FAB facilitator (because `initialize()` maps by what `getSupported()` returns, not by what the integrator registered). This could shadow the default facilitator for networks the integrator didn't intend to handle via FAB.
-    - [ ] 29.4.3 Solution: Add an optional `networkFilter` to `WalletFacilitatorClient` constructor. When set, `getSupported()` filters the wallet's response to only include kinds whose network is in the filter set. This ensures the FAB facilitator only claims the networks the integrator explicitly chose.
+  - [ ] 29.4 Update `AgenticPayFacilitatorClient.getSupported()` to scope to registered networks
+    - [ ] 29.4.1 Currently `AgenticPayFacilitatorClient.getSupported()` returns whatever the Agentic Pay's `/.well-known/x402-supported` endpoint returns. This is correct — Agentic Pay declares what it supports, and the `x402ResourceServer.initialize()` maps those to facilitator clients.
+    - [ ] 29.4.2 However, if Agentic Pay declares support for networks that the integrator did NOT include in `fabNetworks`, those networks would still be claimed by the FAB facilitator (because `initialize()` maps by what `getSupported()` returns, not by what the integrator registered). This could shadow the default facilitator for networks the integrator didn't intend to handle via FAB.
+    - [ ] 29.4.3 Solution: Add an optional `networkFilter` to `AgenticPayFacilitatorClient` constructor. When set, `getSupported()` filters the Agentic Pay's response to only include kinds whose network is in the filter set. This ensures the FAB facilitator only claims the networks the integrator explicitly chose.
       ```typescript
       constructor(
-        walletBaseUrl: string,
-        authConfig?: WalletFacilitatorAuthConfig,
+        agenticPayBaseUrl: string,
+        authConfig?: AgenticPayFacilitatorAuthConfig,
         networkFilter?: Set<Network>  // NEW: only claim these networks
       )
       ```
     - [ ] 29.4.4 Update `getSupported()` implementation:
       ```typescript
       async getSupported(): Promise<SupportedResponse> {
-        const response = await fetch(`${this.walletBaseUrl}/.well-known/x402-supported`);
+        const response = await fetch(`${this.agenticPayBaseUrl}/.well-known/x402-supported`);
         if (!response.ok) throw new Error(`Failed to fetch supported kinds: ${response.statusText}`);
         const supported = await response.json() as SupportedResponse;
         
@@ -2237,7 +2246,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
     - [ ] 29.7.1 Update `examples/test-service.ts` to use `buildFABResourceServer`:
       ```typescript
       // BEFORE (manual registration):
-      const facilitatorClient = new WalletFacilitatorClient(WALLET_BASE_URL, { ... });
+      const facilitatorClient = new AgenticPayFacilitatorClient(AGENTIC_PAY_BASE_URL, { ... });
       const server = new x402ResourceServer(facilitatorClient);
       server.register('fab:test', new FABServerScheme({ ... }));
       server.register('eip155:8453', new FABServerScheme({ ... }));
@@ -2246,11 +2255,11 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
       // AFTER (builder):
       const server = await buildFABResourceServer({
         fabNetworks: ['fab:test', 'eip155:8453'],
-        walletBaseUrl: WALLET_BASE_URL,
-        walletId: 'mock-wallet-provider',
+        agenticPayBaseUrl: AGENTIC_PAY_BASE_URL,
+        agenticPayId: 'mock-agentic-pay-provider',
         signingKeys: { privateKey: serviceKeys.privateKey, publicKey: publicJWK, alg: 'RS256' },
         serviceUrl: SERVICE_URL,
-        walletAuth: { getAuthHeaders: async () => ({ ... }) },
+        agenticPayAuth: { getAuthHeaders: async () => ({ ... }) },
       });
       ```
     - [ ] 29.7.2 Update `examples/test-client.ts` to use `buildFABClient`:
@@ -2263,9 +2272,9 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
       // AFTER (builder):
       const paymentClient = buildFABClient({
         fabNetworks: ['fab:test', 'eip155:8453'],
-        walletBaseUrl: WALLET_BASE_URL,
-        walletId: WALLET_ID,
-        walletAuth: { type: 'apiKey', apiKey: API_KEY },
+        agenticPayBaseUrl: AGENTIC_PAY_BASE_URL,
+        agenticPayId: AGENTIC_PAY_ID,
+        agenticPayAuth: { type: 'apiKey', apiKey: API_KEY },
       });
       ```
     - [ ] 29.7.3 Add a new example `examples/multi-facilitator.ts` showing the fallback scenario:
@@ -2275,7 +2284,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 
   - [ ] 29.8 Write unit tests for `buildFABResourceServer` in `test/unit/builders/resource-server-builder.test.ts`
     - [ ] 29.8.1 Test: builds server with FAB facilitator for specified networks
-      - Mock `WalletFacilitatorClient.getSupported()` to return the specified networks
+      - Mock `AgenticPayFacilitatorClient.getSupported()` to return the specified networks
       - Verify `server.hasRegisteredScheme(network, 'fab')` is true for each specified network
       - Verify `server.getSupportedKind(2, network, 'fab')` returns a kind for each network
     - [ ] 29.8.2 Test: default facilitator is included when `disableDefaultFallback` is false (default)
@@ -2288,7 +2297,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
       - Verify by checking which facilitator client is used for verify/settle
     - [ ] 29.8.5 Test: validation errors for invalid config
       - Empty `fabNetworks` array throws
-      - Invalid `walletBaseUrl` throws
+      - Invalid `agenticPayBaseUrl` throws
       - Missing `signingKeys` throws
     - Target: 5-7 tests
 
@@ -2310,18 +2319,18 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
       - Verify both work
     - [ ] 29.9.5 Test: validation errors
       - Empty `fabNetworks` throws
-      - Invalid `walletBaseUrl` throws
+      - Invalid `agenticPayBaseUrl` throws
     - Target: 5-6 tests
 
-  - [ ] 29.10 Write unit tests for `WalletFacilitatorClient` network filter in `test/unit/wallet-facilitator-client.test.ts`
-    - [ ] 29.10.1 Test: without filter, `getSupported()` returns all wallet-supported networks
-      - Mock wallet returning `['fab:aws', 'fab:test', 'eip155:8453']`
+  - [ ] 29.10 Write unit tests for `AgenticPayFacilitatorClient` network filter in `test/unit/agentic-pay-facilitator-client.test.ts`
+    - [ ] 29.10.1 Test: without filter, `getSupported()` returns all Agentic Pay-supported networks
+      - Mock Agentic Pay returning `['fab:aws', 'fab:test', 'eip155:8453']`
       - Verify all three are in the response
     - [ ] 29.10.2 Test: with filter `['fab:aws']`, `getSupported()` only returns `fab:aws`
-      - Same mock wallet response
+      - Same mock Agentic Pay response
       - Verify only `fab:aws` is in the filtered response
-    - [ ] 29.10.3 Test: with filter for networks the wallet doesn't support, returns empty kinds
-      - Filter for `['solana:mainnet']` but wallet only supports FAB networks
+    - [ ] 29.10.3 Test: with filter for networks Agentic Pay doesn't support, returns empty kinds
+      - Filter for `['solana:mainnet']` but Agentic Pay only supports FAB networks
       - Verify `kinds` is empty
     - Target: 3-4 tests
 
@@ -2353,7 +2362,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
       - Show the before/after comparison of manual vs builder registration
     - [ ] 29.13.2 Update `docs/design.md` (if exists) or add a section to `docs/spec.md`
       - Document the multi-facilitator architecture
-      - Document the network filter on `WalletFacilitatorClient`
+      - Document the network filter on `AgenticPayFacilitatorClient`
       - Document the precedence model: FAB first, default second
     - [ ] 29.13.3 Add JSDoc to all new public APIs
       - `buildFABResourceServer` — full parameter docs, usage example
@@ -2366,7 +2375,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
     - Add FAB-BLD-001: `The system shall provide a buildFABResourceServer factory function that accepts a list of networks and returns a fully configured x402ResourceServer with FAB facilitator precedence over the default facilitator.`
     - Add FAB-BLD-002: `The system shall provide a buildFABClient factory function that accepts a list of networks and returns a fully configured x402Client with FAB client schemes registered for each network.`
     - Add FAB-BLD-003: `When buildFABResourceServer is called without disableDefaultFallback, the system shall include an HTTPFacilitatorClient as a fallback facilitator for networks not handled by FAB.`
-    - Add FAB-BLD-004: `The WalletFacilitatorClient shall support an optional networkFilter that restricts getSupported() to only return kinds for networks in the filter set.`
+    - Add FAB-BLD-004: `The AgenticPayFacilitatorClient shall support an optional networkFilter that restricts getSupported() to only return kinds for networks in the filter set.`
     - Add FAB-BLD-005: `When multiple facilitator clients are provided to x402ResourceServer, the FAB facilitator client shall be positioned first in the array to ensure precedence during initialize().`
     - Add FAB-BLD-006: `The registerFABNetworks helper shall register a FABServerScheme for each specified network on an existing x402ResourceServer without modifying facilitator client configuration.`
 
@@ -2374,7 +2383,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
     - Add FAB-BLD-001 → `src/builders/resource-server-builder.ts` → `test/unit/builders/resource-server-builder.test.ts`
     - Add FAB-BLD-002 → `src/builders/client-builder.ts` → `test/unit/builders/client-builder.test.ts`
     - Add FAB-BLD-003 → `src/builders/resource-server-builder.ts` → `test/unit/builders/resource-server-builder.test.ts`
-    - Add FAB-BLD-004 → `src/wallet-facilitator-client.ts` → `test/unit/wallet-facilitator-client.test.ts`
+    - Add FAB-BLD-004 → `src/agentic-pay-facilitator-client.ts` → `test/unit/agentic-pay-facilitator-client.test.ts`
     - Add FAB-BLD-005 → `src/builders/resource-server-builder.ts` → `test/integrations/multi-facilitator.test.ts`
     - Add FAB-BLD-006 → `src/builders/register.ts` → `test/unit/builders/resource-server-builder.test.ts`
 
@@ -2403,7 +2412,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
   - `examples/multi-facilitator.ts`
 
   **Files modified:**
-  - `src/wallet-facilitator-client.ts` (add `networkFilter` parameter)
+  - `src/agentic-pay-facilitator-client.ts` (add `networkFilter` parameter)
   - `src/index.ts` (add builder exports)
   - `examples/test-service.ts` (update to use builder)
   - `examples/test-client.ts` (update to use builder)
@@ -2413,7 +2422,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 
   **Estimated test count:** 16-21 new tests
   **Dependencies:** None (uses existing `@x402/core` multi-facilitator support)
-  **Risk:** Low — builders are additive, existing manual registration still works. The only behavioral change is the `networkFilter` on `WalletFacilitatorClient`, which is opt-in (default: no filter, same as today).
+  **Risk:** Low — builders are additive, existing manual registration still works. The only behavioral change is the `networkFilter` on `AgenticPayFacilitatorClient`, which is opt-in (default: no filter, same as today).
   **Backward compatibility:** Full. All existing code continues to work. Builders are a new, optional API surface.
 
 - [ ] 30. Create Brazil Package and Upload to code.amazon.com
@@ -2593,3 +2602,409 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
   2. What version set should this build into? (Needs team input)
   3. Should the npm scope be `@amzn/x402-fab` or `@x402/fab`? (Naming convention decision)
   4. Is `@x402/core` already available as a Brazil package, or does it need to be onboarded first?
+
+---
+
+## Release-Readiness Tasks (Priority Order)
+
+_Added: 2026-05-11. These tasks prepare the SDK for production release against the AWS Marketplace Agent Pay Service._
+
+- [ ] 31. Terminology Refactor: "Agentic Pay" → "Agentic Pay"
+
+  **Priority: 1 (highest) — Business decision, affects all other tasks**
+
+  Rename all references to "Agentic Pay" throughout the codebase to "Agentic Pay" (or `agenticPay` / `AgenticPay` in code identifiers). This is a branding decision — the AWS service is called "Agent Pay", not a "Agentic Pay".
+
+  **Scope:**
+  - All source files (`src/**/*.ts`)
+  - All test files (`test/**/*.ts`)
+  - All example files (`examples/**/*.ts`)
+  - All documentation (`docs/**/*.md`, `README.md`)
+  - File names (e.g., `agentic-pay-client.ts` → `agentic-pay-client.ts`, `agentic-pay-facilitator-client.ts` → `agentic-pay-facilitator-client.ts`)
+  - Type/interface names (e.g., `AgenticPayFacilitatorClient` → `AgenticPayFacilitatorClient`, `AgenticPayClientForClient` → `AgenticPayClientForClient`, `DefaultAgenticPayClient` → `DefaultAgenticPayClient`)
+  - Config field names (e.g., `agenticPayBaseUrl` → `agenticPayBaseUrl`, `agenticPayId` → removed or renamed, `agenticPayAuth` → `agenticPayAuth`)
+  - Constants (e.g., `https://pay.aws.amazon.com` → the actual Agent Pay endpoint)
+  - Mock server (`mock-agentic-pay-server.ts` → `mock-agentic-pay-server.ts`)
+  - Package exports and barrel files
+
+  **Naming convention:**
+  - Class names: `AgenticPay*` (PascalCase)
+  - Variable/field names: `agenticPay*` (camelCase)
+  - File names: `agentic-pay-*` (kebab-case)
+  - Documentation prose: "Agentic Pay" or "Agent Pay Service"
+  - Never use "Agentic Pay" in new code
+
+  **Approach:**
+  1. Create a mapping table of old → new names
+  2. Rename files first (using IDE refactoring to update imports)
+  3. Rename types/interfaces/classes
+  4. Rename config fields and variables
+  5. Update all documentation prose
+  6. Update all test assertions and mock names
+  7. Run full test suite to verify nothing broke
+
+  **Risk:** Medium — large surface area but mechanically straightforward. Must be done first because all subsequent tasks build on the new naming.
+
+---
+
+- [ ] 32. Integrate with AWS Marketplace Agent Pay API Signature
+
+  **Priority: 2 — Core integration with the production service**
+
+  Align the SDK's client-side payment creation with the actual AWS Marketplace Agent Pay API (OpenAPI spec version 2026-04-20). The API has a fundamentally simpler interface than our current `POST /transactions` abstraction.
+
+  **AWS Marketplace Agent Pay API Summary:**
+
+  | Operation | Method | Path | Auth |
+  |-----------|--------|------|------|
+  | CreateAgentPayment | POST | `/CreateAgentPayment` | AWS SigV4 |
+  | GetAgentPayment | GET | `/GetAgentPayment/{paymentId}` | AWS SigV4 |
+  | ListAgentPayments | POST | `/ListAgentPayments` | AWS SigV4 |
+
+  **CreateAgentPayment Request:**
+  ```json
+  {
+    "quoteToken": "<seller-signed JWT>",
+    "clientToken": "<idempotency key, 1-128 chars>",
+    "dpopJwk": { "kty": "EC", "crv": "P-256", "x": "...", "y": "..." }
+  }
+  ```
+
+  **CreateAgentPayment Response (201):**
+  ```json
+  {
+    "paymentId": "awsmp-01970f3e-4b2a-7dc0-8e1f-6a3b9c5d7e2f",
+    "paymentToken": "<ES384-signed JWT by Agent Pay>",
+    "createdAt": "2026-04-22T14:20:00Z"
+  }
+  ```
+
+  **Key differences from current implementation:**
+  1. No `network`, `amount`, `currency`, `payTo`, `agenticPayId` in request — Agent Pay extracts everything from the quote token
+  2. Response uses `paymentId` (not `transactionId`) with format `awsmp-{UUIDv7}`
+  3. No separate `/capture` endpoint — payment is auto-captured on creation
+  4. DPoP key is passed as `dpopJwk` in request body (not as a header proof)
+  5. Auth is always AWS SigV4 (no API key, no OAuth2 for this endpoint)
+  6. Signing algorithm is ES384 (not RS256)
+  7. Quote token `aud` is `aws:marketplace`
+  8. Quote token `settlement.listing_id` replaces `payTo` as the seller identifier
+
+  **Payment Token Structure (from Agent Pay):**
+  ```json
+  {
+    "iss": "aws-marketplace",
+    "payment_id": "awsmp-...",
+    "cnf": { "jkt": "<SHA-256 thumbprint of dpopJwk>" }
+  }
+  ```
+
+  **Error Responses:**
+  - 400: `InvalidQuoteTokenException`, `QuoteExpiredException`, `QuoteSignatureInvalidException`, `UnsupportedCurrencyException`, `ValidationException`
+  - 403: `SpendingLimitExceededException`, `AccessDeniedException`
+  - 404: `ListingNotFoundException`
+  - 409: `ConflictException` (clientToken reuse with different params)
+  - 429: `ThrottlingException`
+  - 500: `InternalServerException`
+
+  **Subtasks:**
+
+  - [ ] 32.1 Add spec requirements for Agent Pay API integration
+    - Add FAB-APAY-001 through FAB-APAY-015 to `docs/spec.md`
+    - Define the `AgenticPayClient` interface matching the API
+    - Define request/response types
+    - Define error types matching API error responses
+
+  - [ ] 32.2 Implement `AgenticPayClient` class
+    - `createPayment(request: CreateAgentPaymentRequest): Promise<CreateAgentPaymentResponse>`
+    - `getPayment(paymentId: string): Promise<GetAgentPaymentResponse>`
+    - `listPayments(request?: ListAgentPaymentsRequest): Promise<ListAgentPaymentsResponse>`
+    - Auth: AWS SigV4 only (use `@aws-sdk/signature-v4` or accept pre-signed requests)
+    - Base URL configurable (for testing against mock server)
+
+  - [ ] 32.3 Update `FABClientScheme.createPaymentPayload` to use new API shape
+    - Send only `{ quoteToken, clientToken?, dpopJwk? }` — no amount/currency/network/payTo
+    - Map response `paymentId` to the payload's transaction identifier
+    - Map response `paymentToken` to the FAB payload
+
+  - [ ] 32.4 Update mock server to match Agent Pay API signature
+    - Rename `POST /transactions` → `POST /CreateAgentPayment`
+    - Accept `{ quoteToken, clientToken?, dpopJwk? }`
+    - Return `{ paymentId, paymentToken, createdAt }`
+    - Add `GET /GetAgentPayment/{paymentId}`
+    - Add `POST /ListAgentPayments`
+    - Implement idempotency via `clientToken`
+    - Validate quote token structure (parse JWT, check `aud`, check `exp`)
+    - Return appropriate error codes (400, 403, 404, 409, 429, 500)
+
+  - [ ] 32.5 Update `AgenticPayFacilitatorClient` (formerly `AgenticPayFacilitatorClient`)
+    - Remove `POST /capture` call from `settle()` — Agent Pay auto-captures
+    - `verify()` remains: fetch JWKS, verify payment token signature (ES384), verify quote token
+    - `settle()` becomes a no-op that returns success (payment already captured)
+    - Update JWKS endpoint expectation (Agent Pay publishes keys at `/.well-known/jwks.json`)
+
+  - [ ] 32.6 Update types for new payment ID format
+    - Payment ID format: `awsmp-{UUIDv7}` (42 chars, pattern: `^awsmp-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+    - Update `generateTransactionId` / `parseTransactionId` or replace with `paymentId` utilities
+    - Update `FABPayloadV2` to use `paymentId` instead of `transactionId`
+
+  - [ ] 32.7 Update all tests to match new API shape
+  - [ ] 32.8 Update all examples to match new API shape
+  - [ ] 32.9 Update documentation (spec, sdk-guide, README)
+
+  **Files modified:** `src/agentic-pay-client.ts` (new), `src/fab/client/scheme.ts`, `src/agentic-pay-facilitator-client.ts`, `src/types.ts`, `src/utils.ts`, `examples/mock-agentic-pay-server.ts`, all test files
+  **Risk:** High — this is a breaking change to the client-side API. Must be coordinated with Task 31 (terminology).
+
+---
+
+- [ ] 33. DPoP and Public Key Verification Hardening
+
+  **Priority: 3 — Security-critical for release**
+
+  Ensure DPoP binding and payment token public key verification work correctly end-to-end with the Agent Pay API's specific requirements.
+
+  **Agent Pay DPoP specifics:**
+  - DPoP key is EC only (P-256, P-384, P-521) — no RSA for DPoP
+  - Key is passed as `dpopJwk` in the `CreateAgentPayment` request body (not as a DPoP proof header)
+  - Agent Pay binds the payment token to the key via `cnf.jkt` (SHA-256 thumbprint)
+  - The seller verifies: payment token signature (Agent Pay's ES384 key) + `cnf.jkt` matches the buyer's DPoP key thumbprint
+
+  **Subtasks:**
+
+  - [ ] 33.1 Verify DPoP key generation produces valid EC keys for Agent Pay
+    - P-256, P-384, P-521 must all work
+    - Output format must match `DpopJwk` schema: `{ kty: "EC", crv, x, y }` (no `d`, no `alg`, no `use`)
+    - Ensure `x` and `y` are base64url-encoded (43-128 chars)
+
+  - [ ] 33.2 Implement seller-side payment token verification
+    - Fetch Agent Pay's JWKS (ES384 public keys)
+    - Verify payment token JWT signature (algorithm: ES384)
+    - Extract `cnf.jkt` from payment token
+    - Compute SHA-256 thumbprint of the buyer's DPoP key (from the original 402 flow or stored)
+    - Compare `cnf.jkt` against computed thumbprint
+    - Return verification result
+
+  - [ ] 33.3 Update `FABServerScheme` / facilitator verify to check `cnf.jkt`
+    - If payment token contains `cnf.jkt`, verification MUST check it
+    - The DPoP public key must be available to the verifier (passed in or stored)
+    - If `cnf.jkt` is present but no DPoP key is available for comparison, fail verification
+
+  - [ ] 33.4 Add integration tests for DPoP round-trip
+    - Generate EC P-256 key pair
+    - Create payment with `dpopJwk` in request
+    - Verify returned payment token has `cnf.jkt` matching the key's thumbprint
+    - Verify seller-side verification succeeds with correct key
+    - Verify seller-side verification fails with wrong key
+
+  - [ ] 33.5 Update mock server to bind `cnf.jkt` in payment tokens
+    - When `dpopJwk` is provided in `CreateAgentPayment`, compute its thumbprint
+    - Include `cnf: { jkt: thumbprint }` in the signed payment token
+
+  **Risk:** Medium — DPoP is already implemented but needs alignment with Agent Pay's EC-only, body-based approach (vs. the current header-based DPoP proof approach from RFC 9449).
+
+---
+
+- [ ] 34. Client Token (Idempotency Key) Support
+
+  **Priority: 4 — Required by the AWS SDK contract**
+
+  The Agent Pay API requires a `clientToken` for idempotency. Same token + same parameters returns the original response within 24 hours. Different parameters with the same token returns 409 Conflict.
+
+  **Subtasks:**
+
+  - [ ] 34.1 Add `clientToken` to the client scheme's payment creation
+    - Auto-generate a UUID if not provided by the caller
+    - Accept optional `clientToken` in the payment creation options
+    - Pass through to `CreateAgentPayment` request body
+    - Constraints: 1-128 characters
+
+  - [ ] 34.2 Add `clientToken` to the client builder/config
+    - Allow callers to provide a `clientTokenGenerator` function for custom strategies
+    - Default: `crypto.randomUUID()`
+
+  - [ ] 34.3 Handle 409 Conflict response
+    - When Agent Pay returns 409, it means the same `clientToken` was used with different parameters
+    - Surface this as a specific error type (`IdempotencyConflictError`)
+    - Include the original `clientToken` in the error for debugging
+
+  - [ ] 34.4 Update mock server to implement idempotency
+    - Store `clientToken → response` mapping (in-memory, 24h TTL)
+    - Return cached response for same token + same params
+    - Return 409 for same token + different params
+
+  - [ ] 34.5 Write tests for idempotency behavior
+    - Test: same request with same clientToken returns same response
+    - Test: same clientToken with different quoteToken returns 409
+    - Test: auto-generated clientToken is unique per call
+    - Test: custom clientToken generator is used when provided
+
+  **Risk:** Low — straightforward addition. The main consideration is ensuring the auto-generated token doesn't accidentally cause retries to be treated as new requests (it shouldn't, since each call gets a fresh UUID by default).
+
+---
+
+- [ ] 35. Network Identifier: `fab:aws` → `aws:marketplace` (Parameterized)
+
+  **Priority: 5 — Release requirement, affects all code paths**
+
+  Change the default network identifier from `fab:aws` to `aws:marketplace` and ensure it's never a magic literal anywhere in the codebase. The identifier must be a configurable constant so it can be changed again without a code sweep.
+
+  **Subtasks:**
+
+  - [ ] 35.1 Define the network identifier as a single constant
+    - Add `DEFAULT_NETWORK = 'aws:marketplace'` to `src/constants.ts`
+    - Remove or deprecate any `fab:aws` references
+    - All code that currently uses `'fab:aws'` must reference this constant
+
+  - [ ] 35.2 Update the CAIP family pattern
+    - Current: `FAB_CAIP_FAMILY = 'fab:*'`
+    - New: needs to match `aws:marketplace` — update to `'aws:*'` or make it configurable
+    - Evaluate impact on facilitator network matching logic
+
+  - [ ] 35.3 Update all source files
+    - `src/constants.ts` — define constant
+    - `src/networks/aws.ts` — use constant
+    - `src/builders/*.ts` — use constant in examples/defaults
+    - `src/discovery.ts` — update network validation (currently requires `fab:` prefix)
+    - `src/utils.ts` — update `parseTransactionId` / `formatTransactionId` if they validate `fab:` prefix
+
+  - [ ] 35.4 Update all test files
+    - Replace all `'fab:aws'` and `'fab:test'` literals with the constant or a test-specific constant
+    - Ensure tests still pass with `aws:marketplace`
+
+  - [ ] 35.5 Update all examples and documentation
+    - README, sdk-guide, spec — replace `fab:aws` with `aws:marketplace`
+    - Examples — use the constant, not a literal
+
+  - [ ] 35.6 Update quote token `aud` claim
+    - The quote token's `aud` field must be `aws:marketplace` (confirmed by the Agent Pay API example)
+    - Verify `FABServerScheme.enhancePaymentRequirements` uses the network from the registered kind (not hardcoded)
+
+  - [ ] 35.7 Update transaction/payment ID format
+    - Current: `fab:aws:7f8e9d0c1b2a3456`
+    - New: Agent Pay uses `awsmp-{UUIDv7}` — this is handled in Task 32.6
+    - Ensure no code assumes `fab:` prefix in payment IDs
+
+  **Risk:** Medium — the `fab:` prefix is baked into validation logic (`parseTransactionId`, `formatTransactionId`, `registerNetwork`). Those validators need to be relaxed or parameterized.
+
+---
+
+- [ ] 36. Fix Auto-Capture Settlement Logic (Service-Side)
+
+  **Priority: 6 — Bug fix**
+
+  **Reported issue:** When `capture: "auto"` is set in the payment requirements, the service-side middleware/facilitator still attempts a `POST /capture` call after verification. Since Agent Pay auto-captures on `CreateAgentPayment`, there is no `/capture` endpoint — this results in a 404 error.
+
+  **Correct behavior:** In auto-capture mode, the service side should ONLY perform payment token signature verification (public key check). No settlement/capture call should be made.
+
+  **Subtasks:**
+
+  - [ ] 36.1 Investigate and confirm the bug
+    - Trace the code path: `fabPaymentMiddleware` → `x402ResourceServer.settlePayment` → facilitator `settle()`
+    - Confirm that `capture: "auto"` in `extra` triggers a settle call
+    - Identify where the conditional should be
+
+  - [ ] 36.2 Fix the middleware auto-capture logic
+    - In `src/middleware/express.ts`: when `capture === 'auto'`, skip the `settlePayment` call
+    - The payment was already captured by Agent Pay during `CreateAgentPayment`
+    - Only perform `verifyPayment` (signature check)
+
+  - [ ] 36.3 Fix the facilitator `settle()` for auto-capture
+    - In `AgenticPayFacilitatorClient.settle()`: if the payment was auto-captured, return `{ success: true }` immediately without making an HTTP call
+    - This is also addressed in Task 32.5 (Agent Pay has no `/capture` endpoint)
+
+  - [ ] 36.4 Update spec requirements
+    - Add FAB-MWR-007a: "When `capture` is `'auto'`, the middleware shall NOT call `settlePayment` — the payment was already captured by the Agent Pay Service during creation."
+    - Update FAB-FAC-007 to clarify that settlement is a no-op for auto-captured payments
+
+  - [ ] 36.5 Write tests
+    - Test: auto-capture mode does NOT trigger a settle/capture HTTP call
+    - Test: manual-capture mode still triggers settle (for future use if Agent Pay adds deferred capture)
+    - Test: middleware returns 200 (not 500) for auto-capture payments
+
+  **Risk:** Low — straightforward conditional. The fix aligns with the Agent Pay API reality (no separate capture step).
+
+---
+
+- [ ] 37. Extend Quote Token Format: Description and Dimensions
+
+  **Priority: 7 — Feature enhancement for release**
+
+  Add two new optional fields to the quote token payload for richer billing context:
+  1. `description` — free-text human-readable description of what's being charged for
+  2. `dimensions` — key-value object describing the units/dimensions consumed (e.g., `{ "tokens": 1500, "model": "claude-4" }`)
+
+  **Subtasks:**
+
+  - [ ] 37.1 Update `QuoteTokenPayload` type
+    ```typescript
+    interface QuoteTokenPayload {
+      // ... existing fields ...
+      description?: string;           // Free-text description of the charge
+      dimensions?: Record<string, string | number>;  // Key-value consumption dimensions
+    }
+    ```
+
+  - [ ] 37.2 Update `FABPaymentExtra` type
+    - Add `description?: string` and `dimensions?: Record<string, string | number>` to the extra fields
+    - These flow from the service's payment requirements config into the quote token
+
+  - [ ] 37.3 Update `FABServerScheme.enhancePaymentRequirements`
+    - Read `description` and `dimensions` from `paymentRequirements.extra`
+    - Include them in the quote token payload when present
+    - Omit when not provided (keep backward compatible)
+
+  - [ ] 37.4 Update spec requirements
+    - Add FAB-TYP-008: `The system shall define optional 'description' (string) and 'dimensions' (Record<string, string | number>) fields in QuoteTokenPayload.`
+    - Add FAB-SRV-018: `Where description is provided in payment requirements extra, the server scheme shall include it in the quote token payload.`
+    - Add FAB-SRV-019: `Where dimensions is provided in payment requirements extra, the server scheme shall include it in the quote token payload.`
+
+  - [ ] 37.5 Update middleware route config
+    - Allow `description` and `dimensions` in route definitions:
+      ```typescript
+      routes: {
+        'GET /api/premium': {
+          price: 0.15,
+          network: 'aws:marketplace',
+          description: 'Premium API access - 1 request',
+          dimensions: { requests: 1, tier: 'premium' }
+        }
+      }
+      ```
+
+  - [ ] 37.6 Update mock server to echo description/dimensions
+    - Include in the stored payment record
+    - Return in `GetAgentPayment` response
+
+  - [ ] 37.7 Write tests
+    - Test: quote token includes description when provided
+    - Test: quote token includes dimensions when provided
+    - Test: quote token omits both when not provided (backward compat)
+    - Test: dimensions with mixed string/number values
+
+  - [ ] 37.8 Update documentation and examples
+    - Add description/dimensions to README examples
+    - Update spec.md data model examples
+    - Update sdk-guide quote token structure section
+
+  **Risk:** Low — additive, backward-compatible change. No existing behavior is modified.
+
+---
+
+## Release Task Dependencies
+
+```
+Task 31 (Terminology) ──────────────────────────────────────────────┐
+                                                                     │
+Task 32 (Agent Pay API) ─── depends on 31 ──────────────────────────┤
+                                                                     │
+Task 33 (DPoP Hardening) ─── depends on 31, 32 ────────────────────┤
+                                                                     │
+Task 34 (Client Token) ─── depends on 31, 32 ──────────────────────┤
+                                                                     │
+Task 35 (Network Identifier) ─── depends on 31 ────────────────────┤
+                                                                     │
+Task 36 (Auto-Capture Fix) ─── depends on 31, 32 ──────────────────┤
+                                                                     │
+Task 37 (Quote Extensions) ─── depends on 31 ──────────────────────┘
+```
+
+All tasks depend on Task 31 (terminology refactor) being completed first. Tasks 32-37 can be parallelized after 31, with the caveat that 33, 34, and 36 depend on the API shape established in 32.

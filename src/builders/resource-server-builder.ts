@@ -19,8 +19,8 @@ import { x402ResourceServer } from '@x402/core/server';
 import { HTTPFacilitatorClient } from '@x402/core/http';
 import type { Network } from '@x402/core/types';
 import { FABScheme as FABServerScheme } from '../fab/server/scheme';
-import { WalletFacilitatorClient } from '../wallet-facilitator-client';
-import type { WalletFacilitatorAuthConfig } from '../wallet-facilitator-client';
+import { AgenticPayFacilitatorClient } from '../agentic-pay-facilitator-client';
+import type { AgenticPayFacilitatorAuthConfig } from '../agentic-pay-facilitator-client';
 import type { SigningKeysConfig } from '../config';
 import { ValidationError } from '../types';
 
@@ -31,16 +31,16 @@ import { ValidationError } from '../types';
  * Only includes identity and signing config — no routing concerns.
  */
 export interface FABResourceServerOptions {
-  /** Wallet base URL for the FAB facilitator */
-  walletBaseUrl: string;
-  /** Wallet ID for the FAB facilitator */
-  walletId: string;
+  /** Agentic Pay base URL for the FAB facilitator */
+  agenticPayBaseUrl: string;
+  /** Agentic Pay ID for the FAB facilitator */
+  agenticPayId: string;
   /** Service signing keys for quote tokens */
   signingKeys: SigningKeysConfig;
   /** Service URL (used as issuer in quote tokens) */
   serviceUrl: string;
-  /** Optional: wallet auth config for facilitator API calls */
-  walletAuth?: WalletFacilitatorAuthConfig;
+  /** Optional: Agentic Pay auth config for facilitator API calls */
+  agenticPayAuth?: AgenticPayFacilitatorAuthConfig;
 }
 
 /**
@@ -79,11 +79,11 @@ export interface FABResourceServer {
  */
 export interface FABResourceServerConfig {
   fabNetworks: Network[];
-  walletBaseUrl: string;
-  walletId: string;
+  agenticPayBaseUrl: string;
+  agenticPayId: string;
   signingKeys: SigningKeysConfig;
   serviceUrl: string;
-  walletAuth?: WalletFacilitatorAuthConfig;
+  agenticPayAuth?: AgenticPayFacilitatorAuthConfig;
   defaultFacilitatorUrl?: string;
   disableDefaultFallback?: boolean;
 }
@@ -91,13 +91,13 @@ export interface FABResourceServerConfig {
 // ── Implementation ─────────────────────────────────────────────────
 
 function validateBaseConfig(config: FABResourceServerOptions): void {
-  if (!config.walletBaseUrl) {
-    throw new ValidationError('walletBaseUrl is required');
+  if (!config.agenticPayBaseUrl) {
+    throw new ValidationError('agenticPayBaseUrl is required');
   }
   try {
-    new URL(config.walletBaseUrl);
+    new URL(config.agenticPayBaseUrl);
   } catch {
-    throw new ValidationError(`Invalid walletBaseUrl: ${config.walletBaseUrl}`);
+    throw new ValidationError(`Invalid agenticPayBaseUrl: ${config.agenticPayBaseUrl}`);
   }
   if (!config.signingKeys) {
     throw new ValidationError('signingKeys is required');
@@ -118,8 +118,8 @@ function validateBaseConfig(config: FABResourceServerOptions): void {
  * @example
  * ```typescript
  * const server = createFABResourceServer({
- *   walletBaseUrl: 'https://wallet.aws.com',
- *   walletId: 'my-wallet',
+ *   agenticPayBaseUrl: 'https://pay.aws.amazon.com',
+ *   agenticPayId: 'my-agentic-pay',
  *   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
  *   serviceUrl: 'https://api.example.com',
  * });
@@ -145,9 +145,9 @@ export function createFABResourceServer(
   });
 
   // FAB facilitator client — networkFilter is mutated by registerNetwork
-  const fabFacilitatorClient = new WalletFacilitatorClient(
-    config.walletBaseUrl,
-    config.walletAuth,
+  const fabFacilitatorClient = new AgenticPayFacilitatorClient(
+    config.agenticPayBaseUrl,
+    config.agenticPayAuth,
     networkFilter
   );
 
@@ -223,11 +223,11 @@ export async function buildFABResourceServer(
   }
 
   const s = createFABResourceServer({
-    walletBaseUrl: config.walletBaseUrl,
-    walletId: config.walletId,
+    agenticPayBaseUrl: config.agenticPayBaseUrl,
+    agenticPayId: config.agenticPayId,
     signingKeys: config.signingKeys,
     serviceUrl: config.serviceUrl,
-    walletAuth: config.walletAuth,
+    agenticPayAuth: config.agenticPayAuth,
   });
 
   for (const network of config.fabNetworks) {

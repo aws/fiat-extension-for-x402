@@ -4,31 +4,31 @@ import { FABScheme } from '../../../src/fab/client/scheme';
 import type { PaymentRequirements } from '@x402/core/types';
 import { FAB_SCHEME } from '../../../src/constants';
 import { FAB_SENTINEL_PAY_TO } from '../../../src/constants';
-import { createMockWalletClient } from '../../helpers/mock-wallet-client';
+import { createMockAgenticPayClient } from '../../helpers/mock-agentic-pay-client';
 
 /**
  * FAB Client Unit Tests
  * 
- * Tests the client scheme with mock wallet client.
- * In production, the client calls the wallet provider's API to get payment tokens.
+ * Tests the client scheme with mock Agentic Pay client.
+ * In production, the client calls the Agentic Pay provider's API to get payment tokens.
  */
 
 describe('FAB Client Scheme', () => {
   let privateKey: jose.KeyLike;
   let publicKey: jose.KeyLike;
   let scheme: FABScheme;
-  const walletId = 'wallet-test-456';
+  const agenticPayId = 'agentic-pay-test-456';
 
   beforeEach(async () => {
-    // Create mock wallet client
-    const mock = await createMockWalletClient(walletId);
+    // Create mock Agentic Pay client
+    const mock = await createMockAgenticPayClient(agenticPayId);
     privateKey = mock.privateKey;
     publicKey = mock.publicKey;
 
-    // Create scheme with mock wallet client
+    // Create scheme with mock Agentic Pay client
     scheme = new FABScheme({
-      walletId,
-      walletClient: mock.walletClient
+      agenticPayId,
+      agenticPayClient: mock.agenticPayClient
     });
   });
 
@@ -41,7 +41,7 @@ describe('FAB Client Scheme', () => {
       exp: Math.floor(Date.now() / 1000) + 300,
       jti: 'quote_123',
       price: { amount: '1.50', currency: 'USD' },
-      payTo: 'service-wallet',
+      payTo: 'service-pay',
       capture: 'manual',
       reference: 'TEST'
     };
@@ -54,7 +54,7 @@ describe('FAB Client Scheme', () => {
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
-      payTo: 'service-wallet',
+      payTo: 'service-pay',
       maxTimeoutSeconds: 3600,
       extra: {
         quoteToken
@@ -73,8 +73,8 @@ describe('FAB Client Scheme', () => {
 
     // Verify payment token structure
     const decoded = jose.decodeJwt(result.payload.paymentToken as string);
-    expect(decoded.iss).toBe(walletId);
-    expect(decoded.sub).toBe(walletId);
+    expect(decoded.iss).toBe(agenticPayId);
+    expect(decoded.sub).toBe(agenticPayId);
     expect(decoded.aud).toBe('https://api.example.com'); // Service URL from quote.iss
   });
 
@@ -84,7 +84,7 @@ describe('FAB Client Scheme', () => {
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
-      payTo: 'service-wallet',
+      payTo: 'service-pay',
       maxTimeoutSeconds: 3600,
       extra: {} as Record<string, unknown>
     };
@@ -102,7 +102,7 @@ describe('FAB Client Scheme', () => {
       exp: Math.floor(Date.now() / 1000) + 300,
       jti: 'quote_123',
       price: { amount: '1.50', currency: 'USD' },
-      payTo: 'service-wallet',
+      payTo: 'service-pay',
       capture: 'manual',
       reference: 'TEST'
     };
@@ -115,7 +115,7 @@ describe('FAB Client Scheme', () => {
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
-      payTo: 'service-wallet',
+      payTo: 'service-pay',
       maxTimeoutSeconds: 3600,
       extra: { quoteToken } as unknown as Record<string, unknown>
     };
@@ -135,7 +135,7 @@ describe('FAB Client Scheme', () => {
       exp: Math.floor(Date.now() / 1000) + 300,
       jti: 'quote_123',
       price: { amount: '1.50', currency: 'USD' },
-      payTo: 'service-wallet',
+      payTo: 'service-pay',
       capture: 'manual',
       reference: 'TEST'
     };
@@ -148,7 +148,7 @@ describe('FAB Client Scheme', () => {
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
-      payTo: 'service-wallet',
+      payTo: 'service-pay',
       maxTimeoutSeconds: 3600,
       extra: { quoteToken } as unknown as Record<string, unknown>
     };
@@ -158,8 +158,8 @@ describe('FAB Client Scheme', () => {
 
     // Verify token can be verified with public key
     const verified = await jose.jwtVerify(paymentToken, publicKey);
-    expect(verified.payload.iss).toBe(walletId);
-    expect(verified.payload.sub).toBe(walletId);
+    expect(verified.payload.iss).toBe(agenticPayId);
+    expect(verified.payload.sub).toBe(agenticPayId);
     expect(verified.payload.aud).toBe('https://api.example.com'); // Service URL from quote.iss
     expect(verified.payload.payment_context).toBeDefined();
     expect((verified.payload.payment_context as any).quote_token).toBe(quoteToken);
@@ -174,7 +174,7 @@ describe('FAB Client Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_sentinel',
         price: { amount: '1.50', currency: 'USD' },
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         capture: 'manual',
         reference: 'TEST'
       };
@@ -205,7 +205,7 @@ describe('FAB Client Scheme', () => {
       expect(decoded.aud).not.toBe(FAB_SENTINEL_PAY_TO);
     });
 
-    it('should not pass sentinel value to wallet authorize call', async () => {
+    it('should not pass sentinel value to Agentic Pay authorize call', async () => {
       const quotePayload = {
         iss: 'https://api.example.com',
         aud: 'fab:test',
@@ -213,7 +213,7 @@ describe('FAB Client Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_sentinel_2',
         price: { amount: '2.00', currency: 'USD' },
-        payTo: 'real-service-wallet',
+        payTo: 'real-service-pay',
         capture: 'manual',
         reference: 'TEST'
       };

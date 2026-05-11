@@ -22,7 +22,7 @@ import { buildFABClient } from '../../src/builders/client-builder';
 import { createFABClient } from '../../src/builders/client-builder';
 import { registerFABNetworks } from '../../src/builders/register';
 import { FAB_SCHEME, FAB_SENTINEL_PAY_TO } from '../../src/constants';
-import { createMockWalletClient } from '../helpers/mock-wallet-client';
+import { createMockAgenticPayClient } from '../helpers/mock-agentic-pay-client';
 import { createMockServiceSigner } from '../helpers/mock-service-signer';
 
 /**
@@ -49,29 +49,29 @@ class FABFacilitatorClient implements FacilitatorClient {
 
 describe('Multi-Facilitator Integration Tests', () => {
   const serviceUrl = 'https://api.example.com';
-  const walletId = 'wallet-test-123';
+  const agenticPayId = 'agentic-pay-test-123';
 
   describe('FAB facilitator handles registered networks', () => {
     let client: x402Client;
     let server: x402ResourceServer;
 
     beforeEach(async () => {
-      const walletMock = await createMockWalletClient(walletId);
+      const agenticPayMock = await createMockAgenticPayClient(agenticPayId);
       const serviceMock = await createMockServiceSigner(serviceUrl);
 
       // Build client using the builder for two networks
       client = new x402Client();
       const fabClientScheme = new FABClient({
-        walletId,
-        walletClient: walletMock.walletClient,
+        agenticPayId,
+        agenticPayClient: agenticPayMock.agenticPayClient,
       });
       client.register('fab:aws', fabClientScheme);
       client.register('eip155:8453', fabClientScheme);
 
       // Build facilitator for two networks
       const fabFacilitator = new FABFacilitator({
-        walletId,
-        walletClient: walletMock.walletClient,
+        agenticPayId,
+        agenticPayClient: agenticPayMock.agenticPayClient,
       });
       const facilitator = new x402Facilitator()
         .register(['fab:aws', 'eip155:8453'], fabFacilitator);
@@ -101,7 +101,7 @@ describe('Multi-Facilitator Integration Tests', () => {
       const accepts = await server.buildPaymentRequirements({
         scheme: FAB_SCHEME,
         network: 'fab:aws',
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         price: 0.15,
         asset: 'iso4217:USD',
       });
@@ -134,7 +134,7 @@ describe('Multi-Facilitator Integration Tests', () => {
       const accepts = await server.buildPaymentRequirements({
         scheme: FAB_SCHEME,
         network: 'eip155:8453',
-        payTo: 'merchant-wallet',
+        payTo: 'merchant-pay',
         price: 0.15,
         asset: 'iso4217:USD',
       });
@@ -159,11 +159,11 @@ describe('Multi-Facilitator Integration Tests', () => {
   describe('registerFABNetworks helper', () => {
     it('should register FAB server scheme for multiple networks', async () => {
       const serviceMock = await createMockServiceSigner(serviceUrl);
-      const walletMock = await createMockWalletClient(walletId);
+      const agenticPayMock = await createMockAgenticPayClient(agenticPayId);
 
       const fabFacilitator = new FABFacilitator({
-        walletId,
-        walletClient: walletMock.walletClient,
+        agenticPayId,
+        agenticPayClient: agenticPayMock.agenticPayClient,
       });
       const facilitator = new x402Facilitator().register('fab:aws', fabFacilitator);
       const facilitatorClient = new FABFacilitatorClient(facilitator);
@@ -194,26 +194,26 @@ describe('Multi-Facilitator Integration Tests', () => {
 
   describe('createFABClient two-phase API', () => {
     it('should work with registerNetwork for payment flow', async () => {
-      const walletMock = await createMockWalletClient(walletId);
+      const agenticPayMock = await createMockAgenticPayClient(agenticPayId);
       const serviceMock = await createMockServiceSigner(serviceUrl);
 
       // Two-phase client: create then register
       const fabClient = createFABClient({
-        walletBaseUrl: 'https://wallet.example.com',
-        walletId,
+        agenticPayBaseUrl: 'https://pay.example.com',
+        agenticPayId,
       });
-      // Override the internal scheme with our mock wallet client
+      // Override the internal scheme with our mock Agentic Pay client
       const fabClientScheme = new FABClient({
-        walletId,
-        walletClient: walletMock.walletClient,
+        agenticPayId,
+        agenticPayClient: agenticPayMock.agenticPayClient,
       });
       const client = new x402Client();
       client.register('fab:aws', fabClientScheme);
 
       // Server setup (same as before)
       const fabFacilitator = new FABFacilitator({
-        walletId,
-        walletClient: walletMock.walletClient,
+        agenticPayId,
+        agenticPayClient: agenticPayMock.agenticPayClient,
       });
       const facilitator = new x402Facilitator().register('fab:aws', fabFacilitator);
       const facilitatorClient = new FABFacilitatorClient(facilitator);
@@ -225,7 +225,7 @@ describe('Multi-Facilitator Integration Tests', () => {
       const accepts = await server.buildPaymentRequirements({
         scheme: FAB_SCHEME,
         network: 'fab:aws',
-        payTo: 'service-wallet',
+        payTo: 'service-pay',
         price: 0.15,
         asset: 'iso4217:USD',
       });

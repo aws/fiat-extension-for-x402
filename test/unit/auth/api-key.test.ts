@@ -14,7 +14,7 @@ describe('ApiKeyAuthenticator', () => {
     });
 
     const request: AuthenticatedRequest = {
-      url: 'https://wallet.example.com/transactions',
+      url: 'https://pay.example.com/transactions',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -36,7 +36,7 @@ describe('ApiKeyAuthenticator', () => {
     });
 
     const request: AuthenticatedRequest = {
-      url: 'https://wallet.example.com/transactions',
+      url: 'https://pay.example.com/transactions',
       method: 'POST',
       headers: {},
     };
@@ -55,7 +55,7 @@ describe('ApiKeyAuthenticator', () => {
     });
 
     const request: AuthenticatedRequest = {
-      url: 'https://wallet.example.com/transactions',
+      url: 'https://pay.example.com/transactions',
       method: 'POST',
       headers: {},
     };
@@ -81,7 +81,7 @@ describe('ApiKeyAuthenticator', () => {
     });
 
     const request: AuthenticatedRequest = {
-      url: 'https://wallet.example.com/transactions',
+      url: 'https://pay.example.com/transactions',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

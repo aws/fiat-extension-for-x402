@@ -1,7 +1,7 @@
 /**
  * FAB Client Scheme Implementation
  * 
- * In FAB, the "client" role is played by the wallet provider,
+ * In FAB, the "client" role is played by the Agentic Pay provider,
  * which creates payment tokens (JWTs) for authorized payments.
  */
 
@@ -12,9 +12,9 @@ import {
 } from '@x402/core/types';
 import type {
   FABClientSchemeConfig,
-  WalletClientForClient
+  AgenticPayClientForClient
 } from '../../config';
-import { DefaultWalletClient } from '../../wallet-client';
+import { DefaultAgenticPayClient } from '../../agentic-pay-client';
 import {
   FABPaymentExtra,
   FABPayloadV2,
@@ -24,29 +24,29 @@ import { decodeQuoteToken } from '../../utils';
 import { FAB_SCHEME } from '../../constants';
 
 /**
- * FAB client implementation for wallet providers.
+ * FAB client implementation for Agentic Pay providers.
  * Creates payment tokens (JWTs) for authorized payments.
  */
 export class FABScheme implements SchemeNetworkClient {
   readonly scheme = FAB_SCHEME;
-  private readonly walletId: string;
-  private readonly walletClient: WalletClientForClient;
+  private readonly agenticPayId: string;
+  private readonly agenticPayClient: AgenticPayClientForClient;
 
   /**
    * Create a new FAB client scheme
-   * @param config - Client configuration with wallet ID and wallet client or config
+   * @param config - Client configuration with Agentic Pay ID and Agentic Pay client or config
    */
   constructor(config: FABClientSchemeConfig) {
-    this.walletId = config.walletId;
+    this.agenticPayId = config.agenticPayId;
     
     // Determine if we have a custom client or need to create default
-    if ('walletClient' in config) {
-      this.walletClient = config.walletClient;
-    } else if ('wallet' in config) {
+    if ('agenticPayClient' in config) {
+      this.agenticPayClient = config.agenticPayClient;
+    } else if ('agenticPay' in config) {
       // Pass through auth config if provided
-      this.walletClient = new DefaultWalletClient(config.wallet);
+      this.agenticPayClient = new DefaultAgenticPayClient(config.agenticPay);
     } else {
-      throw new ValidationError('FABClientScheme requires either walletClient or wallet configuration');
+      throw new ValidationError('FABClientScheme requires either agenticPayClient or Agentic Pay configuration');
     }
   }
 
@@ -76,21 +76,21 @@ export class FABScheme implements SchemeNetworkClient {
       throw new ValidationError('Missing price in quote token');
     }
     
-    // Call wallet provider to authorize payment
+    // Call Agentic Pay provider to authorize payment
     // In FAB, paymentRequirements.payTo is a sentinel value ('urn:x402:fab:see-quote')
     // because the signed quote token is the authoritative source for the payment
-    // recipient. We use quote.iss (service URL) as the payTo for the wallet's
+    // recipient. We use quote.iss (service URL) as the payTo for the Agentic Pay's
     // authorization request — this becomes the payment token's aud field.
-    const authResult = await this.walletClient.authorize({
+    const authResult = await this.agenticPayClient.authorize({
       network: paymentRequirements.network,
       amount: price.amount,
       currency: price.currency,
       payTo: quote.iss, // Service URL from quote token
       quoteToken: extra.quoteToken,
-      walletId: this.walletId,
+      agenticPayId: this.agenticPayId,
     });
 
-    // Create FAB payload with payment token from wallet
+    // Create FAB payload with payment token from Agentic Pay
     const payload: FABPayloadV2 = {
       paymentToken: authResult.paymentToken,
       transactionId: authResult.transactionId

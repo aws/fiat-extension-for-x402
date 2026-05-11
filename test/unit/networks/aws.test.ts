@@ -4,17 +4,17 @@ import * as jose from 'jose';
 
 describe('AWS Network Schemes', () => {
   describe('FABAWSClientScheme', () => {
-    it('should create client scheme with AWS wallet configuration', () => {
-      const scheme = new FABAWSClientScheme({ walletId: 'test-wallet-123' });
+    it('should create client scheme with AWS Agentic Pay configuration', () => {
+      const scheme = new FABAWSClientScheme({ agenticPayId: 'test-agentic-pay-123' });
       
       expect(scheme).toBeDefined();
       expect(scheme.scheme).toBe('fab');
       // Network is set during initialization, not exposed as property
     });
 
-    it('should accept different wallet IDs', () => {
-      const scheme1 = new FABAWSClientScheme({ walletId: 'wallet-1' });
-      const scheme2 = new FABAWSClientScheme({ walletId: 'wallet-2' });
+    it('should accept different Agentic Pay IDs', () => {
+      const scheme1 = new FABAWSClientScheme({ agenticPayId: 'agentic-pay-1' });
+      const scheme2 = new FABAWSClientScheme({ agenticPayId: 'agentic-pay-2' });
       
       expect(scheme1).toBeDefined();
       expect(scheme2).toBeDefined();
@@ -23,13 +23,13 @@ describe('AWS Network Schemes', () => {
     });
 
     it('should be instance of base client scheme', () => {
-      const scheme = new FABAWSClientScheme({ walletId: 'test' });
+      const scheme = new FABAWSClientScheme({ agenticPayId: 'test' });
       expect(scheme.scheme).toBe('fab');
     });
   });
 
   describe('FABAWSServerScheme', () => {
-    it('should create server scheme with AWS wallet configuration', async () => {
+    it('should create server scheme with AWS Agentic Pay configuration', async () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
       
@@ -83,23 +83,23 @@ describe('AWS Network Schemes', () => {
   });
 
   describe('FABAWSFacilitatorScheme', () => {
-    it('should create facilitator scheme with default wallet ID', () => {
+    it('should create facilitator scheme with default Agentic Pay ID', () => {
       const scheme = new FABAWSFacilitatorScheme();
       
       expect(scheme).toBeDefined();
       expect(scheme.scheme).toBe('fab');
     });
 
-    it('should create facilitator scheme with custom wallet ID', () => {
-      const scheme = new FABAWSFacilitatorScheme('custom-wallet-id');
+    it('should create facilitator scheme with custom Agentic Pay ID', () => {
+      const scheme = new FABAWSFacilitatorScheme('custom-agentic-pay-id');
       
       expect(scheme).toBeDefined();
       expect(scheme.scheme).toBe('fab');
     });
 
-    it('should accept different wallet IDs', () => {
-      const scheme1 = new FABAWSFacilitatorScheme('wallet-1');
-      const scheme2 = new FABAWSFacilitatorScheme('wallet-2');
+    it('should accept different Agentic Pay IDs', () => {
+      const scheme1 = new FABAWSFacilitatorScheme('agentic-pay-1');
+      const scheme2 = new FABAWSFacilitatorScheme('agentic-pay-2');
       
       expect(scheme1).toBeDefined();
       expect(scheme2).toBeDefined();

@@ -1,10 +1,10 @@
 /**
- * Default wallet client implementation
- * Handles HTTP communication with wallet provider endpoints
+ * Default Agentic Pay client implementation
+ * Handles HTTP communication with Agentic Pay provider endpoints
  */
 
 import { createRemoteJWKSet, jwtVerify } from 'jose';
-import type { WalletClient, WalletConfig } from './config';
+import type { AgenticPayClient, AgenticPayConfig } from './config';
 import { ValidationError } from './types';
 import type { Authenticator, AuthenticatedRequest } from './auth/types';
 import { createAuthenticator } from './auth/factory';
@@ -18,21 +18,21 @@ interface JWKSCacheEntry {
 }
 
 /**
- * Default wallet client implementation
+ * Default Agentic Pay client implementation
  * Uses standardized endpoints derived from baseUrl
  */
-export class DefaultWalletClient implements WalletClient {
+export class DefaultAgenticPayClient implements AgenticPayClient {
   private readonly baseUrl: string;
   private readonly authenticator?: Authenticator;
   private jwksCache: Map<string, JWKSCacheEntry> = new Map();
   private readonly JWKS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
   /**
-   * Create a new default wallet client
+   * Create a new default Agentic Pay client
    * 
-   * @param config - Wallet configuration with baseUrl and optional auth
+   * @param config - Agentic Pay configuration with baseUrl and optional auth
    */
-  constructor(config: WalletConfig) {
+  constructor(config: AgenticPayConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, ''); // Remove trailing slash
     
     // Create authenticator if auth config provided
@@ -42,7 +42,7 @@ export class DefaultWalletClient implements WalletClient {
   }
 
   /**
-   * Authorize a payment with the wallet provider
+   * Authorize a payment with the Agentic Pay provider
    * Calls POST /transactions endpoint
    * 
    * @param payload - Payment authorization request
@@ -54,7 +54,7 @@ export class DefaultWalletClient implements WalletClient {
     currency: string;
     payTo: string;
     quoteToken: string;
-    walletId: string;
+    agenticPayId: string;
   }): Promise<{
     transactionId: string;
     paymentToken: string;
@@ -87,7 +87,7 @@ export class DefaultWalletClient implements WalletClient {
       if (!response.ok) {
         const errorText = await response.text().catch(() => response.statusText);
         throw new ValidationError(
-          `Wallet authorization failed (${response.status}): ${errorText}`
+          `Agentic Pay authorization failed (${response.status}): ${errorText}`
         );
       }
 
@@ -95,7 +95,7 @@ export class DefaultWalletClient implements WalletClient {
       
       if (!result.transactionId || !result.paymentToken) {
         throw new ValidationError(
-          'Invalid wallet response: missing transactionId or paymentToken'
+          'Invalid Agentic Pay response: missing transactionId or paymentToken'
         );
       }
 
@@ -108,14 +108,14 @@ export class DefaultWalletClient implements WalletClient {
         throw error;
       }
       throw new ValidationError(
-        `Failed to authorize payment with wallet: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to authorize payment with Agentic Pay: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
 
   /**
    * Verify a payment token's signature
-   * Fetches wallet's public keys from JWKS endpoint and verifies JWT
+   * Fetches Agentic Pay's public keys from JWKS endpoint and verifies JWT
    * 
    * @param token - Payment token JWT to verify
    * @returns Decoded and verified payment token payload
@@ -170,7 +170,7 @@ export class DefaultWalletClient implements WalletClient {
   }
 
   /**
-   * Capture/settle a payment with the wallet provider
+   * Capture/settle a payment with the Agentic Pay provider
    * Calls POST /capture endpoint
    * 
    * @param transactionId - Transaction ID from payment token
