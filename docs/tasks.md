@@ -3010,3 +3010,126 @@ Task 37 (Quote Extensions) ─── depends on 31 ─────────�
 ```
 
 All tasks depend on Task 31 (terminology refactor) being completed first. Tasks 32-37 can be parallelized after 31, with the caveat that 33, 34, and 36 depend on the API shape established in 32.
+
+---
+
+- [ ] 38. Rename FAB → Agentic Pay (Codebase-Wide)
+
+  **Priority: Next — Required before release**
+
+  Remove all references to "FAB" (Federated Application Billing) and rename to "Agentic Pay" throughout the codebase. This is a branding alignment — the product is "AWS Marketplace Agent Pay", not "FAB".
+
+  **Scope of changes:**
+
+  **Directory rename:**
+  - `src/fab/` → `src/agentic-pay/`
+
+  **Class/type renames:**
+  - `FABScheme` → `AgenticPayScheme`
+  - `FABClientScheme` → `AgenticPayClientScheme` (re-export alias)
+  - `FABServerScheme` → `AgenticPayServerScheme` (re-export alias)
+  - `FABFacilitatorScheme` → `AgenticPayFacilitatorScheme` (re-export alias)
+  - `FABAWSClientScheme` → `AgenticPayAWSClientScheme`
+  - `FABAWSServerScheme` → `AgenticPayAWSServerScheme`
+  - `FABAWSFacilitatorScheme` → `AgenticPayAWSFacilitatorScheme`
+  - `FABClientSchemeConfig` → `AgenticPayClientSchemeConfig`
+  - `FABServerSchemeConfig` → `AgenticPayServerSchemeConfig`
+  - `FABFacilitatorSchemeConfig` → `AgenticPayFacilitatorSchemeConfig`
+  - `FABResourceServer` → `AgenticPayResourceServer`
+  - `FABResourceServerOptions` → `AgenticPayResourceServerOptions`
+  - `FABResourceServerConfig` → `AgenticPayResourceServerConfig`
+  - `FABClientOptions` → `AgenticPayClientOptions`
+  - `FABClientConfig` → `AgenticPayClientConfig`
+  - `FABClient` → `AgenticPayClient` (builder return type)
+  - `FABMiddlewareConfig` → `AgenticPayMiddlewareConfig`
+  - `FABRouteConfig` → `AgenticPayRouteConfig`
+  - `FABRoutesConfig` → `AgenticPayRoutesConfig`
+  - `FABPaymentExtra` → `AgenticPayPaymentExtra`
+  - `FABPayloadV2` → `AgenticPayPayloadV2`
+  - `FABSettlement` → `AgenticPaySettlement`
+  - `FABSupport` → `AgenticPaySupport`
+  - `FABTerms` → `AgenticPayTerms`
+  - `FABError` → `AgenticPayError`
+
+  **Constant renames:**
+  - `FAB_SCHEME = 'fab'` → `AGENTIC_PAY_SCHEME = 'aws:marketplace'`
+  - `FAB_CAIP_FAMILY = 'fab:*'` → `AGENTIC_PAY_CAIP_FAMILY = 'aws:*'`
+  - `FAB_SENTINEL_PAY_TO = 'urn:x402:fab:see-quote'` → `AGENTIC_PAY_SENTINEL_PAY_TO = 'urn:x402:agentic-pay:see-quote'`
+
+  **Function renames:**
+  - `createFABResourceServer` → `createAgenticPayResourceServer`
+  - `createFABClient` → `createAgenticPayClient`
+  - `buildFABResourceServer` → `buildAgenticPayResourceServer`
+  - `buildFABClient` → `buildAgenticPayClient`
+  - `registerFABNetworks` → `registerAgenticPayNetworks`
+  - `fabPaymentMiddleware` → `agenticPayMiddleware`
+
+  **Variable renames (in code):**
+  - `fabPayload` → `agenticPayPayload`
+  - `fabClient` → `agenticPayClient`
+  - `fabServer` → `agenticPayServer`
+  - `fabFacilitator` → `agenticPayFacilitator`
+  - `fabClientScheme` → `agenticPayClientScheme`
+
+  **Package:**
+  - `@x402/fab` → `@x402/aws-agentic-pay`
+  - Package description updated
+
+  **Wire-format changes:**
+  - x402 scheme identifier: `"fab"` → `"aws:marketplace"`
+  - Sentinel payTo: `"urn:x402:fab:see-quote"` → `"urn:x402:agentic-pay:see-quote"`
+  - CAIP family: `"fab:*"` → `"aws:*"`
+
+  **Import path changes:**
+  - All imports from `./fab/` → `./agentic-pay/`
+  - Package sub-path exports: `@x402/aws-agentic-pay/client`, `/server`, `/facilitator`
+
+  **Documentation:**
+  - All .md files: replace FAB terminology with Agentic Pay
+  - Spec requirement IDs: `FAB-*` → `APAY-*`
+  - Update all code examples in docs
+
+  **Test files:**
+  - Update all test descriptions and variable names
+  - Update scheme identifier assertions from `'fab'` to `'aws:marketplace'`
+
+  **Execution steps:**
+  1. Rename `src/fab/` directory → `src/agentic-pay/`
+  2. Sed replace all identifiers (classes, types, constants, functions, variables)
+  3. Update import paths
+  4. Update package.json (name, exports, description)
+  5. Update tsup.config.ts entry points
+  6. Update all documentation
+  7. Run `npx tsc --noEmit` — fix any TypeScript errors
+  8. Run `npx vitest run` — fix any test failures
+  9. Run `npx tsup` — verify build
+  10. Verify examples load
+
+  **Risk:** High — 1100+ references across 80+ files. Mechanically straightforward but large surface area. Must be done in one pass to avoid partial states.
+
+  **Breaking changes:** Yes — this changes the x402 scheme identifier from `"fab"` to `"aws:marketplace"`, the package name, and all public API names. Any existing consumers would need to update imports.
+
+---
+
+- [ ] 39. Verify Naming Decisions with Business
+
+  **Priority: Immediate (parallel with Task 38)**
+
+  Confirm the following naming/branding decisions with the business team before or immediately after the rename ships:
+
+  | Decision | Current Value | Question |
+  |----------|---------------|----------|
+  | x402 scheme identifier | `"aws:marketplace"` | Is this the final wire-format string? Once shipped, changing it is a breaking protocol change. |
+  | Package name | `@x402/aws-agentic-pay` | Confirmed? Alternatives: `@x402/agentic-pay`, `@aws/agentic-pay-x402` |
+  | Network identifier | `"aws:marketplace"` (same as scheme) | Is scheme = network intentional? In x402, these are typically different (e.g., scheme=`"exact"`, network=`"eip155:8453"`). |
+  | Sentinel URN | `"urn:x402:agentic-pay:see-quote"` | Any concerns with this format? |
+  | CAIP family | `"aws:*"` | Does this conflict with any other AWS x402 schemes? |
+  | Public class names | `AgenticPayClientScheme`, `AgenticPayServerScheme`, etc. | Any preference for shorter names? |
+  | Service branding | "Agentic Pay" vs "Agent Pay" vs "AWS Marketplace Agent Pay" | Which is the canonical short name for developer-facing docs? |
+
+  **Action items:**
+  - [ ] Schedule review with product/business owner
+  - [ ] Document decisions in this task
+  - [ ] If any values change, create a follow-up task for the rename
+
+  **Risk:** Low — this is a documentation/confirmation task. If decisions change, the rename is mechanical (same process as Task 38).
