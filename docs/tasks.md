@@ -3299,3 +3299,119 @@ All tasks depend on Task 31 (terminology refactor) being completed first. Tasks 
   **Risk:** Low — the interface (`authenticate(request) → signedRequest`) stays the same. Only the internal signing logic changes. All existing tests for the public API continue to work.
 
   **Note:** Examples can skip authentication (the mock server accepts unauthenticated requests for local testing). The SDK must support real SigV4 for production use.
+
+---
+
+- [ ] 42. OIDC Discovery Implementation
+
+  **Priority: Low — Not required for launch (Agent Pay doesn't use OIDC discovery)**
+
+  The `discoverAgentPayEndpoints()` function in `src/discovery.ts` fetches `/.well-known/openid-configuration` but the Agent Pay Service does not expose this endpoint. Direct JWKS fetching (`/.well-known/jwks.json`) works fully and is what the SDK uses in practice.
+
+  **Current state:**
+  - `discoverAgentPayEndpoints()` — implemented, fetches OIDC doc, caches 24h. Works if the endpoint exists.
+  - `fetchAgentPayPublicKeys()` — depends on `discoverAgentPayEndpoints()` to get `jwks_uri`. If OIDC isn't available, this fails.
+  - `fetchServiceJWKS()` — independent, fetches JWKS directly from `{url}/.well-known/jwks.json`. This is what the facilitator verify logic uses.
+  - The `AgentPayDiscoveryMetadata` interface defines the expected OIDC response shape.
+
+  **What remains:**
+
+  - [ ] 42.1 Decide: remove or keep OIDC discovery
+    - Option A: Remove `discoverAgentPayEndpoints()` and `fetchAgentPayPublicKeys()` entirely (Agent Pay doesn't use OIDC)
+    - Option B: Keep as optional — if the endpoint exists, use it; if not, fall back to direct JWKS
+    - Option C: Keep as-is (stub that works if endpoint exists, errors if not)
+
+  - [ ] 42.2 If keeping (Option B): Add fallback logic
+    - `fetchAgentPayPublicKeys()` should try OIDC first, fall back to direct `/.well-known/jwks.json`
+    - Add `skipOidc` option to bypass discovery entirely
+    - Update caching to handle both paths
+
+  - [ ] 42.3 If removing (Option A): Clean up exports
+    - Remove `discoverAgentPayEndpoints`, `fetchAgentPayPublicKeys` from `src/index.ts`
+    - Remove `AgentPayDiscoveryMetadata` type export
+    - Keep `clearDiscoveryCache`, `clearJWKSCache` (still useful for direct JWKS cache)
+    - Update docs and spec to remove OIDC references
+
+  - [ ] 42.4 Update tests
+    - Remove or update `test/unit/discovery.test.ts` OIDC-specific tests
+    - Ensure direct JWKS fetching tests remain
+
+  **Risk:** Low — OIDC discovery is not used by any code path in the current SDK. Removing it simplifies the API surface. Keeping it adds future flexibility if Agent Pay ever exposes OIDC.
+
+---
+
+- [ ] 43. Zod Runtime Validation Schemas
+
+  **Priority: Low — TypeScript types provide compile-time safety; Zod adds runtime safety**
+
+  TypeScript types (`QuoteTokenPayload`, `AgentPayPaymentExtra`, `AgentPayPayloadV2`, etc.) are fully defined and enforced at compile time. Zod schemas would add runtime validation for untrusted input (e.g., parsing 402 responses from unknown services, validating webhook payloads).
+
+  **Current state:**
+  - `zod@^3.22.4` is already a dependency (installed but barely used)
+  - Types are defined in `src/types.ts`
+  - No Zod schemas are wired into the request/response parsing paths
+  - Input validation happens ad-hoc (manual checks in constructors, `if (!field) throw`)
+
+  **What remains:**
+
+  - [ ] 43.1 Define Zod schemas for core types
+    ```typescript
+    // src/schemas/quote-token.ts
+    export const QuoteTokenPayloadSchema = z.object({
+      iss: z.string().url(),
+      aud: z.union([z.string(), z.array(z.string())]),
+      iat: z.number().int().positive(),
+      exp: z.number().int().positive(),
+      jti: z.string().min(1),
+      price: z.union([QuoteTokenPriceSchema, z.array(QuoteTokenPriceSchema)]),
+      payTo: z.string().min(1),
+      reference: z.string(),
+      description: z.string().optional(),
+      dimensions: z.record(z.union([z.string(), z.number()])).optional(),
+      settlement: AgentPaySettlementSchema.optional(),
+      support: AgentPaySupportSchema.optional(),
+      terms: z.array(AgentPayTermsSchema).optional(),
+    });
+    ```
+
+  - [ ] 43.2 Define Zod schemas for API request/response types
+    - `CreateAgentPaymentRequestSchema`
+    - `CreateAgentPaymentResponseSchema`
+    - `DpopJwkSchema`
+
+  - [ ] 43.3 Define Zod schemas for payment payload
+    - `AgentPayPayloadV2Schema`
+    - `AgentPayPaymentExtraSchema`
+
+  - [ ] 43.4 Wire schemas into parsing paths
+    - `decodeQuoteToken()` — validate decoded JWT payload against `QuoteTokenPayloadSchema`
+    - `DefaultAgentPayClient.createPayment()` — validate response against `CreateAgentPaymentResponseSchema`
+    - `agentPayMiddleware` — validate incoming payment payload structure
+
+  - [ ] 43.5 Add `parse` and `safeParse` utility exports
+    ```typescript
+    export function parseQuoteToken(token: string): QuoteTokenPayload {
+      const decoded = jose.decodeJwt(token);
+      return QuoteTokenPayloadSchema.parse(decoded);
+    }
+
+    export function safeParseQuoteToken(token: string): z.SafeParseReturnType<...> {
+      const decoded = jose.decodeJwt(token);
+      return QuoteTokenPayloadSchema.safeParse(decoded);
+    }
+    ```
+
+  - [ ] 43.6 Write tests for schema validation
+    - Valid payloads pass
+    - Missing required fields fail with descriptive errors
+    - Invalid types fail (e.g., `iat` as string)
+    - Extra fields are stripped or passed through (decide on strict vs. passthrough)
+
+  - [ ] 43.7 Update documentation
+    - Document schema exports in README
+    - Add usage examples for runtime validation
+    - Update spec with schema validation requirements
+
+  **Risk:** Low — additive feature. Existing code continues to work without Zod validation. Schemas are opt-in for consumers who want runtime safety.
+
+  **Decision needed:** Should Zod validation be enforced by default (breaking — rejects malformed input that currently passes) or opt-in (non-breaking — consumers call `parseQuoteToken` instead of `decodeQuoteToken` when they want validation)?
