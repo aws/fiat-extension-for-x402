@@ -163,7 +163,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
 ---
 
 ## Tasks
-- [ ] 1. Project Setup and Infrastructure
+- [x] 1. Project Setup and Infrastructure
   - Initialize npm package with TypeScript configuration
   - Set up build tooling (tsup for bundling)
   - Configure Vitest for testing
@@ -172,7 +172,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
   - Set up CI/CD pipeline (GitHub Actions)
   - _Requirements: 12.5, 12.6, 12.7, 12.8_
 
-- [ ] 2. Core Type Definitions
+- [x] 2. Core Type Definitions
   - [ ] 2.1 Define settlement types (CaptureMode, SettlementMethod, SettlementCycle, FABSettlement)
     - Create TypeScript interfaces and type aliases
     - Export from types/settlement.ts
@@ -220,7 +220,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Export from types/errors.ts
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8_
 
-- [ ] 3. Validation Schemas
+- [x] 3. Validation Schemas
   - [ ] 3.1 Create settlement validation schemas
     - Implement FABSettlementSchema with method and cycle validation
     - Implement FABSupportSchema with URL and method validation
@@ -261,7 +261,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - **Property 8: Validation Error Messages**
     - **Validates: Requirements 7.1, 7.2**
 
-- [ ] 4. Helper Functions - Extraction
+- [x] 4. Helper Functions - Extraction
   - [ ] 4.1 Implement extractFABExtra function
     - Check scheme is "fab"
     - Return null for non-Agentic-Pay schemes
@@ -293,7 +293,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Test with no Agentic Pay entries
     - Test with multiple Agentic Pay entries (returns first)
 
-- [ ] 5. Helper Functions - Validation
+- [x] 5. Helper Functions - Validation
   - [ ] 5.1 Implement validateFABRequirements function
     - Use FABPaymentRequirementsSchema.parse
     - Return boolean (no throwing)
@@ -305,7 +305,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Test invalid requirements return false
     - Test various invalid scenarios
 
-- [ ] 6. Helper Functions - Amount Parsing
+- [x] 6. Helper Functions - Amount Parsing
   - [ ] 6.1 Implement parseAmount function
     - Remove "iso4217:" prefix from asset
     - Parse amount string to number
@@ -317,7 +317,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - **Property 5: Amount Parsing Consistency**
     - **Validates: Requirements 3.5, 3.6**
 
-- [ ] 7. Helper Functions - Transaction ID
+- [x] 7. Helper Functions - Transaction ID
   - [ ] 7.1 Implement parseTransactionId function
     - Split on colon delimiter
     - Validate format and network prefix
@@ -355,7 +355,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Test network extraction
     - Test validation function
 
-- [ ] 8. JWT Operations - Quote Token
+- [x] 8. JWT Operations - Quote Token
   - [ ] 8.1 Implement generateQuoteToken function
     - Generate JTI using crypto.randomUUID()
     - Set iat to current timestamp
@@ -391,7 +391,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Test valid JWT decoding
     - Test malformed JWT error handling
 
-- [ ] 9. JWT Operations - Payment Token
+- [x] 9. JWT Operations - Payment Token
   - [ ] 9.1 Implement verifyPaymentToken function
     - Verify signature using jose.jwtVerify
     - Check expiry timestamp
@@ -414,7 +414,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Test extraction from valid payment token
     - Test missing payment_context handling
 
-- [ ] 10. JWT Operations - Combined Verification
+- [x] 10. JWT Operations - Combined Verification
   - [ ] 10.1 Implement verifyPaymentAndQuote function
     - Verify payment token with Agentic Pay key
     - Extract and verify quote token with service key
@@ -433,7 +433,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Test signature failures
     - Test expiry handling
 
-- [ ] 11. Agentic Pay Client Implementation
+- [x] 11. Agentic Pay Client Implementation
   - [ ] 11.1 Implement AgenticPayClient class constructor
     - Accept baseUrl and authentication configuration
     - Support multiple auth methods (API key, AWS SigV4, OAuth2, custom)
@@ -501,7 +501,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Export from client/agentic-pay-client.ts and client/auth.ts
     - _Requirements: 8.7, 8.8_
 
-- [ ] 12. Service Implementation
+- [x] 12. Service Implementation
   - [ ] 12.1 Implement FABService class constructor
     - Accept ServiceConfig (serviceUrl, signingKey, acceptedProviders)
     - Store configuration
@@ -538,7 +538,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Export from service/fab-service.ts
     - _Requirements: 9.1_
 
-- [ ] 13. Type Guards Implementation
+- [x] 13. Type Guards Implementation
   - [ ] 13.1 Implement isFABPaymentRequirements type guard
     - Use schema validation
     - Return boolean with type predicate
@@ -556,7 +556,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Test negative cases
     - Test edge cases
 
-- [ ] 14. Main Entry Point and Exports
+- [x] 14. Main Entry Point and Exports
   - [ ] 14.1 Create main index.ts
     - Export all types
     - Export all schemas
@@ -571,7 +571,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Check bundle size
     - _Requirements: 13.8_
 
-- [ ] 15. DPoP Implementation
+- [x] 15. DPoP Implementation
   - [ ] 15.1 Implement generateDPoPKeyPair function
     - Support ES256 (EC P-256) and RS256 (RSA 2048)
     - Return DPoPKeyPair with privateKey and publicKey (JWK)
@@ -665,7 +665,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Test with nonce store
     - Test error scenarios
 
-- [ ] 16. Documentation
+- [x] 16. Documentation
   - [ ] 16.1 Write README.md
     - Overview and introduction
     - Installation instructions
@@ -774,7 +774,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Test URL validation
     - Test JWT algorithm validation
 
-- [ ] 18b. Build and Distribution
+- [x] 18b. Build and Distribution
   - [ ] 18.1 Configure tsup for dual builds
     - ESM output
     - CommonJS output
@@ -1294,7 +1294,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
 - The implementation follows TDD: write tests first, then implement to make them pass
 
 
-- [ ] 24. Express Middleware for Agentic Pay Server
+- [x] 24. Express Middleware for Agentic Pay Server
 
   Implement a plug-and-play Express middleware that simplifies Agentic Pay server-side integration for service providers.
   _Requirements: APAY-MWR-001 through APAY-MWR-014_
@@ -2427,7 +2427,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
   **Risk:** Low — builders are additive, existing manual registration still works. The only behavioral change is the `networkFilter` on `AgenticPayFacilitatorClient`, which is opt-in (default: no filter, same as today).
   **Backward compatibility:** Full. All existing code continues to work. Builders are a new, optional API surface.
 
-- [ ] 30. Create Brazil Package and Upload to code.amazon.com
+- [x] 30. Create Brazil Package and Upload to code.amazon.com
 
   Create a Brazil package for `@x402/aws-agentic-pay` on code.amazon.com so the SDK can be consumed by internal teams via the Brazil dependency model. This involves creating the package using the NpmPrettyMuch build system, configuring it for the existing codebase, and uploading it to GitFarm.
 
@@ -2611,7 +2611,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 
 _Added: 2026-05-11. These tasks prepare the SDK for production release against the AWS Marketplace Agent Pay Service._
 
-- [ ] 31. Terminology Refactor: "Agentic Pay" → "Agentic Pay"
+- [x] 31. Terminology Refactor: "Agentic Pay" → "Agentic Pay"
 
   **Priority: 1 (highest) — Business decision, affects all other tasks**
 
@@ -3013,7 +3013,7 @@ All tasks depend on Task 31 (terminology refactor) being completed first. Tasks 
 
 ---
 
-- [ ] 38. Rename Agentic Pay → Agentic Pay (Codebase-Wide)
+- [x] 38. Rename Agentic Pay → Agentic Pay (Codebase-Wide)
 
   **Priority: Next — Required before release**
 
@@ -3133,3 +3133,54 @@ All tasks depend on Task 31 (terminology refactor) being completed first. Tasks 
   - [ ] If any values change, create a follow-up task for the rename
 
   **Risk:** Low — this is a documentation/confirmation task. If decisions change, the rename is mechanical (same process as Task 38).
+
+---
+
+- [ ] 40. Express Middleware Enhancement
+
+  **Priority: Medium — Useful for release but core is already working**
+
+  The core `agenticPayMiddleware` is implemented (`src/middleware/express.ts`) with 15 unit tests. This task covers enhancements for production readiness.
+
+  **What's already done:**
+  - Route matching (exact, wildcard, method-agnostic)
+  - 402 response generation with quote token
+  - Payment verification via x402ResourceServer
+  - `req.agenticPayPayment` attachment after verification
+  - Lazy server initialization
+  - `onPaymentVerified` and `onPaymentSettled` hooks
+  - `onError` custom error handler
+  - Validation (empty networks/routes throws)
+  - 15 unit tests passing
+
+  **What remains:**
+
+  - [ ] 40.1 Add request logging/observability
+    - Log payment attempts (success/failure) with structured data
+    - Support custom logger injection (e.g., pino, winston)
+    - Include correlation IDs for tracing
+
+  - [ ] 40.2 Add payment storage abstraction
+    - Define `PaymentStore` interface (save, get, list)
+    - In-memory implementation for development
+    - Document Redis/DynamoDB integration patterns
+
+  - [ ] 40.3 Add rate limiting support
+    - Per-client rate limiting based on payer identity
+    - Configurable limits per route
+    - 429 response with Retry-After header
+
+  - [ ] 40.4 Add idempotency tracking on the seller side
+    - Track processed paymentIds to prevent double-delivery
+    - Return cached response for duplicate payment presentations
+
+  - [ ] 40.5 Add health check endpoint option
+    - Optional `/health` or `/_agentic-pay/health` endpoint
+    - Reports middleware status, server initialization state
+
+  - [ ] 40.6 Create production example
+    - Full Express app with middleware, error handling, logging
+    - Show integration with a real route handler
+    - Demonstrate description/dimensions in route config
+
+  **Risk:** Low — all additive, no breaking changes to existing middleware API.
