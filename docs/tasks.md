@@ -3184,3 +3184,118 @@ All tasks depend on Task 31 (terminology refactor) being completed first. Tasks 
     - Demonstrate description/dimensions in route config
 
   **Risk:** Low — all additive, no breaking changes to existing middleware API.
+
+---
+
+- [ ] 41. Implement Real AWS SigV4 Authentication
+
+  **Priority: High — Required for production (current implementation is a placeholder)**
+
+  The current `AwsSigV4Authenticator` in `src/auth/aws-sigv4.ts` generates a fake `Authorization` header with `Signature=placeholder`. It does NOT compute the actual SigV4 signature. This must be replaced with a real implementation before the SDK can talk to the production Agent Pay Service.
+
+  **Dependencies to add:**
+  - `@smithy/signature-v4` — AWS SigV4 signing logic (used by all AWS SDKs)
+  - `@aws-crypto/sha256-js` — SHA-256 hash implementation required by `@smithy/signature-v4`
+
+  **Current state (`src/auth/aws-sigv4.ts`):**
+  - Constructor validates region, credentials/provider
+  - `authenticate()` adds `Authorization`, `x-amz-date`, `host`, `x-amz-security-token` headers
+  - BUT the `Authorization` header value is `AWS4-HMAC-SHA256 Credential=.../aws4_request, SignedHeaders=host;x-amz-date, Signature=placeholder`
+  - The signature is NOT computed — it's a literal string "placeholder"
+
+  **Implementation plan:**
+
+  - [ ] 41.1 Add dependencies
+    ```bash
+    npm install @smithy/signature-v4 @aws-crypto/sha256-js @smithy/types
+    ```
+    These are lightweight (no full AWS SDK needed). `@smithy/signature-v4` is the same signing library used by `@aws-sdk/client-*` packages.
+
+  - [ ] 41.2 Rewrite `signRequest()` in `src/auth/aws-sigv4.ts`
+    Replace the placeholder with actual SigV4 signing:
+    ```typescript
+    import { SignatureV4 } from '@smithy/signature-v4';
+    import { Sha256 } from '@aws-crypto/sha256-js';
+    import { HttpRequest } from '@smithy/protocol-http';
+
+    private signer: SignatureV4;
+
+    constructor(config: AwsSigV4AuthConfig) {
+      // ... existing validation ...
+      this.signer = new SignatureV4({
+        service: this.service,
+        region: this.region,
+        credentials: {
+          accessKeyId: credentials.accessKeyId,
+          secretAccessKey: credentials.secretAccessKey,
+          sessionToken: credentials.sessionToken,
+        },
+        sha256: Sha256,
+      });
+    }
+
+    private async signRequest(request: AuthenticatedRequest): Promise<Record<string, string>> {
+      const url = new URL(request.url);
+      const httpRequest = new HttpRequest({
+        method: request.method,
+        hostname: url.hostname,
+        port: url.port ? parseInt(url.port) : undefined,
+        path: url.pathname + url.search,
+        headers: {
+          host: url.host,
+          'content-type': 'application/json',
+          ...request.headers,
+        },
+        body: request.body,
+      });
+
+      const signed = await this.signer.sign(httpRequest);
+      return signed.headers;
+    }
+    ```
+
+  - [ ] 41.3 Support credential providers (async resolution)
+    The `@smithy/signature-v4` `SignatureV4` constructor accepts a `credentials` field that can be a static object or a provider function. Wire up the existing `credentialProvider` option:
+    ```typescript
+    credentials: this.staticCredentials
+      ? this.staticCredentials
+      : async () => {
+          const creds = await this.credentialProvider!();
+          return {
+            accessKeyId: creds.accessKeyId,
+            secretAccessKey: creds.secretAccessKey,
+            sessionToken: creds.sessionToken,
+          };
+        },
+    ```
+
+  - [ ] 41.4 Update tests in `test/unit/auth/aws-sigv4.test.ts`
+    - Verify the `Authorization` header contains a real computed signature (not "placeholder")
+    - Verify the signature changes when the request body changes
+    - Verify the signature changes when the URL changes
+    - Verify session token is included in signed headers
+    - Keep existing tests for constructor validation, credential caching, etc.
+
+  - [ ] 41.5 Integration test with mock Agent Pay server
+    - Send a signed request to the mock server
+    - Mock server validates the `Authorization` header format (AWS4-HMAC-SHA256 with real signature)
+    - Verify the request is accepted
+
+  - [ ] 41.6 Update documentation
+    - Remove "simplified placeholder" warnings from README, sdk-guide, known limitations
+    - Document that `@smithy/signature-v4` is used under the hood
+    - Update security.md to note real SigV4 signing
+
+  - [ ] 41.7 Update package.json dependencies
+    - Add `@smithy/signature-v4`, `@aws-crypto/sha256-js`, `@smithy/protocol-http` to `dependencies`
+    - Verify bundle size impact (these are lightweight — ~50KB total)
+
+  **Files modified:**
+  - `src/auth/aws-sigv4.ts` (rewrite signRequest)
+  - `test/unit/auth/aws-sigv4.test.ts` (update assertions)
+  - `package.json` (add dependencies)
+  - `README.md`, `docs/sdk-guide.md`, `docs/security.md` (remove placeholder warnings)
+
+  **Risk:** Low — the interface (`authenticate(request) → signedRequest`) stays the same. Only the internal signing logic changes. All existing tests for the public API continue to work.
+
+  **Note:** Examples can skip authentication (the mock server accepts unauthenticated requests for local testing). The SDK must support real SigV4 for production use.
