@@ -193,9 +193,9 @@ async function main() {
     console.log(`   Message: ${data2.message}`);
     console.log('');
 
-    // Step 7: Test /bar endpoint with auto capture
-    console.log('7️⃣  Testing /bar endpoint with auto capture...');
-    logFlowStep('CLIENT', 6, 'Test /bar with auto capture');
+    // Step 7: Test /bar endpoint ($1.00)
+    console.log('7️⃣  Testing /bar endpoint ($1.00)...');
+    logFlowStep('CLIENT', 6, 'Test /bar ($1.00)');
     
     // Get 402 response for /bar
     const response5 = await fetch(`${SERVICE_URL}/bar`);
@@ -219,7 +219,7 @@ async function main() {
     
     console.log('   ✓ Received payment requirements for /bar');
     console.log(`   Amount: ${paymentRequired2.accepts[0].amount}`);
-    console.log(`   Capture mode: ${paymentRequired2.accepts[0].extra?.capture || 'manual'}`);
+    console.log(`   Network: aws:marketplace'
     
     // Create payment for /bar
     const paymentPayload2 = await paymentClient.createPaymentPayload(paymentRequired2);
@@ -250,10 +250,10 @@ async function main() {
     const data3 = await response6.json();
     logFlowObject('CLIENT', 'Success Response for /bar (AUTO CAPTURE)', data3);
     
-    console.log('   ✓ Payment successful with auto capture!');
+    console.log('   ✓ Payment successful!');
     console.log(`   Message: ${data3.message}`);
     console.log(`   Secret: ${data3.data.secret}`);
-    console.log(`   Captured: ${data3.data.captured}`);
+    console.log(`   Payment verified and delivered'
     console.log(`   Transaction: ${data3.data.transaction}`);
     console.log('');
 
@@ -329,7 +329,7 @@ async function main() {
     console.log('  • Payment token is bound to DPoP key (cnf claim)');
     console.log('  • Retries request with x402 Authorization header');
     console.log('  • Payment can be reused for subsequent requests');
-    console.log('  • Auto capture mode automatically settles payments');
+    console.log('  • Agent Pay auto-captures during payment creation');
     console.log('  • EVM network (eip155:8453) payments delegated through same Agentic Pay');
     console.log('');
     console.log(`📝 Complete flow log: logs/payment-flow.log`);

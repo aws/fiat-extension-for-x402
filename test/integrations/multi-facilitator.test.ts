@@ -127,7 +127,6 @@ describe('Multi-Facilitator Integration Tests', () => {
         network: 'fab:aws',
         payTo: 'service-pay',
         price: 0.15,
-        asset: 'iso4217:USD',
       });
 
       expect(accepts).toHaveLength(1);
@@ -160,7 +159,6 @@ describe('Multi-Facilitator Integration Tests', () => {
         network: 'eip155:8453',
         payTo: 'merchant-pay',
         price: 0.15,
-        asset: 'iso4217:USD',
       });
 
       expect(accepts).toHaveLength(1);
@@ -264,7 +262,6 @@ describe('Multi-Facilitator Integration Tests', () => {
         network: 'fab:aws',
         payTo: 'service-pay',
         price: 0.15,
-        asset: 'iso4217:USD',
       });
 
       const paymentRequired = await server.createPaymentRequiredResponse(accepts, {

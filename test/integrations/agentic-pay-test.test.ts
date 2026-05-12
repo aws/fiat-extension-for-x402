@@ -182,7 +182,6 @@ describe('Agentic Pay Integration Tests', () => {
         network: 'fab:aws',
         payTo: 'service-pay-789',
         price: 0.15,
-        asset: 'iso4217:USD',
       });
       
       const resource = {
@@ -253,7 +252,6 @@ describe('Agentic Pay Integration Tests', () => {
           scheme: AGENTIC_PAY_SCHEME,
           payTo: 'service-pay-789',
           price: 0.15,
-          asset: 'iso4217:USD',
           network: 'fab:aws' as Network,
         },
         description: 'Access to protected API',
@@ -481,7 +479,6 @@ describe('Agentic Pay Integration Tests', () => {
         scheme: AGENTIC_PAY_SCHEME,
         payTo: 'service-pay',
         price: 0.15,
-        asset: 'iso4217:USD',
         network: 'fab:aws' as Network,
       });
 

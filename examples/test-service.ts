@@ -114,7 +114,6 @@ app.get('/foo', async (req, res) => {
           network: 'aws:marketplace',
           payTo: 'service-pay-789',
           price: 0.15,
-          asset: 'iso4217:USD',
         }),
         {
           url: `${SERVICE_URL}/foo`,
@@ -211,10 +210,10 @@ app.get('/foo', async (req, res) => {
 });
 
 /**
- * GET /bar - Protected endpoint with AUTO capture
+ * GET /bar - Protected endpoint ($1.00)
  * 
  * Returns 402 Payment Required if no valid payment
- * Automatically captures payment upon verification
+ * Agent Pay payments during payment creation
  */
 app.get('/bar', async (req, res) => {
   try {
@@ -227,7 +226,7 @@ app.get('/bar', async (req, res) => {
     if (!authHeader || !authHeader.startsWith('x402 ')) {
       // No payment provided - return 402 with payment requirements
       console.log('❌ No payment provided for /bar');
-      logFlow('SERVICE', 'No payment provided - generating 402 response with auto capture');
+      logFlow('SERVICE', 'No payment provided - generating 402 response with payment required');
       
       const paymentRequired = await server.createPaymentRequiredResponse(
         await server.buildPaymentRequirements({
@@ -235,14 +234,10 @@ app.get('/bar', async (req, res) => {
           network: 'aws:marketplace',
           payTo: 'service-pay-789',
           price: 1.00,
-          asset: 'iso4217:USD',
-          extra: {
-            capture: 'auto' // Auto capture mode
-          }
         }),
         {
           url: `${SERVICE_URL}/bar`,
-          description: 'Access to /bar endpoint with auto capture',
+          description: 'Access to /bar endpoint with payment required',
           mimeType: 'application/json'
         }
       );
@@ -267,7 +262,7 @@ app.get('/bar', async (req, res) => {
         .set('WWW-Authenticate', wwwAuth)
         .json({
           error: 'Payment Required',
-          message: 'This endpoint requires payment with auto capture',
+          message: 'This endpoint requires payment with payment required',
           price: '$1.00',
           captureMode: 'auto'
         });
@@ -279,7 +274,7 @@ app.get('/bar', async (req, res) => {
 
     logFlowObject('SERVICE', 'Received Payment Payload (AUTO CAPTURE)', paymentPayload);
     
-    console.log('💳 Payment received for /bar (auto capture)');
+    console.log('💳 Payment received for /bar (payment required)');
     console.log(`   Transaction: ${paymentPayload.payload.transactionId}`);
 
     const accepted = paymentPayload.accepted;
@@ -310,38 +305,17 @@ app.get('/bar', async (req, res) => {
     console.log('✅ Payment verified successfully');
     console.log(`   Payer: ${verifyResult.payer}`);
 
-    // Auto capture: settle the payment immediately
-    console.log('💰 Auto-capturing payment...');
-    logFlow('SERVICE', 'Initiating auto-capture...');
-    
-    const settleResult = await server.settlePayment(paymentPayload, accepted);
-    
-    logFlowObject('SERVICE', 'Settle Result', settleResult);
+    // Agent Pay payments during CreateAgentPayment — no settle call needed.
+    // The payment was already captured when the buyer created it.
+    logFlow('SERVICE', 'Payment already captured by Agent Pay during creation');
 
-    if (!settleResult.success) {
-      console.log('❌ Payment settlement failed');
-      console.log(`   Reason: ${settleResult.errorReason}`);
-      logFlow('SERVICE', `Settlement failed: ${settleResult.errorReason}`);
-      return res.status(500).json({
-        error: 'Payment Settlement Failed',
-        message: settleResult.errorMessage,
-        reason: settleResult.errorReason
-      });
-    }
-
-    console.log('✅ Payment captured successfully');
-    console.log(`   Transaction: ${settleResult.transaction}`);
-    logFlow('SERVICE', `Payment captured successfully - Transaction: ${settleResult.transaction}`);
-
-    // Payment is valid and captured - return the protected resource
+    // Payment is valid — return the protected resource
     const responseData = {
       message: 'Hello from /bar!',
       data: {
-        secret: 'This is auto-captured content',
+        secret: 'This is premium content',
         timestamp: new Date().toISOString(),
         paidBy: verifyResult.payer,
-        captured: true,
-        transaction: settleResult.transaction
       }
     };
     
@@ -382,7 +356,6 @@ app.get('/baz', async (req, res) => {
           network: 'eip155:8453',
           payTo: 'merchant-pay-on-base',
           price: 2.00,
-          asset: 'iso4217:USD',
         }),
         {
           url: `${SERVICE_URL}/baz`,
@@ -514,8 +487,8 @@ async function start() {
     console.log(`Agentic Pay URL:  ${AGENTIC_PAY_BASE_URL}`);
     console.log('');
     console.log('Endpoints:');
-    console.log(`  GET    /foo                   - Protected (requires $0.15, manual capture, aws:marketplace)`);
-    console.log(`  GET    /bar                   - Protected (requires $1.00, auto capture, aws:marketplace)`);
+    console.log(`  GET    /foo                   - Protected (requires $0.15, aws:marketplace)`);
+    console.log(`  GET    /bar                   - Protected (requires $1.00, aws:marketplace)`);
     console.log(`  GET    /baz                   - Protected (requires $2.00, eip155:8453 EVM Base via Agentic Pay)`);
     console.log(`  GET    /health                - Public`);
     console.log(`  GET    /.well-known/jwks.json - Public keys`);
