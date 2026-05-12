@@ -534,7 +534,7 @@ The project targets 90% coverage across all metrics:
 - **Branches**: 90%
 - **Statements**: 90%
 
-332 tests currently passing across unit and integration suites.
+380 tests currently passing across unit and integration suites.
 
 ## Status
 
@@ -550,12 +550,12 @@ Core implementation complete (v0.2.0):
 - Network-aware facilitator routing with default fallback
 - Quote token extensions (description, dimensions)
 - Sentinel values for redundant x402 core fields
-- 332 tests passing
+- 380 tests passing
 - Working examples
 
 Known limitations:
-- AWS SigV4 auth is a simplified placeholder (production use needs `@aws-sdk/signature-v4`)
-- Network identifier is `aws:base` (configurable via `DEFAULT_NETWORK` constant)
+- OIDC Discovery (`/.well-known/openid-configuration`) is a stub — direct JWKS fetching works fully
+- Zod runtime validation schemas are not fully wired up (TypeScript types are complete)
 
 See [tasks.md](./docs/tasks.md) for full status and roadmap.
 

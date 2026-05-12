@@ -245,7 +245,7 @@ describe('DefaultAgentPayClient', () => {
       await clientWithAuth.createPayment({ quoteToken: 'qt' });
 
       const headers = mockFetch.mock.calls[0][1].headers;
-      expect(headers['Authorization']).toContain('AWS4-HMAC-SHA256');
+      expect(headers['authorization']).toContain('AWS4-HMAC-SHA256');
       expect(headers['x-amz-date']).toBeDefined();
     });
   });

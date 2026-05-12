@@ -61,7 +61,7 @@ Breakdown by Module:
 
 **Authentication System (Task 23):**
 - API Key authentication
-- AWS SigV4 authentication (simplified)
+- AWS SigV4 authentication (@smithy/signature-v4)
 - OAuth2 authentication with token refresh
 - Custom authentication
 - Authentication factory pattern
@@ -115,7 +115,7 @@ Currently no tasks in progress.
 
 ### Known Limitations
 
-1. **AWS SigV4**: Simplified placeholder - production should use @aws-sdk/signature-v4
+1. **AWS SigV4**: Real implementation using @smithy/signature-v4
 2. **Quote Token Verification (In-Process)**: The in-process facilitator's quote signature check is best-effort (silently swallows failures). `AgentPayFacilitatorClient` verifies fully. Task 27 tracks making it mandatory.
 3. **Settlement (In-Process)**: The in-process facilitator returns a placeholder. `AgentPayFacilitatorClient` calls `POST /capture` correctly.
 4. **Zod Schemas**: Types exist but Zod schemas not fully implemented
@@ -2001,7 +2001,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 
 | ID | Area | Limitation |
 |----|------|------------|
-| APAY-AUTH-005 | AWS SigV4 | Simplified placeholder; production use requires `@aws-sdk/signature-v4`. |
+| APAY-AUTH-005 | AWS SigV4 | Real implementation using `@smithy/signature-v4`. |
 | APAY-FAC-003a | Quote Token Verification (In-Process) | The in-process facilitator (`src/fab/facilitator/verify.ts`) wraps quote token signature verification in a try/catch that silently swallows failures, making it best-effort. The `AgentPayFacilitatorClient` verifies fully. Task 27 tracks making this mandatory. |
 | APAY-FAC-007 | Settlement (In-Process) | The in-process facilitator returns a success placeholder; actual fund capture requires Agent Pay backend integration. The `AgentPayFacilitatorClient` calls `POST /capture` correctly. |
 
@@ -3187,7 +3187,7 @@ All tasks depend on Task 31 (terminology refactor) being completed first. Tasks 
 
 ---
 
-- [ ] 41. Implement Real AWS SigV4 Authentication
+- [x] 41. Implement Real AWS SigV4 Authentication
 
   **Priority: High — Required for production (current implementation is a placeholder)**
 

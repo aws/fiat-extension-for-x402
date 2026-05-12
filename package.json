@@ -78,6 +78,10 @@
     "@x402/core": "^2.0.0"
   },
   "dependencies": {
+    "@aws-crypto/sha256-js": "^5.2.0",
+    "@smithy/protocol-http": "^5.4.1",
+    "@smithy/signature-v4": "^5.4.1",
+    "@smithy/types": "^4.14.1",
     "jose": "^5.2.0",
     "zod": "^3.22.4"
   },

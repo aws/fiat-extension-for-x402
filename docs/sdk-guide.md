@@ -384,15 +384,12 @@ Sub-path exports are available for tree-shaking: `aws-agent-pay-x402/client`, `a
 
 ### 4.4 Known Limitations
 
-1. **AWS SigV4** — Simplified placeholder implementation. Production should use `@aws-sdk/signature-v4`.
-2. **OIDC Discovery** — Full OIDC discovery (`/.well-known/openid-configuration`) is a stub. However, `fetchServiceJWKS` (direct JWKS fetching from `/.well-known/jwks.json`) is fully implemented with 1-hour caching.
-3. **Quote Token Verification (In-Process Facilitator)** — The in-process facilitator now mandatorily verifies quote token signatures by fetching the service's JWKS. If the JWKS endpoint is unreachable or the signature is invalid, verification fails with `invalid_quote`.
-4. **Zod Schemas** — Types are fully defined but Zod runtime validation schemas are not fully wired up yet.
-5. **Settlement** — Agent Pay auto-captures on creation. The `settlePayment()` function is a no-op that returns success immediately. There is no separate `/capture` endpoint.
+1. **OIDC Discovery** — Full OIDC discovery (`/.well-known/openid-configuration`) is a stub. However, `fetchServiceJWKS` (direct JWKS fetching from `/.well-known/jwks.json`) is fully implemented with 1-hour caching.
+2. **Zod Schemas** — Types are fully defined but Zod runtime validation schemas are not fully wired up yet.
 
 ### 4.5 Test Suite
 
-332 tests passing across 31 test files. Run with:
+380 tests passing across 34 test files. Run with:
 
 ```bash
 npm test              # single run

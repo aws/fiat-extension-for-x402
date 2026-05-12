@@ -66,11 +66,11 @@ describe('AwsSigV4Authenticator', () => {
 
       const signed = await auth.authenticate(request);
 
-      expect(signed.headers['Authorization']).toBeDefined();
-      expect(signed.headers['Authorization']).toContain('AWS4-HMAC-SHA256');
-      expect(signed.headers['Authorization']).toContain('Credential=AKIAIOSFODNN7EXAMPLE');
-      expect(signed.headers['Authorization']).toContain('us-east-1');
-      expect(signed.headers['Authorization']).toContain('execute-api');
+      expect(signed.headers['authorization']).toBeDefined();
+      expect(signed.headers['authorization']).toContain('AWS4-HMAC-SHA256');
+      expect(signed.headers['authorization']).toContain('Credential=AKIAIOSFODNN7EXAMPLE');
+      expect(signed.headers['authorization']).toContain('us-east-1');
+      expect(signed.headers['authorization']).toContain('execute-api');
     });
 
     it('should add x-amz-date header', async () => {
@@ -159,7 +159,7 @@ describe('AwsSigV4Authenticator', () => {
 
       const signed = await auth.authenticate(request);
 
-      expect(signed.headers['Authorization']).toContain('marketplace');
+      expect(signed.headers['authorization']).toContain('marketplace');
     });
   });
 
@@ -185,7 +185,7 @@ describe('AwsSigV4Authenticator', () => {
       const signed = await auth.authenticate(request);
 
       expect(provider).toHaveBeenCalledOnce();
-      expect(signed.headers['Authorization']).toContain('AKIA-FROM-PROVIDER');
+      expect(signed.headers['authorization']).toContain('AKIA-FROM-PROVIDER');
     });
 
     it('should cache credentials from provider', async () => {

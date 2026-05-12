@@ -1,12 +1,15 @@
 /**
  * AWS SigV4 authentication implementation
  * 
- * Note: This is a simplified implementation for demonstration.
- * For production use, consider using @aws-sdk/signature-v4 or @smithy/signature-v4
+ * Uses @smithy/signature-v4 for real AWS Signature Version 4 request signing.
+ * This is the same signing library used by all official AWS SDK clients.
  */
 
+import { SignatureV4 } from '@smithy/signature-v4';
+import { HttpRequest } from '@smithy/protocol-http';
+import { Sha256 } from '@aws-crypto/sha256-js';
 import type { AwsSigV4AuthConfig, Authenticator, AuthenticatedRequest, AwsCredentials } from './types';
-import { InvalidCredentialsError, MissingCredentialsError, ExpiredCredentialsError } from './errors';
+import { InvalidCredentialsError, MissingCredentialsError } from './errors';
 
 interface CachedCredentials {
   credentials: AwsCredentials;
@@ -15,7 +18,7 @@ interface CachedCredentials {
 
 /**
  * AWS SigV4 authenticator
- * Signs requests using AWS Signature Version 4
+ * Signs requests using AWS Signature Version 4 via @smithy/signature-v4
  */
 export class AwsSigV4Authenticator implements Authenticator {
   private readonly region: string;
@@ -41,9 +44,6 @@ export class AwsSigV4Authenticator implements Authenticator {
 
   async authenticate(request: AuthenticatedRequest): Promise<AuthenticatedRequest> {
     const credentials = await this.getCredentials();
-    
-    // For now, we'll add a placeholder for AWS SigV4 signing
-    // In production, this should use @aws-sdk/signature-v4
     const signedHeaders = await this.signRequest(request, credentials);
 
     return {
@@ -56,7 +56,6 @@ export class AwsSigV4Authenticator implements Authenticator {
   }
 
   private async getCredentials(): Promise<AwsCredentials> {
-    // Use static credentials if provided
     if (this.staticCredentials) {
       this.validateCredentials(this.staticCredentials);
       return this.staticCredentials;
@@ -70,7 +69,6 @@ export class AwsSigV4Authenticator implements Authenticator {
       }
     }
 
-    // Fetch from provider
     if (!this.credentialProvider) {
       throw new MissingCredentialsError('awsSigV4', 'credentials');
     }
@@ -82,13 +80,19 @@ export class AwsSigV4Authenticator implements Authenticator {
       // Cache credentials (assume 1 hour expiry if session token present)
       this.cachedCredentials = {
         credentials,
-        expiresAt: credentials.sessionToken 
+        expiresAt: credentials.sessionToken
           ? Date.now() + 55 * 60 * 1000 // 55 minutes
           : undefined
       };
 
       return credentials;
     } catch (error) {
+      if (error instanceof MissingCredentialsError) {
+        throw new InvalidCredentialsError(
+          'awsSigV4',
+          `Failed to fetch credentials: ${error.message}`
+        );
+      }
       throw new InvalidCredentialsError(
         'awsSigV4',
         `Failed to fetch credentials: ${error instanceof Error ? error.message : String(error)}`
@@ -110,31 +114,38 @@ export class AwsSigV4Authenticator implements Authenticator {
     request: AuthenticatedRequest,
     credentials: AwsCredentials
   ): Promise<Record<string, string>> {
-    // This is a placeholder implementation
-    // In production, use @aws-sdk/signature-v4 or @smithy/signature-v4
-    
-    const timestamp = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
-    const date = timestamp.slice(0, 8);
-
-    // Parse URL
     const url = new URL(request.url);
-    const host = url.host;
 
-    // Create canonical request components
-    const headers: Record<string, string> = {
-      'host': host,
-      'x-amz-date': timestamp
-    };
+    // Build the HttpRequest object for @smithy/signature-v4
+    const httpRequest = new HttpRequest({
+      method: request.method.toUpperCase(),
+      hostname: url.hostname,
+      port: url.port ? parseInt(url.port, 10) : undefined,
+      path: url.pathname + url.search,
+      headers: {
+        host: url.host,
+        ...(request.headers || {}),
+      },
+      body: request.body || undefined,
+    });
 
-    if (credentials.sessionToken) {
-      headers['x-amz-security-token'] = credentials.sessionToken;
-    }
+    // Create signer with current credentials
+    const signer = new SignatureV4({
+      service: this.service,
+      region: this.region,
+      credentials: {
+        accessKeyId: credentials.accessKeyId,
+        secretAccessKey: credentials.secretAccessKey,
+        sessionToken: credentials.sessionToken,
+      },
+      sha256: Sha256,
+    });
 
-    // Add authorization header (simplified - not actual SigV4)
-    // In production, this should compute the actual signature
-    headers['Authorization'] = `AWS4-HMAC-SHA256 Credential=${credentials.accessKeyId}/${date}/${this.region}/${this.service}/aws4_request, SignedHeaders=host;x-amz-date, Signature=placeholder`;
+    // Sign the request
+    const signed = await signer.sign(httpRequest);
 
-    return headers;
+    // Extract the signed headers (Authorization, x-amz-date, x-amz-security-token, host)
+    return signed.headers as Record<string, string>;
   }
 
   /**
