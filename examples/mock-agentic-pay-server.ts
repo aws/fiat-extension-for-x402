@@ -1,18 +1,20 @@
 /**
  * Mock Agentic Pay Server
  * 
- * A simple Express server that simulates a Agentic Pay provider.
- * Demonstrates how providers:
- * 1. Authorize payments by signing payment tokens
- * 2. Handle capture/settlement requests
- * 3. Serve JWKS for public key verification
+ * Simulates the AWS Marketplace Agent Pay Service API (version 2026-04-20).
+ * Implements the exact API signature:
+ *   - POST /CreateAgentPayment
+ *   - GET  /GetAgentPayment/{paymentId}
+ *   - POST /ListAgentPayments
+ *   - GET  /.well-known/jwks.json
+ * 
+ * Auth: AWS SigV4 (simplified validation — checks for presence of AWS4-HMAC-SHA256)
  * 
  * Run with: npx tsx examples/mock-agentic-pay-server.ts
  */
 
 import express from 'express';
 import * as jose from 'jose';
-import { generateTransactionId } from '../src/utils';
 import {
   logFlow,
   logFlowStep,
@@ -28,497 +30,359 @@ const app = express();
 app.use(express.json());
 
 // ============================================================================
-// Authentication Configuration
+// Configuration
 // ============================================================================
 
-interface AuthConfig {
-  enabled: boolean;
-  methods: {
-    apiKey?: {
-      enabled: boolean;
-      keys: string[]; // Accepted API keys
-      headerName: string;
-    };
-    awsSigV4?: {
-      enabled: boolean;
-      // Simplified validation - just check for presence of auth header
-    };
-    oauth2?: {
-      enabled: boolean;
-      validTokens: string[]; // Accepted bearer tokens
-    };
-  };
+const PORT = 3001;
+const ISSUER = 'aws-marketplace';
+
+// ============================================================================
+// Key Management (ES384 to match production Agent Pay)
+// ============================================================================
+
+let signingKeys: { privateKey: jose.KeyLike; publicKey: jose.KeyLike } | null = null;
+let publicJWK: jose.JWK | null = null;
+
+async function initializeKeys() {
+  signingKeys = await jose.generateKeyPair('ES384');
+  publicJWK = await jose.exportJWK(signingKeys.publicKey);
+  publicJWK.kid = 'agent-pay-key-1';
+  publicJWK.alg = 'ES384';
+  publicJWK.use = 'sig';
+
+  logFlowStep('AGENTIC_PAY', 1, 'Agent Pay Service Initialization');
+  logFlowKeys('AGENTIC_PAY', 'Signing Keys (ES384)', { publicKey: publicJWK });
+  console.log('✓ Agent Pay keys generated (ES384)');
+  console.log('');
 }
-
-const authConfig: AuthConfig = {
-  enabled: process.env.AGENTIC_PAY_AUTH_ENABLED !== 'false', // Enabled by default
-  methods: {
-    apiKey: {
-      enabled: true,
-      keys: [
-        'test-api-key-123',
-        'demo-key-456',
-        process.env.AGENTIC_PAY_API_KEY || ''
-      ].filter(Boolean),
-      headerName: 'X-API-Key'
-    },
-    awsSigV4: {
-      enabled: true
-    },
-    oauth2: {
-      enabled: true,
-      validTokens: [
-        'test-bearer-token',
-        process.env.OAUTH_ACCESS_TOKEN || ''
-      ].filter(Boolean)
-    }
-  }
-};
-
-// ============================================================================
-// Authentication Middleware
-// ============================================================================
-
-/**
- * Authentication middleware
- * Validates requests based on configured auth methods
- */
-function authMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
-  // Skip auth if disabled
-  if (!authConfig.enabled) {
-    return next();
-  }
-
-  logFlow('AGENTIC_PAY', '🔐 Checking authentication...');
-
-  // Try API Key authentication
-  if (authConfig.methods.apiKey?.enabled) {
-    const apiKey = req.headers[authConfig.methods.apiKey.headerName.toLowerCase()] as string;
-    if (apiKey) {
-      // Remove "Bearer " prefix if present
-      const cleanKey = apiKey.replace(/^Bearer\s+/i, '');
-      if (authConfig.methods.apiKey.keys.includes(cleanKey)) {
-        logFlow('AGENTIC_PAY', '✅ API Key authentication successful');
-        return next();
-      }
-    }
-  }
-
-  // Try OAuth2 Bearer token authentication
-  if (authConfig.methods.oauth2?.enabled) {
-    const authHeader = req.headers['authorization'] as string;
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      if (authConfig.methods.oauth2.validTokens.includes(token)) {
-        logFlow('AGENTIC_PAY', '✅ OAuth2 Bearer token authentication successful');
-        return next();
-      }
-    }
-  }
-
-  // Try AWS SigV4 authentication (simplified - just check for presence)
-  if (authConfig.methods.awsSigV4?.enabled) {
-    const authHeader = req.headers['authorization'] as string;
-    if (authHeader?.includes('AWS4-HMAC-SHA256')) {
-      logFlow('AGENTIC_PAY', '✅ AWS SigV4 authentication detected (simplified validation)');
-      return next();
-    }
-  }
-
-  // No valid authentication found
-  logFlowError('AGENTIC_PAY', 'Authentication failed - no valid credentials provided');
-  return res.status(401).json({
-    error: 'Authentication required',
-    message: 'Please provide valid credentials',
-    supportedMethods: Object.keys(authConfig.methods).filter(
-      method => authConfig.methods[method as keyof typeof authConfig.methods]?.enabled
-    )
-  });
-}
-
-// Apply authentication middleware to protected routes
-app.use('/transactions', authMiddleware);
-app.use('/capture', authMiddleware);
 
 // ============================================================================
 // In-Memory Storage
 // ============================================================================
-interface Transaction {
-  transactionId: string;
-  network: string;
-  amount: string;
-  currency: string;
-  payTo: string;
+
+interface PaymentRecord {
+  paymentId: string;
+  buyerAccountId: string;
+  sellerInformation: { sellerProfileId: string; displayName: string };
+  listingId: string;
   quoteToken: string;
-  agenticPayId: string;
-  status: 'authorized' | 'captured' | 'failed';
-  captureId?: string;
-  capturedAt?: number;
-  createdAt: number;
+  paymentToken: string;
+  createdAt: string;
+  amount: { value: string; currency: string };
+  agreementId?: string;
+  dpopJkt?: string;
 }
 
-const transactions = new Map<string, Transaction>();
-let agenticPayKeys: { privateKey: jose.KeyLike; publicKey: jose.KeyLike } | null = null;
-const AGENTIC_PAY_ID = 'mock-agentic-pay-provider';
-const PORT = 3001;
+const payments = new Map<string, PaymentRecord>();
+const clientTokenMap = new Map<string, PaymentRecord>(); // idempotency
+let paymentCounter = 0;
 
-// Initialize Agentic Pay keys on startup
-async function initializeKeys() {
-  agenticPayKeys = await jose.generateKeyPair('RS256');
-  
-  const publicJWK = await jose.exportJWK(agenticPayKeys.publicKey);
-  const privateJWK = await jose.exportJWK(agenticPayKeys.privateKey);
-  
-  logFlowStep('AGENTIC_PAY', 1, 'Agentic Pay Initialization - Generate Keys');
-  logFlowKeys('AGENTIC_PAY', 'Agentic Pay Signing Keys', {
-    publicKey: publicJWK,
-    privateKey: privateJWK
-  });
-  
-  console.log('✓ Agentic Pay keys generated');
-  console.log('');
-  console.log('🔑 Agentic Pay Signing Keys:');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('Public Key (JWK):');
-  console.log(JSON.stringify(publicJWK, null, 2));
-  console.log('');
-  console.log('Private Key (JWK):');
-  console.log(JSON.stringify(privateJWK, null, 2));
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('');
+// ============================================================================
+// Authentication Middleware (AWS SigV4 — simplified)
+// ============================================================================
+
+function sigV4Middleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const authHeader = req.headers['authorization'] as string | undefined;
+
+  // In production, this would fully validate the SigV4 signature.
+  // For the mock, we accept any request with an AWS4-HMAC-SHA256 auth header,
+  // OR skip auth entirely if no auth header is present (for local testing).
+  if (authHeader && !authHeader.includes('AWS4-HMAC-SHA256')) {
+    return res.status(403).json({ message: 'SigV4 authentication required' });
+  }
+
+  // Derive a mock buyer account ID from the auth header or use a default
+  (req as any).buyerAccountId = '111122223333';
+  next();
 }
 
-/**
- * POST /transactions
- * Authorize a payment and return a signed payment token
- */
-app.post('/transactions', async (req, res) => {
+app.use('/CreateAgentPayment', sigV4Middleware);
+app.use('/GetAgentPayment', sigV4Middleware);
+app.use('/ListAgentPayments', sigV4Middleware);
+
+// ============================================================================
+// POST /CreateAgentPayment
+// ============================================================================
+
+app.post('/CreateAgentPayment', async (req, res) => {
   try {
-    logFlowStep('AGENTIC_PAY', 2, 'Authorize Payment Request');
-    logFlowRequest('AGENTIC_PAY', 'POST', '/transactions', req.headers, req.body);
-    
-    const { network, amount, currency, payTo, quoteToken, agenticPayId } = req.body;
+    logFlowStep('AGENTIC_PAY', 2, 'CreateAgentPayment');
+    logFlowRequest('AGENTIC_PAY', 'POST', '/CreateAgentPayment', req.headers, req.body);
 
-    // Validate request
-    if (!network || !amount || !currency || !payTo || !quoteToken || !agenticPayId) {
-      logFlowError('AGENTIC_PAY', 'Missing required fields in authorization request');
-      return res.status(400).json({
-        error: 'Missing required fields',
-        required: ['network', 'amount', 'currency', 'payTo', 'quoteToken', 'agenticPayId']
-      });
+    const { quoteToken, clientToken, dpopJwk } = req.body;
+
+    // --- Validation ---
+    if (!quoteToken || typeof quoteToken !== 'string') {
+      return res.status(400).json({ message: 'quoteToken is required and must be a string' });
+    }
+    if (quoteToken.length < 1 || quoteToken.length > 65536) {
+      return res.status(400).json({ message: 'quoteToken must be between 1 and 65536 characters' });
+    }
+    if (clientToken && (typeof clientToken !== 'string' || clientToken.length > 128)) {
+      return res.status(400).json({ message: 'clientToken must be a string of 1-128 characters' });
     }
 
-    // Generate transaction ID
-    const transactionId = generateTransactionId(network, AGENTIC_PAY_ID);
-    logFlow('AGENTIC_PAY', `Generated transaction ID: ${transactionId}`);
-
-    // Create payment token payload
-    const now = Math.floor(Date.now() / 1000);
-    const paymentTokenPayload = {
-      iss: AGENTIC_PAY_ID,
-      sub: agenticPayId, // User's Agentic Pay ID
-      aud: payTo, // Service URL
-      iat: now,
-      exp: now + 300, // 5 minutes
-      payment_context: {
-        transaction_id: transactionId,
-        quote_token: quoteToken
+    // --- Idempotency ---
+    if (clientToken && clientTokenMap.has(clientToken)) {
+      const existing = clientTokenMap.get(clientToken)!;
+      // Same clientToken + same quoteToken → return cached response
+      if (existing.quoteToken === quoteToken) {
+        logFlow('AGENTIC_PAY', `Idempotent response for clientToken: ${clientToken}`);
+        return res.status(201).json({
+          paymentId: existing.paymentId,
+          paymentToken: existing.paymentToken,
+          createdAt: existing.createdAt,
+        });
       }
+      // Same clientToken + different params → 409 Conflict
+      return res.status(409).json({
+        message: 'The same clientToken was used with different request parameters. Use a new clientToken for a different request.',
+      });
+    }
+
+    // --- Parse quote token ---
+    let quotePayload: any;
+    try {
+      quotePayload = jose.decodeJwt(quoteToken);
+    } catch {
+      return res.status(400).json({ message: 'The quote token is not a valid JWT and cannot be parsed.' });
+    }
+
+    // Check expiry
+    const now = Math.floor(Date.now() / 1000);
+    if (quotePayload.exp && quotePayload.exp < now) {
+      return res.status(400).json({ message: 'The quote token exp claim is in the past. The seller must issue a new quote.' });
+    }
+
+    // Extract price
+    const price = Array.isArray(quotePayload.price) ? quotePayload.price[0] : quotePayload.price;
+    if (!price || !price.currency) {
+      return res.status(400).json({ message: 'The quote token is missing price information.' });
+    }
+    if (price.currency !== 'USD') {
+      return res.status(400).json({ message: 'The price.currency in the quote token is not USD. Only USD is supported.' });
+    }
+
+    // Extract listing_id from settlement or use a default
+    const listingId = quotePayload.settlement?.listing_id || quotePayload.reference || 'lst-default';
+
+    // --- Generate payment ID (awsmp-{UUIDv7 format}) ---
+    paymentCounter++;
+    const uuid = crypto.randomUUID();
+    const paymentId = `awsmp-${uuid}`;
+
+    // --- DPoP binding ---
+    let cnf: { jkt: string } | undefined;
+    if (dpopJwk) {
+      // Validate EC key format
+      if (dpopJwk.kty !== 'EC' || !dpopJwk.crv || !dpopJwk.x || !dpopJwk.y) {
+        return res.status(400).json({ message: 'dpopJwk must be an EC key with kty, crv, x, y fields' });
+      }
+      const thumbprint = await jose.calculateJwkThumbprint(dpopJwk as jose.JWK);
+      cnf = { jkt: thumbprint };
+    }
+
+    // --- Sign payment token (ES384) ---
+    const paymentTokenPayload: Record<string, unknown> = {
+      iss: ISSUER,
+      sub: (req as any).buyerAccountId,
+      iat: now,
+      exp: now + 3600,
+      payment_id: paymentId,
+      payment_context: {
+        transaction_id: paymentId,
+        quote_token: quoteToken,
+      },
     };
+    if (cnf) {
+      paymentTokenPayload.cnf = cnf;
+    }
 
-    logFlow('AGENTIC_PAY', 'Creating payment token payload');
-    logFlowObject('AGENTIC_PAY', 'Payment Token Payload (before signing)', paymentTokenPayload);
+    const paymentToken = await new jose.SignJWT(paymentTokenPayload)
+      .setProtectedHeader({ alg: 'ES384', typ: 'JWT', kid: 'agent-pay-key-1' })
+      .sign(signingKeys!.privateKey);
 
-    // Sign payment token
-    const paymentToken = await new jose.SignJWT(paymentTokenPayload as any)
-      .setProtectedHeader({ alg: 'RS256', kid: 'mock-agentic-pay-key-1' })
-      .sign(agenticPayKeys!.privateKey);
+    const createdAt = new Date().toISOString();
 
-    logFlow('AGENTIC_PAY', `Signed payment token (JWT): ${paymentToken.substring(0, 50)}...${paymentToken.substring(paymentToken.length - 50)}`);
-
-    // Store transaction
-    const transaction: Transaction = {
-      transactionId,
-      network,
-      amount,
-      currency,
-      payTo,
+    // --- Store payment ---
+    const record: PaymentRecord = {
+      paymentId,
+      buyerAccountId: (req as any).buyerAccountId,
+      sellerInformation: {
+        sellerProfileId: quotePayload.iss || 'unknown-seller',
+        displayName: quotePayload.iss || 'Unknown Seller',
+      },
+      listingId,
       quoteToken,
-      agenticPayId,
-      status: 'authorized',
-      createdAt: Date.now()
+      paymentToken,
+      createdAt,
+      amount: { value: price.amount, currency: price.currency },
+      agreementId: undefined,
+      dpopJkt: cnf?.jkt,
     };
-    transactions.set(transactionId, transaction);
+    payments.set(paymentId, record);
 
-    logFlowSuccess('AGENTIC_PAY', `Transaction ${transactionId} authorized`);
-    logFlowObject('AGENTIC_PAY', 'Stored Transaction', transaction);
+    // Store for idempotency
+    if (clientToken) {
+      clientTokenMap.set(clientToken, record);
+    }
 
-    const response = {
-      transactionId,
-      paymentToken
-    };
+    logFlowSuccess('AGENTIC_PAY', `Payment created: ${paymentId}`);
+    console.log(`✓ Created payment ${paymentId}`);
+    console.log(`  Amount: ${price.amount} ${price.currency}`);
+    console.log(`  Seller: ${quotePayload.iss}`);
+    if (cnf) console.log(`  DPoP bound: ${cnf.jkt}`);
 
-    logFlowResponse('AGENTIC_PAY', 200, {}, response);
-
-    console.log(`✓ Authorized transaction ${transactionId}`);
-    console.log(`  Amount: ${amount} ${currency}`);
-    console.log(`  Agentic Pay ID: ${agenticPayId}`);
-    console.log(`  Service: ${payTo}`);
-
-    res.json(response);
+    // --- Response (201) ---
+    return res.status(201).json({
+      paymentId,
+      paymentToken,
+      createdAt,
+    });
   } catch (error) {
-    logFlowError('AGENTIC_PAY', 'Error authorizing transaction', error);
-    console.error('Error authorizing transaction:', error);
-    res.status(500).json({
-      error: 'Failed to authorize transaction',
-      message: error instanceof Error ? error.message : String(error)
+    logFlowError('AGENTIC_PAY', 'CreateAgentPayment error', error);
+    return res.status(500).json({
+      message: 'An internal error occurred or a dependency is unavailable. Retry with the same clientToken.',
     });
   }
 });
 
-/**
- * POST /capture
- * Capture/settle a previously authorized payment
- */
-app.post('/capture', async (req, res) => {
-  try {
-    logFlowStep('AGENTIC_PAY', 3, 'Capture Payment Request');
-    logFlowRequest('AGENTIC_PAY', 'POST', '/capture', req.headers, req.body);
-    
-    const { transactionId, amount, currency } = req.body;
+// ============================================================================
+// GET /GetAgentPayment/{paymentId}
+// ============================================================================
 
-    // Validate request
-    if (!transactionId || !amount || !currency) {
-      logFlowError('AGENTIC_PAY', 'Missing required fields in capture request');
-      return res.status(400).json({
-        error: 'Missing required fields',
-        required: ['transactionId', 'amount', 'currency']
-      });
-    }
+app.get('/GetAgentPayment/:paymentId', (req, res) => {
+  const { paymentId } = req.params;
 
-    // Find transaction
-    const transaction = transactions.get(transactionId);
-    if (!transaction) {
-      logFlowError('AGENTIC_PAY', `Transaction not found: ${transactionId}`);
-      return res.status(404).json({
-        error: 'Transaction not found',
-        transactionId
-      });
-    }
+  logFlowStep('AGENTIC_PAY', 3, `GetAgentPayment: ${paymentId}`);
 
-    logFlow('AGENTIC_PAY', `Found transaction: ${transactionId}`);
-    logFlowObject('AGENTIC_PAY', 'Transaction Details', transaction);
-
-    // Check if already captured
-    if (transaction.status === 'captured') {
-      logFlowError('AGENTIC_PAY', `Transaction already captured: ${transactionId}`);
-      return res.status(400).json({
-        error: 'Transaction already captured',
-        transactionId,
-        captureId: transaction.captureId
-      });
-    }
-
-    // Validate amount matches
-    if (transaction.amount !== amount || transaction.currency !== currency) {
-      logFlowError('AGENTIC_PAY', 'Amount mismatch', {
-        expected: { amount: transaction.amount, currency: transaction.currency },
-        received: { amount, currency }
-      });
-      return res.status(400).json({
-        error: 'Amount mismatch',
-        expected: { amount: transaction.amount, currency: transaction.currency },
-        received: { amount, currency }
-      });
-    }
-
-    // Capture transaction
-    const captureId = `capture_${transactionId}`;
-    transaction.status = 'captured';
-    transaction.captureId = captureId;
-    transaction.capturedAt = Date.now();
-
-    logFlowSuccess('AGENTIC_PAY', `Transaction captured: ${transactionId}`);
-    logFlow('AGENTIC_PAY', `Capture ID: ${captureId}`);
-    logFlowObject('AGENTIC_PAY', 'Updated Transaction', transaction);
-
-    const response = {
-      success: true,
-      captureId,
-      timestamp: transaction.capturedAt
-    };
-
-    logFlowResponse('AGENTIC_PAY', 200, {}, response);
-
-    console.log(`✓ Captured transaction ${transactionId}`);
-    console.log(`  Capture ID: ${captureId}`);
-    console.log(`  Amount: ${amount} ${currency}`);
-
-    res.json(response);
-  } catch (error) {
-    logFlowError('AGENTIC_PAY', 'Error capturing transaction', error);
-    console.error('Error capturing transaction:', error);
-    res.status(500).json({
-      error: 'Failed to capture transaction',
-      message: error instanceof Error ? error.message : String(error)
-    });
+  // Validate format
+  if (!paymentId || paymentId.length !== 42 || !paymentId.startsWith('awsmp-')) {
+    return res.status(400).json({ message: 'Invalid paymentId format. Expected awsmp-{UUID}.' });
   }
+
+  const record = payments.get(paymentId);
+  if (!record) {
+    return res.status(404).json({ message: `Payment not found: ${paymentId}` });
+  }
+
+  return res.status(200).json({
+    payment: {
+      paymentId: record.paymentId,
+      buyerAccountId: record.buyerAccountId,
+      sellerInformation: record.sellerInformation,
+      listingId: record.listingId,
+      quoteToken: record.quoteToken,
+      paymentToken: record.paymentToken,
+      createdAt: record.createdAt,
+      amount: record.amount,
+      ...(record.agreementId && { agreementId: record.agreementId }),
+    },
+  });
 });
 
-/**
- * GET /.well-known/jwks.json
- * Serve public keys for payment token verification
- */
-app.get('/.well-known/jwks.json', async (_req, res) => {
-  try {
-    console.log('🔍 GET /.well-known/jwks.json - Serving Agentic Pay public keys');
-    logFlow('AGENTIC_PAY', 'JWKS request received');
-    
-    const publicJWK = await jose.exportJWK(agenticPayKeys!.publicKey);
-    publicJWK.kid = 'mock-agentic-pay-key-1';
-    publicJWK.use = 'sig';
-    publicJWK.alg = 'RS256';
+// ============================================================================
+// POST /ListAgentPayments
+// ============================================================================
 
-    const response = {
-      keys: [publicJWK]
-    };
+app.post('/ListAgentPayments', (req, res) => {
+  logFlowStep('AGENTIC_PAY', 4, 'ListAgentPayments');
 
-    logFlowObject('AGENTIC_PAY', 'Serving JWKS', response);
+  const { sort, maxResults = 50, nextToken } = req.body || {};
 
-    res.json(response);
-  } catch (error) {
-    logFlowError('AGENTIC_PAY', 'Error serving JWKS', error);
-    console.error('Error serving JWKS:', error);
-    res.status(500).json({
-      error: 'Failed to serve JWKS',
-      message: error instanceof Error ? error.message : String(error)
-    });
+  if (maxResults && (maxResults < 1 || maxResults > 100)) {
+    return res.status(400).json({ message: 'maxResults must be between 1 and 100' });
   }
+
+  // Get all payments for this buyer, sorted by createdAt
+  let allPayments = Array.from(payments.values())
+    .filter(p => p.buyerAccountId === (req as any).buyerAccountId);
+
+  // Sort
+  const sortOrder = sort?.sortOrder === 'Asc' ? 1 : -1;
+  allPayments.sort((a, b) => sortOrder * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+
+  // Pagination (simplified — nextToken is just an index)
+  let startIndex = 0;
+  if (nextToken) {
+    startIndex = parseInt(nextToken, 10) || 0;
+  }
+  const page = allPayments.slice(startIndex, startIndex + maxResults);
+  const hasMore = startIndex + maxResults < allPayments.length;
+
+  const response: any = {
+    payments: page.map(p => ({
+      paymentId: p.paymentId,
+      buyerAccountId: p.buyerAccountId,
+      sellerInformation: p.sellerInformation,
+      listingId: p.listingId,
+      createdAt: p.createdAt,
+      ...(p.agreementId && { agreementId: p.agreementId }),
+    })),
+  };
+
+  if (hasMore) {
+    response.nextToken = String(startIndex + maxResults);
+  }
+
+  return res.status(200).json(response);
 });
 
-/**
- * GET /.well-known/x402-supported
- * Serve supported payment kinds (x402 facilitator endpoint)
- */
+// ============================================================================
+// GET /.well-known/jwks.json
+// ============================================================================
+
+app.get('/.well-known/jwks.json', (_req, res) => {
+  console.log('🔍 GET /.well-known/jwks.json');
+  res.json({ keys: [publicJWK] });
+});
+
+// ============================================================================
+// GET /.well-known/x402-supported (for facilitator routing)
+// ============================================================================
+
 app.get('/.well-known/x402-supported', (_req, res) => {
-  try {
-    console.log('🔍 GET /.well-known/x402-supported - Serving supported payment kinds');
-    logFlow('AGENTIC_PAY', 'x402-supported request received');
-    
-    const response = {
-      x402Version: 2,
-      kinds: [
-        {
-          x402Version: 2,
-          scheme: 'fab',
-          network: 'aws:marketplace',
-          extra: {
-            agenticPayId: AGENTIC_PAY_ID
-          }
-        },
-        {
-          x402Version: 2,
-          scheme: 'fab',
-          network: 'eip155:8453',
-          extra: {
-            agenticPayId: AGENTIC_PAY_ID
-          }
-        }
-      ]
-    };
-
-    logFlowObject('AGENTIC_PAY', 'Serving x402-supported', response);
-
-    res.json(response);
-  } catch (error) {
-    logFlowError('AGENTIC_PAY', 'Error serving x402-supported', error);
-    console.error('Error serving x402-supported:', error);
-    res.status(500).json({
-      error: 'Failed to serve x402-supported',
-      message: error instanceof Error ? error.message : String(error)
-    });
-  }
-});
-
-/**
- * GET /transactions/:transactionId
- * Get transaction details (optional - for debugging/monitoring only)
- * NOT required by FAB protocol - payment token signature is sufficient proof
- */
-app.get('/transactions/:transactionId', (req, res) => {
-  const transaction = transactions.get(req.params.transactionId);
-  if (!transaction) {
-    return res.status(404).json({
-      error: 'Transaction not found',
-      transactionId: req.params.transactionId
-    });
-  }
-  res.json(transaction);
-});
-
-/**
- * GET /transactions
- * List all transactions (for debugging)
- */
-app.get('/transactions', (req, res) => {
+  console.log('🔍 GET /.well-known/x402-supported');
   res.json({
-    count: transactions.size,
-    transactions: Array.from(transactions.values())
+    x402Version: 2,
+    kinds: [
+      { x402Version: 2, scheme: 'fab', network: 'aws:marketplace', extra: { agenticPayId: ISSUER } },
+    ],
   });
 });
 
-/**
- * GET /health
- * Health check endpoint
- */
+// ============================================================================
+// GET /health
+// ============================================================================
+
 app.get('/health', (_req, res) => {
-  res.json({
-    status: 'healthy',
-    agenticPayId: AGENTIC_PAY_ID,
-    transactions: transactions.size
-  });
+  res.json({ status: 'healthy', payments: payments.size });
 });
 
-// Start server
+// ============================================================================
+// Start
+// ============================================================================
+
 async function start() {
   await initializeKeys();
-  
+
   app.listen(PORT, () => {
     console.log('');
-    console.log('🔐 Mock Agentic Pay Server');
+    console.log('🏦 Mock AWS Marketplace Agent Pay Service');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`Agentic Pay ID: ${AGENTIC_PAY_ID}`);
     console.log(`Base URL:  http://localhost:${PORT}`);
+    console.log(`Issuer:    ${ISSUER}`);
+    console.log(`Signing:   ES384`);
     console.log('');
-    console.log('Authentication:');
-    if (authConfig.enabled) {
-      console.log('  Status: ✅ ENABLED');
-      console.log('  Methods:');
-      if (authConfig.methods.apiKey?.enabled) {
-        console.log(`    - API Key (${authConfig.methods.apiKey.headerName})`);
-        console.log(`      Accepted keys: ${authConfig.methods.apiKey.keys.length}`);
-      }
-      if (authConfig.methods.awsSigV4?.enabled) {
-        console.log('    - AWS SigV4 (simplified validation)');
-      }
-      if (authConfig.methods.oauth2?.enabled) {
-        console.log('    - OAuth2 Bearer Token');
-        console.log(`      Accepted tokens: ${authConfig.methods.oauth2.validTokens.length}`);
-      }
-    } else {
-      console.log('  Status: ⚠️  DISABLED (set AGENTIC_PAY_AUTH_ENABLED=false to disable)');
-    }
+    console.log('API Endpoints (matching Agent Pay API 2026-04-20):');
+    console.log(`  POST /CreateAgentPayment          - Create payment`);
+    console.log(`  GET  /GetAgentPayment/{paymentId} - Get payment detail`);
+    console.log(`  POST /ListAgentPayments           - List payments`);
+    console.log(`  GET  /.well-known/jwks.json       - Public keys (ES384)`);
+    console.log(`  GET  /.well-known/x402-supported  - Supported payment kinds`);
     console.log('');
-    console.log('Endpoints:');
-    console.log(`  POST   /transactions          - Authorize payment`);
-    console.log(`  POST   /capture               - Capture payment`);
-    console.log(`  GET    /.well-known/jwks.json - Public keys`);
-    console.log(`  GET    /transactions/:id      - Get transaction (optional, for debugging)`);
-    console.log(`  GET    /transactions          - List all (optional, for debugging)`);
-    console.log(`  GET    /health                - Health check`);
+    console.log('Auth: AWS SigV4 (simplified — accepts any request for local testing)');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('');
-    console.log('📝 Flow log: logs/payment-flow.log');
     console.log('');
   });
 }
