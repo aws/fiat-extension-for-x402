@@ -106,7 +106,7 @@ export class DefaultAgenticPayClient implements AgenticPayClient {
 
       return result;
     } catch (error) {
-      if (error instanceof ValidationError) {
+      if (error instanceof ValidationError || error instanceof IdempotencyConflictError) {
         throw error;
       }
       throw new ValidationError(
