@@ -1,16 +1,16 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as jose from 'jose';
-import { FABScheme } from '../../../src/fab/server/scheme';
-import type { ServiceFABSigner } from '../../../src/config';
+import { AgenticPayScheme } from '../../../src/agentic-pay/server/scheme';
+import type { ServiceAgenticPaySigner } from '../../../src/config';
 import type { PaymentRequirements, AssetAmount } from '@x402/core/types';
-import { FAB_SCHEME } from '../../../src/constants';
-import { FAB_SENTINEL_PAY_TO, DEFAULT_QUOTE_VALIDITY_SECONDS } from '../../../src/constants';
+import { AGENTIC_PAY_SCHEME } from '../../../src/constants';
+import { AGENTIC_PAY_SENTINEL_PAY_TO, DEFAULT_QUOTE_VALIDITY_SECONDS } from '../../../src/constants';
 import { createMockServiceSigner } from '../../helpers/mock-service-signer';
 
-describe('FAB Server Scheme', () => {
-  let signer: ServiceFABSigner;
+describe('Agentic Pay Server Scheme', () => {
+  let signer: ServiceAgenticPaySigner;
   let publicKey: jose.KeyLike;
-  let scheme: FABScheme;
+  let scheme: AgenticPayScheme;
   const serviceUrl = 'https://api.example.com';
 
   beforeEach(async () => {
@@ -19,7 +19,7 @@ describe('FAB Server Scheme', () => {
     signer = mock.signer;
     publicKey = mock.publicKey;
 
-    scheme = new FABScheme({ signer });
+    scheme = new AgenticPayScheme({ signer });
   });
 
   it('should parse price correctly', async () => {
@@ -51,7 +51,7 @@ describe('FAB Server Scheme', () => {
 
   it('should enhance payment requirements with quote token', async () => {
     const requirements: PaymentRequirements = {
-      scheme: FAB_SCHEME,
+      scheme: AGENTIC_PAY_SCHEME,
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
@@ -62,7 +62,7 @@ describe('FAB Server Scheme', () => {
 
     const supportedKind = {
       x402Version: 2,
-      scheme: FAB_SCHEME,
+      scheme: AGENTIC_PAY_SCHEME,
       network: 'fab:test' as const,
       extra: { agenticPayId: 'agentic-pay-123' }
     };
@@ -90,7 +90,7 @@ describe('FAB Server Scheme', () => {
 
   it('should sign quote token with service signer', async () => {
     const requirements: PaymentRequirements = {
-      scheme: FAB_SCHEME,
+      scheme: AGENTIC_PAY_SCHEME,
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
@@ -101,7 +101,7 @@ describe('FAB Server Scheme', () => {
 
     const supportedKind = {
       x402Version: 2,
-      scheme: FAB_SCHEME,
+      scheme: AGENTIC_PAY_SCHEME,
       network: 'fab:test' as const,
       extra: { agenticPayId: 'agentic-pay-123' }
     };
@@ -136,7 +136,7 @@ describe('FAB Server Scheme', () => {
 
   describe('Sentinel Values (Task 28)', () => {
     const baseRequirements: PaymentRequirements = {
-      scheme: FAB_SCHEME,
+      scheme: AGENTIC_PAY_SCHEME,
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
@@ -147,20 +147,20 @@ describe('FAB Server Scheme', () => {
 
     const supportedKind = {
       x402Version: 2,
-      scheme: FAB_SCHEME,
+      scheme: AGENTIC_PAY_SCHEME,
       network: 'fab:test' as const,
       extra: { agenticPayId: 'agentic-pay-123' }
     };
 
-    it('should set payTo to FAB_SENTINEL_PAY_TO in enhanced requirements', async () => {
+    it('should set payTo to AGENTIC_PAY_SENTINEL_PAY_TO in enhanced requirements', async () => {
       const result = await scheme.enhancePaymentRequirements(
         baseRequirements,
         supportedKind,
         []
       );
 
-      expect(result.payTo).toBe(FAB_SENTINEL_PAY_TO);
-      expect(result.payTo).toBe('urn:x402:fab:see-quote');
+      expect(result.payTo).toBe(AGENTIC_PAY_SENTINEL_PAY_TO);
+      expect(result.payTo).toBe('urn:x402:agentic-pay:see-quote');
     });
 
     it('should set maxTimeoutSeconds to quote validity window (exp - iat)', async () => {
@@ -181,7 +181,7 @@ describe('FAB Server Scheme', () => {
       );
 
       // Outer payTo is sentinel
-      expect(result.payTo).toBe(FAB_SENTINEL_PAY_TO);
+      expect(result.payTo).toBe(AGENTIC_PAY_SENTINEL_PAY_TO);
 
       // Inner quote token payTo is the real value
       const decoded = jose.decodeJwt((result.extra as any).quoteToken);

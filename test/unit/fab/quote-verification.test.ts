@@ -7,12 +7,12 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as jose from 'jose';
-import { verifyPayment } from '../../../src/fab/facilitator/verify';
+import { verifyPayment } from '../../../src/agentic-pay/facilitator/verify';
 import { clearServiceJWKSCache } from '../../../src/utils';
 import type { AgenticPayClientForFacilitator } from '../../../src/config';
 import type { PaymentPayload, PaymentRequirements } from '@x402/core/types';
-import type { FABPayloadV2 } from '../../../src/types';
-import { FAB_SCHEME } from '../../../src/constants';
+import type { AgenticPayPayloadV2 } from '../../../src/types';
+import { AGENTIC_PAY_SCHEME } from '../../../src/constants';
 
 describe('Quote Token Signature Verification (Task 27)', () => {
   let servicePrivateKey: jose.KeyLike;
@@ -117,25 +117,25 @@ describe('Quote Token Signature Verification (Task 27)', () => {
       payload: { paymentToken, paymentId, transactionId: paymentId } as unknown as Record<string, unknown>,
     };
     const requirements: PaymentRequirements = {
-      scheme: FAB_SCHEME,
+      scheme: AGENTIC_PAY_SCHEME,
       network: 'aws:marketplace',
       amount: '0.10',
       asset: 'iso4217:USD',
-      payTo: 'urn:x402:fab:see-quote',
+      payTo: 'urn:x402:agentic-pay:see-quote',
       maxTimeoutSeconds: 300,
       extra: { quoteToken } as unknown as Record<string, unknown>,
     };
-    const fabPayload: FABPayloadV2 = { paymentToken, paymentId, transactionId: paymentId };
-    return { payload, requirements, fabPayload };
+    const apPayload: AgenticPayPayloadV2 = { paymentToken, paymentId, transactionId: paymentId };
+    return { payload, requirements, apPayload };
   }
 
   it('should succeed when quote token is signed by service and JWKS is reachable', async () => {
     const quoteToken = await createQuoteToken();
     const paymentId = 'awsmp-00000000-0000-0000-0000-000000000001';
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
-    const { payload, requirements, fabPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
+    const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
 
-    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, fabPayload);
+    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, apPayload);
 
     expect(result.isValid).toBe(true);
     expect(result.payer).toBe('buyer-123');
@@ -158,9 +158,9 @@ describe('Quote Token Signature Verification (Task 27)', () => {
 
     const paymentId = 'awsmp-00000000-0000-0000-0000-000000000002';
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
-    const { payload, requirements, fabPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
+    const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
 
-    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, fabPayload);
+    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, apPayload);
 
     expect(result.isValid).toBe(false);
     expect(result.invalidReason).toBe('invalid_quote');
@@ -178,9 +178,9 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     const quoteToken = await createQuoteToken();
     const paymentId = 'awsmp-00000000-0000-0000-0000-000000000003';
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
-    const { payload, requirements, fabPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
+    const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
 
-    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, fabPayload);
+    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, apPayload);
 
     expect(result.isValid).toBe(false);
     expect(result.invalidReason).toBe('invalid_quote');
@@ -203,9 +203,9 @@ describe('Quote Token Signature Verification (Task 27)', () => {
 
     const paymentId = 'awsmp-00000000-0000-0000-0000-000000000004';
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
-    const { payload, requirements, fabPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
+    const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
 
-    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, fabPayload);
+    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, apPayload);
 
     expect(result.isValid).toBe(false);
     expect(result.invalidReason).toBe('invalid_quote');
@@ -221,9 +221,9 @@ describe('Quote Token Signature Verification (Task 27)', () => {
 
     const paymentId = 'awsmp-00000000-0000-0000-0000-000000000005';
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
-    const { payload, requirements, fabPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
+    const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
 
-    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, fabPayload);
+    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, apPayload);
 
     expect(result.isValid).toBe(false);
     expect(result.invalidReason).toBe('quote_expired');
@@ -237,9 +237,9 @@ describe('Quote Token Signature Verification (Task 27)', () => {
 
     const paymentId = 'awsmp-00000000-0000-0000-0000-000000000006';
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
-    const { payload, requirements, fabPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
+    const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
 
-    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, fabPayload);
+    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, apPayload);
 
     expect(result.isValid).toBe(true);
   });
@@ -260,9 +260,9 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     const quoteToken = await createQuoteToken();
     const paymentId = 'awsmp-00000000-0000-0000-0000-000000000007';
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
-    const { payload, requirements, fabPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
+    const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
 
-    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, fabPayload, {
+    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, apPayload, {
       serviceJWKSUrl: customJwksUrl,
     });
 

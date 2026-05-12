@@ -1,6 +1,6 @@
-# SDD Collaboration Process — FAB x402 Extension
+# SDD Collaboration Process — Agentic Pay x402 Extension
 
-**Applies to:** `@x402/fab` development  
+**Applies to:** `@x402/aws-agentic-pay` development  
 **Methodology:** Spec-Driven Development (SDD), targeting spec-as-source  
 **Last Updated:** 2026-03-05
 
@@ -70,7 +70,7 @@ Every requirement in `spec.md` shall:
 - [ ] Be atomic — one mandatory action per requirement
 - [ ] Be verifiable — measurable or testable
 - [ ] Avoid ambiguous terms ("user-friendly", "fast", "approximately")
-- [ ] Have a unique identifier (e.g., FAB-SRV-001)
+- [ ] Have a unique identifier (e.g., APAY-SRV-001)
 - [ ] Be traceable to source files and test files
 
 ### Code Quality

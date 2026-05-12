@@ -1,10 +1,10 @@
 /**
- * Tests for FAB Express Middleware
+ * Tests for Agentic Pay Express Middleware
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Request, Response, NextFunction } from 'express';
-import { fabPaymentMiddleware, type FABMiddlewareConfig } from '../../../src/middleware/express';
+import { agenticPayMiddleware, type AgenticPayMiddlewareConfig } from '../../../src/middleware/express';
 
 // ── Mocks ──────────────────────────────────────────────────────────
 
@@ -25,7 +25,7 @@ const mockRegisterNetwork = vi.fn().mockReturnThis();
 const mockInitialize = vi.fn().mockResolvedValue(mockServer);
 
 vi.mock('../../../src/builders/resource-server-builder', () => ({
-  createFABResourceServer: vi.fn(() => ({
+  createAgenticPayResourceServer: vi.fn(() => ({
     registerNetwork: mockRegisterNetwork,
     initialize: mockInitialize,
   })),
@@ -67,7 +67,7 @@ function createMockRes(): Response & { _status: number; _json: any; _headers: Re
   return res;
 }
 
-const baseConfig: FABMiddlewareConfig = {
+const baseConfig: AgenticPayMiddlewareConfig = {
   agenticPayBaseUrl: 'https://pay.example.com',
   agenticPayId: 'test-agentic-pay',
   signingKeys: {
@@ -76,11 +76,11 @@ const baseConfig: FABMiddlewareConfig = {
     alg: 'RS256',
   },
   serviceUrl: 'https://api.example.com',
-  networks: ['fab:aws' as any],
+  networks: ['aws:marketplace' as any],
   routes: {
     'GET /api/premium': {
       price: 0.15,
-      network: 'fab:aws' as any,
+      network: 'aws:marketplace' as any,
       payTo: 'seller-pay',
       asset: 'iso4217:USD',
     },
@@ -89,7 +89,7 @@ const baseConfig: FABMiddlewareConfig = {
 
 // ── Tests ──────────────────────────────────────────────────────────
 
-describe('fabPaymentMiddleware', () => {
+describe('agenticPayMiddleware', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockInitialize.mockResolvedValue(mockServer);
@@ -98,21 +98,21 @@ describe('fabPaymentMiddleware', () => {
   describe('configuration validation', () => {
     it('throws if networks is empty', () => {
       expect(() =>
-        fabPaymentMiddleware({ ...baseConfig, networks: [] })
+        agenticPayMiddleware({ ...baseConfig, networks: [] })
       ).toThrow('networks must be a non-empty array');
     });
 
     it('throws if routes is empty', () => {
       expect(() =>
-        fabPaymentMiddleware({ ...baseConfig, routes: {} })
+        agenticPayMiddleware({ ...baseConfig, routes: {} })
       ).toThrow('routes must be a non-empty object');
     });
 
     it('throws on invalid route pattern', () => {
       expect(() =>
-        fabPaymentMiddleware({
+        agenticPayMiddleware({
           ...baseConfig,
-          routes: { 'GET /api premium extra': { price: 1, network: 'fab:aws' as any, payTo: 'x' } },
+          routes: { 'GET /api premium extra': { price: 1, network: 'aws:marketplace' as any, payTo: 'x' } },
         })
       ).toThrow('Invalid route pattern');
     });
@@ -120,7 +120,7 @@ describe('fabPaymentMiddleware', () => {
 
   describe('route matching', () => {
     it('passes through requests to non-protected routes', () => {
-      const middleware = fabPaymentMiddleware(baseConfig);
+      const middleware = agenticPayMiddleware(baseConfig);
       const req = createMockReq({ path: '/api/public', method: 'GET' });
       const res = createMockRes();
       const next = vi.fn();
@@ -131,7 +131,7 @@ describe('fabPaymentMiddleware', () => {
     });
 
     it('does not pass through for wrong HTTP method', () => {
-      const middleware = fabPaymentMiddleware(baseConfig);
+      const middleware = agenticPayMiddleware(baseConfig);
       const req = createMockReq({ path: '/api/premium', method: 'POST' });
       const res = createMockRes();
       const next = vi.fn();
@@ -143,18 +143,18 @@ describe('fabPaymentMiddleware', () => {
     });
 
     it('matches wildcard routes', () => {
-      const config: FABMiddlewareConfig = {
+      const config: AgenticPayMiddlewareConfig = {
         ...baseConfig,
         routes: {
           'GET /api/*': {
             price: 0.15,
-            network: 'fab:aws' as any,
+            network: 'aws:marketplace' as any,
             payTo: 'seller-pay',
           },
         },
       };
 
-      const middleware = fabPaymentMiddleware(config);
+      const middleware = agenticPayMiddleware(config);
       const req = createMockReq({ path: '/api/anything/here', method: 'GET' });
       const res = createMockRes();
       const next = vi.fn();
@@ -167,18 +167,18 @@ describe('fabPaymentMiddleware', () => {
     });
 
     it('matches routes without method prefix (any method)', () => {
-      const config: FABMiddlewareConfig = {
+      const config: AgenticPayMiddlewareConfig = {
         ...baseConfig,
         routes: {
           '/api/premium': {
             price: 0.15,
-            network: 'fab:aws' as any,
+            network: 'aws:marketplace' as any,
             payTo: 'seller-pay',
           },
         },
       };
 
-      const middleware = fabPaymentMiddleware(config);
+      const middleware = agenticPayMiddleware(config);
       const req = createMockReq({ path: '/api/premium', method: 'POST' });
       const res = createMockRes();
       const next = vi.fn();
@@ -194,12 +194,12 @@ describe('fabPaymentMiddleware', () => {
     it('returns 402 when no payment header is present', async () => {
       const mockPaymentRequired = {
         x402Version: 2,
-        accepts: [{ scheme: 'fab', network: 'fab:aws' }],
+        accepts: [{ scheme: 'aws:marketplace', network: 'aws:marketplace' }],
       };
-      mockBuildPaymentRequirements.mockResolvedValue([{ scheme: 'fab' }]);
+      mockBuildPaymentRequirements.mockResolvedValue([{ scheme: 'aws:marketplace' }]);
       mockCreatePaymentRequiredResponse.mockResolvedValue(mockPaymentRequired);
 
-      const middleware = fabPaymentMiddleware(baseConfig);
+      const middleware = agenticPayMiddleware(baseConfig);
       const req = createMockReq({ path: '/api/premium', method: 'GET' });
       const res = createMockRes();
       const next = vi.fn();
@@ -223,12 +223,12 @@ describe('fabPaymentMiddleware', () => {
 
       const paymentPayload = {
         x402Version: 2,
-        payload: { paymentToken: 'tok', transactionId: 'fab:aws:tx123' },
-        accepted: { scheme: 'fab', network: 'fab:aws', amount: '0.15', asset: 'iso4217:USD', extra: {} },
+        payload: { paymentToken: 'tok', transactionId: 'awsmp-tx123' },
+        accepted: { scheme: 'aws:marketplace', network: 'aws:marketplace', amount: '0.15', asset: 'iso4217:USD', extra: {} },
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
-      const middleware = fabPaymentMiddleware(baseConfig);
+      const middleware = agenticPayMiddleware(baseConfig);
       const req = createMockReq({
         path: '/api/premium',
         method: 'GET',
@@ -243,10 +243,10 @@ describe('fabPaymentMiddleware', () => {
         expect(next).toHaveBeenCalledOnce();
       });
 
-      expect((req as any).fabPayment).toEqual({
+      expect((req as any).agenticPayPayment).toEqual({
         payer: 'buyer-123',
-        transactionId: 'fab:aws:tx123',
-        network: 'fab:aws',
+        transactionId: 'awsmp-tx123',
+        network: 'aws:marketplace',
         amount: '0.15',
         asset: 'iso4217:USD',
       });
@@ -261,12 +261,12 @@ describe('fabPaymentMiddleware', () => {
 
       const paymentPayload = {
         x402Version: 2,
-        payload: { paymentToken: 'tok', transactionId: 'fab:aws:tx123' },
-        accepted: { scheme: 'fab', network: 'fab:aws', amount: '0.15', asset: 'iso4217:USD' },
+        payload: { paymentToken: 'tok', transactionId: 'awsmp-tx123' },
+        accepted: { scheme: 'aws:marketplace', network: 'aws:marketplace', amount: '0.15', asset: 'iso4217:USD' },
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
-      const middleware = fabPaymentMiddleware(baseConfig);
+      const middleware = agenticPayMiddleware(baseConfig);
       const req = createMockReq({
         path: '/api/premium',
         method: 'GET',
@@ -288,12 +288,12 @@ describe('fabPaymentMiddleware', () => {
     it('returns 400 when payment payload has no accepted field', async () => {
       const paymentPayload = {
         x402Version: 2,
-        payload: { paymentToken: 'tok', transactionId: 'fab:aws:tx123' },
+        payload: { paymentToken: 'tok', transactionId: 'awsmp-tx123' },
         // no accepted field
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
-      const middleware = fabPaymentMiddleware(baseConfig);
+      const middleware = agenticPayMiddleware(baseConfig);
       const req = createMockReq({
         path: '/api/premium',
         method: 'GET',
@@ -320,8 +320,8 @@ describe('fabPaymentMiddleware', () => {
         x402Version: 2,
         payload: { paymentToken: 'tok', paymentId: 'awsmp-123', transactionId: 'awsmp-123' },
         accepted: {
-          scheme: 'fab',
-          network: 'fab:aws',
+          scheme: 'aws:marketplace',
+          network: 'aws:marketplace',
           amount: '0.15',
           asset: 'iso4217:USD',
           extra: { capture: 'auto' },
@@ -329,7 +329,7 @@ describe('fabPaymentMiddleware', () => {
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
-      const middleware = fabPaymentMiddleware(baseConfig);
+      const middleware = agenticPayMiddleware(baseConfig);
       const req = createMockReq({
         path: '/api/premium',
         method: 'GET',
@@ -356,8 +356,8 @@ describe('fabPaymentMiddleware', () => {
         x402Version: 2,
         payload: { paymentToken: 'tok', paymentId: 'awsmp-123', transactionId: 'awsmp-123' },
         accepted: {
-          scheme: 'fab',
-          network: 'fab:aws',
+          scheme: 'aws:marketplace',
+          network: 'aws:marketplace',
           amount: '0.15',
           asset: 'iso4217:USD',
           extra: { capture: 'auto' },
@@ -365,7 +365,7 @@ describe('fabPaymentMiddleware', () => {
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
-      const middleware = fabPaymentMiddleware({ ...baseConfig, onPaymentSettled });
+      const middleware = agenticPayMiddleware({ ...baseConfig, onPaymentSettled });
       const req = createMockReq({
         path: '/api/premium',
         method: 'GET',
@@ -393,12 +393,12 @@ describe('fabPaymentMiddleware', () => {
 
       const paymentPayload = {
         x402Version: 2,
-        payload: { paymentToken: 'tok', transactionId: 'fab:aws:tx123' },
-        accepted: { scheme: 'fab', network: 'fab:aws', amount: '0.15', asset: 'iso4217:USD', extra: {} },
+        payload: { paymentToken: 'tok', transactionId: 'awsmp-tx123' },
+        accepted: { scheme: 'aws:marketplace', network: 'aws:marketplace', amount: '0.15', asset: 'iso4217:USD', extra: {} },
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
-      const middleware = fabPaymentMiddleware({ ...baseConfig, onPaymentVerified });
+      const middleware = agenticPayMiddleware({ ...baseConfig, onPaymentVerified });
       const req = createMockReq({
         path: '/api/premium',
         method: 'GET',
@@ -422,12 +422,12 @@ describe('fabPaymentMiddleware', () => {
 
       const paymentPayload = {
         x402Version: 2,
-        payload: { paymentToken: 'tok', transactionId: 'fab:aws:tx123' },
-        accepted: { scheme: 'fab', network: 'fab:aws', amount: '0.15', asset: 'iso4217:USD' },
+        payload: { paymentToken: 'tok', transactionId: 'awsmp-tx123' },
+        accepted: { scheme: 'aws:marketplace', network: 'aws:marketplace', amount: '0.15', asset: 'iso4217:USD' },
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
-      const middleware = fabPaymentMiddleware({ ...baseConfig, onError });
+      const middleware = agenticPayMiddleware({ ...baseConfig, onError });
       const req = createMockReq({
         path: '/api/premium',
         method: 'GET',

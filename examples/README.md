@@ -1,6 +1,6 @@
-# FAB x402 Extension Examples
+# Agentic Pay x402 Extension Examples
 
-Working examples demonstrating the FAB x402 extension with authentication and DPoP support.
+Working examples demonstrating the Agentic Pay x402 extension with authentication and DPoP support.
 
 ## Quick Start
 
@@ -19,21 +19,21 @@ npm run example:client
 
 ## What Gets Demonstrated
 
-- **Two-Phase API**: `createFABResourceServer` / `createFABClient` with `registerNetwork()` for adding networks individually
-- **Multi-Facilitator Routing**: FAB handles registered networks, default x402 facilitator handles the rest
+- **Two-Phase API**: `createAgenticPayResourceServer` / `createAgenticPayClient` with `registerNetwork()` for adding networks individually
+- **Multi-Facilitator Routing**: Agentic Pay handles registered networks, default x402 facilitator handles the rest
 - **Method Chaining**: `server.registerNetwork('aws:marketplace').registerNetwork('eip155:8453')`
 - **Authentication**: API Key, OAuth2, and AWS SigV4 authentication to Agentic Pay
 - **DPoP**: Token binding with ephemeral client keys to prevent theft
 - **Payment Flow**: Complete 402 Payment Required → authorize → pay → access flow
 - **Auto Capture**: Automatic payment settlement on verification
-- **Cross-Network FAB**: FAB handling both `aws:marketplace` and `eip155:8453` (EVM Base) via the same Agentic Pay
+- **Cross-Network FAB**: Agentic Pay handling both `aws:marketplace` and `eip155:8453` (EVM Base) via the same Agentic Pay
 
 ## Files
 
 - `mock-agentic-pay-server.ts` - Agentic Pay provider with authentication (port 3001)
-- `test-service.ts` - Protected API using `createFABResourceServer` (port 3002)
-- `test-client.ts` - Client using `createFABClient` with auth and DPoP
-- `multi-facilitator.ts` - Standalone example showing FAB + default facilitator routing
+- `test-service.ts` - Protected API using `createAgenticPayResourceServer` (port 3002)
+- `test-client.ts` - Client using `createAgenticPayClient` with auth and DPoP
+- `multi-facilitator.ts` - Standalone example showing Agentic Pay + default facilitator routing
 - `shared-logger.ts` - Unified logging for all examples
 
 ## Logs
@@ -79,6 +79,6 @@ Change ports by editing the respective files:
 ## Requirements
 
 - Node.js 18+
-- Both `@x402/core` and `@x402/fab` packages (examples use local source)
+- Both `@x402/core` and `@x402/aws-agentic-pay` packages (examples use local source)
 - All dependencies installed (`npm install`)
 - Ports 3001 and 3002 available

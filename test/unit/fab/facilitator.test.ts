@@ -1,29 +1,29 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as jose from 'jose';
-import { FABScheme } from '../../../src/fab/facilitator/scheme';
-import { verifyPayment } from '../../../src/fab/facilitator/verify';
-import { settlePayment } from '../../../src/fab/facilitator/settle';
+import { AgenticPayScheme } from '../../../src/agentic-pay/facilitator/scheme';
+import { verifyPayment } from '../../../src/agentic-pay/facilitator/verify';
+import { settlePayment } from '../../../src/agentic-pay/facilitator/settle';
 import type { AgenticPayClient } from '../../../src/config';
 import type { PaymentPayload, PaymentRequirements } from '@x402/core/types';
-import type { FABPayloadV2 } from '../../../src/types';
-import { FAB_SCHEME } from '../../../src/constants';
-import { FAB_SENTINEL_PAY_TO } from '../../../src/constants';
+import type { AgenticPayPayloadV2 } from '../../../src/types';
+import { AGENTIC_PAY_SCHEME } from '../../../src/constants';
+import { AGENTIC_PAY_SENTINEL_PAY_TO } from '../../../src/constants';
 import { createMockAgenticPayClient } from '../../helpers/mock-agentic-pay-client';
 import { clearServiceJWKSCache } from '../../../src/utils';
 
 /**
- * FAB Facilitator Unit Tests
+ * Agentic Pay Facilitator Unit Tests
  * 
  * Tests the facilitator scheme with mock Agentic Pay client.
  * In production, the facilitator fetches the Agentic Pay's public key from JWKS endpoint
  * and calls the Agentic Pay provider's API to verify and capture payments.
  */
 
-describe('FAB Facilitator Scheme', () => {
+describe('Agentic Pay Facilitator Scheme', () => {
   let agenticPayClient: AgenticPayClient;
   let privateKey: jose.KeyLike;
   let publicKey: jose.KeyLike;
-  let scheme: FABScheme;
+  let scheme: AgenticPayScheme;
   const agenticPayId = 'agentic-pay-test-456';
   const mockFetch = vi.fn();
 
@@ -37,7 +37,7 @@ describe('FAB Facilitator Scheme', () => {
     privateKey = mock.privateKey;
     publicKey = mock.publicKey;
 
-    scheme = new FABScheme({
+    scheme = new AgenticPayScheme({
       agenticPayId,
       agenticPayClient
     });
@@ -120,7 +120,7 @@ describe('FAB Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -173,7 +173,7 @@ describe('FAB Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -229,7 +229,7 @@ describe('FAB Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -238,12 +238,12 @@ describe('FAB Facilitator Scheme', () => {
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
 
-      const fabPayload: FABPayloadV2 = {
+      const apPayload: AgenticPayPayloadV2 = {
         paymentToken,
         transactionId
       };
 
-      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, apPayload);
       expect(result.isValid).toBe(true);
       expect(result.payer).toBe(agenticPayId);
     });
@@ -291,7 +291,7 @@ describe('FAB Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -300,12 +300,12 @@ describe('FAB Facilitator Scheme', () => {
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
 
-      const fabPayload: FABPayloadV2 = {
+      const apPayload: AgenticPayPayloadV2 = {
         paymentToken,
         transactionId
       };
 
-      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, apPayload);
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe('verification_failed');
     });
@@ -349,7 +349,7 @@ describe('FAB Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -358,12 +358,12 @@ describe('FAB Facilitator Scheme', () => {
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
 
-      const fabPayload: FABPayloadV2 = {
+      const apPayload: AgenticPayPayloadV2 = {
         paymentToken,
         transactionId
       };
 
-      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, apPayload);
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe('verification_failed');
     });
@@ -407,7 +407,7 @@ describe('FAB Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -416,12 +416,12 @@ describe('FAB Facilitator Scheme', () => {
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
 
-      const fabPayload: FABPayloadV2 = {
+      const apPayload: AgenticPayPayloadV2 = {
         paymentToken,
         transactionId
       };
 
-      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, apPayload);
       expect(result.isValid).toBe(true);
     });
 
@@ -464,7 +464,7 @@ describe('FAB Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -473,12 +473,12 @@ describe('FAB Facilitator Scheme', () => {
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
 
-      const fabPayload: FABPayloadV2 = {
+      const apPayload: AgenticPayPayloadV2 = {
         paymentToken,
         transactionId
       };
 
-      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, apPayload);
       expect(result.isValid).toBe(true);
     });
 
@@ -538,7 +538,7 @@ describe('FAB Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -547,13 +547,13 @@ describe('FAB Facilitator Scheme', () => {
         extra: { quoteToken: correctQuoteToken } as unknown as Record<string, unknown> // Expecting correct quote
       };
 
-      const fabPayload: FABPayloadV2 = {
+      const apPayload: AgenticPayPayloadV2 = {
         paymentToken,
         paymentId: transactionId,
         transactionId
       };
 
-      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, apPayload);
       // New verify logic doesn't compare quote tokens from payment_context vs requirements
       // It only checks that requirements.extra.quoteToken exists and verifies the payment token signature
       expect(result.isValid).toBe(true);
@@ -601,7 +601,7 @@ describe('FAB Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -610,13 +610,13 @@ describe('FAB Facilitator Scheme', () => {
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
 
-      const fabPayload: FABPayloadV2 = {
+      const apPayload: AgenticPayPayloadV2 = {
         paymentToken,
         paymentId: differentTransactionId,
         transactionId: differentTransactionId
       };
 
-      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, apPayload);
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe('verification_failed');
       expect(result.invalidMessage).toContain('Payment ID mismatch');
@@ -662,7 +662,7 @@ describe('FAB Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -671,7 +671,7 @@ describe('FAB Facilitator Scheme', () => {
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
 
-      const fabPayload: FABPayloadV2 = {
+      const apPayload: AgenticPayPayloadV2 = {
         paymentToken,
         paymentId: transactionId,
         transactionId
@@ -679,7 +679,7 @@ describe('FAB Facilitator Scheme', () => {
 
       // New verify logic doesn't require quote_token inside payment_context.
       // It only checks requirements.extra.quoteToken exists and verifies the payment token signature.
-      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, apPayload);
       expect(result.isValid).toBe(true);
     });
   });
@@ -697,7 +697,7 @@ describe('FAB Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -706,12 +706,12 @@ describe('FAB Facilitator Scheme', () => {
         extra: {}
       };
 
-      const fabPayload: FABPayloadV2 = {
+      const apPayload: AgenticPayPayloadV2 = {
         paymentToken: 'token',
         transactionId
       };
 
-      const result = await settlePayment(agenticPayClient, payload, requirements, fabPayload);
+      const result = await settlePayment(agenticPayClient, payload, requirements, apPayload);
       expect(result.success).toBe(true);
       expect(result.transaction).toBe(transactionId);
       expect(result.network).toBe('fab:test');
@@ -728,7 +728,7 @@ describe('FAB Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'fab:test',
         amount: '2.50',
         asset: 'iso4217:USD',
@@ -737,12 +737,12 @@ describe('FAB Facilitator Scheme', () => {
         extra: {}
       };
 
-      const fabPayload: FABPayloadV2 = {
+      const apPayload: AgenticPayPayloadV2 = {
         paymentToken: 'token',
         transactionId
       };
 
-      const result = await settlePayment(agenticPayClient, payload, requirements, fabPayload);
+      const result = await settlePayment(agenticPayClient, payload, requirements, apPayload);
       expect(result.success).toBe(true);
       expect(result.transaction).toBe(transactionId);
     });
@@ -758,7 +758,7 @@ describe('FAB Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'fab:test',
         amount: '3.50',
         asset: 'iso4217:USD',
@@ -767,12 +767,12 @@ describe('FAB Facilitator Scheme', () => {
         extra: {}
       };
 
-      const fabPayload: FABPayloadV2 = {
+      const apPayload: AgenticPayPayloadV2 = {
         paymentToken: 'token',
         transactionId
       };
 
-      const result = await settlePayment(agenticPayClient, payload, requirements, fabPayload);
+      const result = await settlePayment(agenticPayClient, payload, requirements, apPayload);
       // Current implementation always succeeds, but structure is correct
       expect(result).toHaveProperty('success');
       expect(result).toHaveProperty('transaction');
@@ -821,21 +821,21 @@ describe('FAB Facilitator Scheme', () => {
 
       // Use sentinel payTo — this is what the server scheme now produces
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
-        payTo: FAB_SENTINEL_PAY_TO,
+        payTo: AGENTIC_PAY_SENTINEL_PAY_TO,
         maxTimeoutSeconds: 300,
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
 
-      const fabPayload: FABPayloadV2 = {
+      const apPayload: AgenticPayPayloadV2 = {
         paymentToken,
         transactionId
       };
 
-      const result = await verifyPayment(agenticPayClient, payload, requirements, fabPayload);
+      const result = await verifyPayment(agenticPayClient, payload, requirements, apPayload);
       expect(result.isValid).toBe(true);
       expect(result.payer).toBe(agenticPayId);
     });
@@ -852,21 +852,21 @@ describe('FAB Facilitator Scheme', () => {
 
       // Use sentinel payTo
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
-        payTo: FAB_SENTINEL_PAY_TO,
+        payTo: AGENTIC_PAY_SENTINEL_PAY_TO,
         maxTimeoutSeconds: 300,
         extra: {}
       };
 
-      const fabPayload: FABPayloadV2 = {
+      const apPayload: AgenticPayPayloadV2 = {
         paymentToken: 'token',
         transactionId
       };
 
-      const result = await settlePayment(agenticPayClient, payload, requirements, fabPayload);
+      const result = await settlePayment(agenticPayClient, payload, requirements, apPayload);
       expect(result.success).toBe(true);
       expect(result.transaction).toBe(transactionId);
     });

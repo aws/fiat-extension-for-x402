@@ -1,5 +1,5 @@
 /**
- * Shared Logger for FAB Payment Flow
+ * Shared Logger for Agentic Pay Payment Flow
  * 
  * Provides centralized logging for Agentic Pay, service, and client
  * to create a complete, verifiable payment flow log.
@@ -36,7 +36,7 @@ export function initFlowLog() {
   }
   const header = `
 ${'='.repeat(100)}
-FAB PAYMENT FLOW LOG
+AGENTIC PAY PAYMENT FLOW LOG
 Started: ${new Date().toISOString()}
 ${'='.repeat(100)}
 

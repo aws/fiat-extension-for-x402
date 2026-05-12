@@ -1,7 +1,7 @@
 /**
- * Signer interfaces and adapters for FAB JWT operations
+ * Signer interfaces and adapters for Agentic Pay JWT operations
  * 
- * FAB uses JWT signing instead of crypto Agentic Pay signing.
+ * Agentic Pay uses JWT signing instead of crypto Agentic Pay signing.
  * This module provides interfaces and adapter functions for both
  * service-side (quote token signing) and Agentic Pay-side (payment token signing).
  */
@@ -12,7 +12,7 @@ import { QuoteTokenPayload, PaymentTokenPayload } from './types';
 /**
  * Signer for service-side operations (quote token signing)
  */
-export interface ServiceFABSigner {
+export interface ServiceAgenticPaySigner {
   /**
    * Sign a quote token JWT
    * @param payload - Quote token payload to sign
@@ -36,7 +36,7 @@ export interface ServiceFABSigner {
 /**
  * Signer for Agentic Pay-side operations (payment token signing)
  */
-export interface AgenticPayFABSigner {
+export interface AgenticPaySigner {
   /**
    * Sign a payment token JWT
    * @param payload - Payment token payload to sign
@@ -58,12 +58,12 @@ export interface AgenticPayFABSigner {
 }
 
 /**
- * Convert a jose KeyLike to a ServiceFABSigner
+ * Convert a jose KeyLike to a ServiceAgenticPaySigner
  * 
  * @param privateKey - Private key for signing (RS256 or ES256)
  * @param publicKey - Public key in JWK format
  * @param serviceUrl - Service URL (issuer)
- * @returns ServiceFABSigner instance
+ * @returns ServiceAgenticPaySigner instance
  * 
  * @example
  * ```typescript
@@ -72,18 +72,18 @@ export interface AgenticPayFABSigner {
  * const { privateKey, publicKey } = await generateKeyPair('RS256');
  * const publicJWK = await exportJWK(publicKey);
  * 
- * const signer = toServiceFABSigner(
+ * const signer = toServiceAgenticPaySigner(
  *   privateKey,
  *   publicJWK,
  *   'https://api.service.com'
  * );
  * ```
  */
-export function toServiceFABSigner(
+export function toServiceAgenticPaySigner(
   privateKey: jose.KeyLike,
   publicKey: jose.JWK,
   serviceUrl: string
-): ServiceFABSigner {
+): ServiceAgenticPaySigner {
   return {
     async signQuote(payload: QuoteTokenPayload): Promise<string> {
       return await new jose.SignJWT(payload as any)
@@ -100,12 +100,12 @@ export function toServiceFABSigner(
 }
 
 /**
- * Convert a jose KeyLike to a AgenticPayFABSigner
+ * Convert a jose KeyLike to a AgenticPaySigner
  * 
  * @param privateKey - Private key for signing (RS256 or ES256)
  * @param publicKey - Public key in JWK format
  * @param agenticPayId - Agentic Pay identifier
- * @returns AgenticPayFABSigner instance
+ * @returns AgenticPaySigner instance
  * 
  * @example
  * ```typescript
@@ -114,18 +114,18 @@ export function toServiceFABSigner(
  * const { privateKey, publicKey } = await generateKeyPair('RS256');
  * const publicJWK = await exportJWK(publicKey);
  * 
- * const signer = toAgenticPayFABSigner(
+ * const signer = toAgenticPaySigner(
  *   privateKey,
  *   publicJWK,
  *   'agentic-pay-provider-id'
  * );
  * ```
  */
-export function toAgenticPayFABSigner(
+export function toAgenticPaySigner(
   privateKey: jose.KeyLike,
   publicKey: jose.JWK,
   agenticPayId: string
-): AgenticPayFABSigner {
+): AgenticPaySigner {
   return {
     async signPayment(payload: PaymentTokenPayload): Promise<string> {
       return await new jose.SignJWT(payload as any)

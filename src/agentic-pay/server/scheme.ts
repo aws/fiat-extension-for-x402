@@ -1,7 +1,7 @@
 /**
- * FAB Server Scheme Implementation
+ * Agentic Pay Server Scheme Implementation
  * 
- * In FAB, the "server" role is played by the resource service,
+ * In Agentic Pay, the "server" role is played by the resource service,
  * which generates 402 responses with quote tokens.
  */
 
@@ -13,40 +13,40 @@ import {
   Price,
   SchemeNetworkServer
 } from '@x402/core/types';
-import type { FABServerSchemeConfig, SigningKeysConfig, ServiceFABSigner } from '../../config';
-import { toServiceFABSigner } from '../../signer';
-import { QuoteTokenPayload, FABPaymentExtra, ValidationError } from '../../types';
+import type { AgenticPayServerSchemeConfig, SigningKeysConfig, ServiceAgenticPaySigner } from '../../config';
+import { toServiceAgenticPaySigner } from '../../signer';
+import { QuoteTokenPayload, AgenticPayPaymentExtra, ValidationError } from '../../types';
 import { parseMoneyToDecimal } from '../../utils';
-import { DEFAULT_QUOTE_VALIDITY_SECONDS, FAB_SCHEME, FAB_SENTINEL_PAY_TO } from '../../constants';
+import { DEFAULT_QUOTE_VALIDITY_SECONDS, AGENTIC_PAY_SCHEME, AGENTIC_PAY_SENTINEL_PAY_TO } from '../../constants';
 
 // Use Node.js crypto for UUID generation
 const crypto = webcrypto;
 
 /**
- * FAB server implementation for resource services.
+ * Agentic Pay server implementation for resource services.
  * Generates 402 responses with quote tokens.
  */
-export class FABScheme implements SchemeNetworkServer {
-  readonly scheme = FAB_SCHEME;
-  private readonly signer: ServiceFABSigner;
+export class AgenticPayScheme implements SchemeNetworkServer {
+  readonly scheme = AGENTIC_PAY_SCHEME;
+  private readonly signer: ServiceAgenticPaySigner;
 
   /**
-   * Create a new FAB server scheme
+   * Create a new Agentic Pay server scheme
    * @param config - Server configuration with signing keys or custom signer
    */
-  constructor(config: FABServerSchemeConfig) {
+  constructor(config: AgenticPayServerSchemeConfig) {
     // Determine if we have a custom signer or need to create default
     if ('signer' in config) {
       this.signer = config.signer;
     } else if ('signingKeys' in config && 'serviceUrl' in config) {
       // Create default signer from config using adapter function
-      this.signer = toServiceFABSigner(
+      this.signer = toServiceAgenticPaySigner(
         config.signingKeys.privateKey,
         config.signingKeys.publicKey,
         config.serviceUrl
       );
     } else {
-      throw new ValidationError('FABServerScheme requires either signer or signingKeys + serviceUrl');
+      throw new ValidationError('AgenticPayServerScheme requires either signer or signingKeys + serviceUrl');
     }
   }
 
@@ -74,7 +74,7 @@ export class FABScheme implements SchemeNetworkServer {
   }
 
   /**
-   * Enhance payment requirements with FAB-specific data
+   * Enhance payment requirements with Agentic Pay-specific data
    * 
    * @param paymentRequirements - Base payment requirements
    * @param supportedKind - Supported kind from facilitator
@@ -120,18 +120,18 @@ export class FABScheme implements SchemeNetworkServer {
     const quoteToken = await this.signer.signQuote(quotePayload);
 
     // Add quote token to extra
-    const extra: FABPaymentExtra = {
+    const extra: AgenticPayPaymentExtra = {
       ...paymentRequirements.extra,
       quoteToken
     };
 
     // Return enhanced requirements with sentinel values for fields that are
-    // redundant in FAB. The signed quote token is the authoritative source for
+    // redundant in Agentic Pay. The signed quote token is the authoritative source for
     // payment recipient (payTo) and validity window (exp - iat).
     // See spec §2.4 "Sentinel Value Convention for x402 Core Fields".
     return {
       ...paymentRequirements,
-      payTo: FAB_SENTINEL_PAY_TO,
+      payTo: AGENTIC_PAY_SENTINEL_PAY_TO,
       maxTimeoutSeconds: quotePayload.exp - quotePayload.iat,
       extra: extra as unknown as Record<string, unknown>
     };

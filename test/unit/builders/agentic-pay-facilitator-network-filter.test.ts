@@ -7,12 +7,12 @@ vi.stubGlobal('fetch', mockFetch);
 
 const AGENTIC_PAY_SUPPORTED_RESPONSE = {
   kinds: [
-    { x402Version: 2, scheme: 'fab', network: 'fab:aws', extra: { agenticPayId: 'w1' } },
-    { x402Version: 2, scheme: 'fab', network: 'fab:test', extra: { agenticPayId: 'w1' } },
-    { x402Version: 2, scheme: 'fab', network: 'eip155:8453', extra: { agenticPayId: 'w1' } },
+    { x402Version: 2, scheme: 'aws:marketplace', network: 'fab:aws', extra: { agenticPayId: 'w1' } },
+    { x402Version: 2, scheme: 'aws:marketplace', network: 'fab:test', extra: { agenticPayId: 'w1' } },
+    { x402Version: 2, scheme: 'aws:marketplace', network: 'eip155:8453', extra: { agenticPayId: 'w1' } },
   ],
   extensions: [],
-  signers: { 'fab:*': ['w1'] },
+  signers: { 'aws:*': ['w1'] },
 };
 
 describe('AgenticPayFacilitatorClient networkFilter', () => {

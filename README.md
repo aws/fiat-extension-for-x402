@@ -1,10 +1,10 @@
-# FAB x402 Extension
+# Agentic Pay x402 Extension
 
-TypeScript extension for the x402 protocol that adds support for FAB (Federated Application Billing) - fiat payments through trusted Agentic Pay providers.
+TypeScript extension for the x402 protocol that adds support for Agentic Pay - fiat payments through trusted Agentic Pay providers.
 
-## What is FAB?
+## What is Agentic Pay?
 
-FAB enables HTTP APIs to accept fiat payments (USD, EUR, etc.) using the x402 protocol. Instead of cryptocurrency, FAB uses trusted Agentic Pay providers (like AWS Agentic Pay) that handle the actual money movement, while your API just verifies signed payment tokens.
+Agentic Pay enables HTTP APIs to accept fiat payments (USD, EUR, etc.) using the x402 protocol. Instead of cryptocurrency, Agentic Pay uses trusted Agentic Pay providers (like AWS Agentic Pay) that handle the actual money movement, while your API just verifies signed payment tokens.
 
 ## Requirements
 
@@ -15,29 +15,29 @@ FAB enables HTTP APIs to accept fiat payments (USD, EUR, etc.) using the x402 pr
 
 ## Installation
 
-FAB is an extension for the x402 protocol. You need to install both packages:
+Agentic Pay is an extension for the x402 protocol. You need to install both packages:
 
 ```bash
-npm install @x402/core @x402/fab
+npm install @x402/core @x402/aws-agentic-pay
 ```
 
-The `@x402/core` package provides the base protocol implementation (`x402Client`, `x402ResourceServer`, `x402Facilitator`), while `@x402/fab` adds FAB-specific payment schemes.
+The `@x402/core` package provides the base protocol implementation (`x402Client`, `x402ResourceServer`, `x402Facilitator`), while `@x402/aws-agentic-pay` adds Agentic Pay payment schemes.
 
 ## Quick Start
 
 ### For API Providers (Accepting Payments)
 
-Protect your endpoints with FAB payment requirements:
+Protect your endpoints with Agentic Pay payment requirements:
 
 ```typescript
-import { createFABResourceServer } from '@x402/fab';
+import { createAgenticPayResourceServer } from '@x402/aws-agentic-pay';
 import * as jose from 'jose';
 
 // Generate signing keys for quote tokens
 const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
 
 // Create server with base config
-const fabServer = createFABResourceServer({
+const apServer = createAgenticPayResourceServer({
   agenticPayBaseUrl: 'https://pay.aws.amazon.com',
   agenticPayId: 'your-agentic-pay-id',
   signingKeys: {
@@ -49,17 +49,17 @@ const fabServer = createFABResourceServer({
 });
 
 // Register networks individually — easy to extend later
-fabServer.registerNetwork('aws:marketplace');
-fabServer.registerNetwork('eip155:8453');
+apServer.registerNetwork('aws:marketplace');
+apServer.registerNetwork('eip155:8453');
 
 // Initialize (fetches supported kinds from facilitators)
 // Networks not registered (e.g., solana:mainnet) automatically
 // fall back to the official x402 facilitator at https://x402.org/facilitator
-const server = await fabServer.initialize();
+const server = await apServer.initialize();
 
 // In your API endpoint
 const requirements = await server.buildPaymentRequirements({
-  scheme: 'fab',
+  scheme: 'aws:marketplace',
   network: 'aws:marketplace',
   payTo: 'your-agentic-pay-id',
   price: 0.15,
@@ -83,10 +83,10 @@ if (result.isValid) {
 Pay for protected endpoints using your Agentic Pay:
 
 ```typescript
-import { createFABClient } from '@x402/fab';
+import { createAgenticPayClient } from '@x402/aws-agentic-pay';
 
 // Create client with base config
-const fabClient = createFABClient({
+const apClient = createAgenticPayClient({
   agenticPayBaseUrl: 'https://pay.aws.amazon.com',
   agenticPayId: 'your-agentic-pay-id',
   agenticPayAuth: {
@@ -96,11 +96,11 @@ const fabClient = createFABClient({
 });
 
 // Register networks
-fabClient.registerNetwork('aws:marketplace');
-fabClient.registerNetwork('eip155:8453');
+apClient.registerNetwork('aws:marketplace');
+apClient.registerNetwork('eip155:8453');
 
 // When you receive a 402 response
-const paymentPayload = await fabClient.createPaymentPayload(paymentRequired);
+const paymentPayload = await apClient.createPaymentPayload(paymentRequired);
 
 // Retry request with payment
 const response = await fetch(resourceUrl, {
@@ -112,38 +112,38 @@ const response = await fetch(resourceUrl, {
 
 ## Multi-Facilitator Routing
 
-FAB supports network-aware facilitator routing. You register which networks FAB should handle, and everything else falls back to the default x402 facilitator automatically.
+Agentic Pay supports network-aware facilitator routing. You register which networks Agentic Pay should handle, and everything else falls back to the default x402 facilitator automatically.
 
 ```typescript
-import { createFABResourceServer } from '@x402/fab';
+import { createAgenticPayResourceServer } from '@x402/aws-agentic-pay';
 
-const fabServer = createFABResourceServer({
+const apServer = createAgenticPayResourceServer({
   agenticPayBaseUrl: 'https://pay.aws.amazon.com',
   agenticPayId: 'my-agentic-pay',
   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
   serviceUrl: 'https://api.example.com',
 });
 
-// FAB handles these networks via your Agentic Pay provider
-fabServer.registerNetwork('aws:marketplace');
-fabServer.registerNetwork('eip155:8453');
+// Agentic Pay handles these networks via your Agentic Pay provider
+apServer.registerNetwork('aws:marketplace');
+apServer.registerNetwork('eip155:8453');
 
 // Networks not registered (e.g., solana:mainnet) automatically
 // fall back to the official x402 facilitator at https://x402.org/facilitator
-const server = await fabServer.initialize();
+const server = await apServer.initialize();
 ```
 
-The precedence model works because `x402ResourceServer` accepts multiple facilitator clients. During `initialize()`, the FAB facilitator claims its networks first, and the default facilitator fills in the rest. A `networkFilter` on `AgenticPayFacilitatorClient` ensures Agentic Pay only claims the networks you explicitly registered.
+The precedence model works because `x402ResourceServer` accepts multiple facilitator clients. During `initialize()`, the Agentic Pay facilitator claims its networks first, and the default facilitator fills in the rest. A `networkFilter` on `AgenticPayFacilitatorClient` ensures Agentic Pay only claims the networks you explicitly registered.
 
 ### One-Liner (Convenience Builder)
 
-If you prefer a single call, the legacy `buildFABResourceServer` still works:
+If you prefer a single call, the legacy `buildAgenticPayResourceServer` still works:
 
 ```typescript
-import { buildFABResourceServer } from '@x402/fab';
+import { buildAgenticPayResourceServer } from '@x402/aws-agentic-pay';
 
-const server = await buildFABResourceServer({
-  fabNetworks: ['aws:marketplace', 'eip155:8453'],
+const server = await buildAgenticPayResourceServer({
+  networks: ['aws:marketplace', 'eip155:8453'],
   agenticPayBaseUrl: 'https://pay.aws.amazon.com',
   agenticPayId: 'my-agentic-pay',
   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
@@ -157,13 +157,13 @@ If you need more control, you can still register schemes manually:
 
 ```typescript
 import { x402ResourceServer } from '@x402/core/server';
-import { FABServerScheme, AgenticPayFacilitatorClient, registerFABNetworks } from '@x402/fab';
+import { AgenticPayServerScheme, AgenticPayFacilitatorClient, registerAgenticPayNetworks } from '@x402/aws-agentic-pay';
 
 const facilitatorClient = new AgenticPayFacilitatorClient('https://pay.aws.amazon.com');
 const server = new x402ResourceServer(facilitatorClient);
 
-// Helper to register FAB for multiple networks in one call
-registerFABNetworks(server, ['aws:marketplace', 'eip155:8453'], {
+// Helper to register Agentic Pay for multiple networks in one call
+registerAgenticPayNetworks(server, ['aws:marketplace', 'eip155:8453'], {
   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
   serviceUrl: 'https://api.example.com',
 });
@@ -173,7 +173,7 @@ await server.initialize();
 
 ## Authentication
 
-FAB supports multiple authentication methods for Agentic Pay communication:
+Agentic Pay supports multiple authentication methods for Agentic Pay communication:
 
 ### API Key (Simplest)
 
@@ -242,7 +242,7 @@ All authentication methods are documented in the [spec.md](./docs/spec.md#310-au
 DPoP binds payment tokens to client keys, preventing token theft:
 
 ```typescript
-import { generateDPoPKeyPair, createDPoPProof, verifyDPoPProof } from '@x402/fab';
+import { generateDPoPKeyPair, createDPoPProof, verifyDPoPProof } from '@x402/aws-agentic-pay';
 
 // Generate ephemeral key pair
 const dpopKeyPair = await generateDPoPKeyPair('ES256');
@@ -274,7 +274,7 @@ DPoP implementation details are in the [spec.md](./docs/spec.md#311-dpop-demonst
 For most use cases, provide signing keys directly:
 
 ```typescript
-new FABServerScheme({
+new AgenticPayServerScheme({
   signingKeys: {
     privateKey,
     publicKey: publicJWK,
@@ -289,9 +289,9 @@ new FABServerScheme({
 For external key management (AWS KMS, HSM, etc.):
 
 ```typescript
-import { ServiceFABSigner } from '@x402/fab';
+import { ServiceAgenticPaySigner } from '@x402/aws-agentic-pay';
 
-const customSigner: ServiceFABSigner = {
+const customSigner: ServiceAgenticPaySigner = {
   signQuote: async (payload) => {
     // Sign with KMS, HSM, etc.
     return signedJWT;
@@ -300,7 +300,7 @@ const customSigner: ServiceFABSigner = {
   getServiceUrl: () => 'https://api.example.com'
 };
 
-new FABServerScheme({ signer: customSigner })
+new AgenticPayServerScheme({ signer: customSigner })
 ```
 
 ### Preconfigured Networks
@@ -308,11 +308,11 @@ new FABServerScheme({ signer: customSigner })
 For known Agentic Pay providers:
 
 ```typescript
-import { FABAWSClientScheme, FABAWSServerScheme } from '@x402/fab';
+import { AgenticPayAWSClientScheme, AgenticPayAWSServerScheme } from '@x402/aws-agentic-pay';
 
 // AWS Agentic Pay preconfigured
-const client = new FABAWSClientScheme({ agenticPayId: 'your-agentic-pay-id' });
-const server = new FABAWSServerScheme({ signingKeys, serviceUrl });
+const client = new AgenticPayAWSClientScheme({ agenticPayId: 'your-agentic-pay-id' });
+const server = new AgenticPayAWSServerScheme({ signingKeys, serviceUrl });
 ```
 
 ## Payment Flow
@@ -329,7 +329,7 @@ Agent Pay auto-captures on creation — there is no separate settlement step.
 
 ## Agent Pay Integration
 
-FAB integrates with the AWS Marketplace Agent Pay Service. The SDK communicates with the following API:
+Agentic Pay integrates with the AWS Marketplace Agent Pay Service. The SDK communicates with the following API:
 
 ### Agent Pay API Endpoints
 
@@ -347,7 +347,7 @@ FAB integrates with the AWS Marketplace Agent Pay Service. The SDK communicates 
 
 ### Security Model
 
-FAB's security is based on cryptographic signatures:
+Agentic Pay's security is based on cryptographic signatures:
 
 1. **Payment token signature** - Proves Agent Pay authorized the transaction (ES384, KMS-backed)
 2. **Quote token signature** - Proves the service issued the quote (RS256 or ES256)
@@ -387,12 +387,12 @@ For the simplest server-side integration, use the Express middleware:
 
 ```typescript
 import express from 'express';
-import { fabPaymentMiddleware } from '@x402/fab';
+import { agenticPayMiddleware } from '@x402/aws-agentic-pay';
 
 const app = express();
 app.use(express.json());
 
-app.use(fabPaymentMiddleware({
+app.use(agenticPayMiddleware({
   agenticPayBaseUrl: 'https://pay.aws.amazon.com',
   agenticPayId: 'my-agentic-pay',
   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
@@ -407,9 +407,9 @@ app.use(fabPaymentMiddleware({
   },
 }));
 
-// Route handler — req.fabPayment is set after successful verification
+// Route handler — req.agenticPayPayment is set after successful verification
 app.get('/api/premium', (req, res) => {
-  res.json({ data: 'premium content', paidBy: req.fabPayment?.payer });
+  res.json({ data: 'premium content', paidBy: req.agenticPayPayment?.payer });
 });
 ```
 
@@ -442,7 +442,7 @@ See [examples/README.md](./examples/README.md) for details.
 ### Client Configuration
 
 ```typescript
-interface FABClientSchemeConfig {
+interface AgenticPayClientSchemeConfig {
   agenticPayId: string;                    // Your Agentic Pay identifier
   // Option A: Provide Agentic Pay config (DefaultAgenticPayClient created automatically)
   Agentic Pay: {
@@ -457,7 +457,7 @@ interface FABClientSchemeConfig {
 ### Server Configuration
 
 ```typescript
-type FABServerSchemeConfig =
+type AgenticPayServerSchemeConfig =
   // Option A: Provide signing keys (signer created automatically)
   | {
       signingKeys: {
@@ -469,13 +469,13 @@ type FABServerSchemeConfig =
       Agentic Pay?: { baseUrl: string };
     }
   // Option B: Provide a custom signer
-  | { signer: ServiceFABSigner };
+  | { signer: ServiceAgenticPaySigner };
 ```
 
 ### Payment Requirements Extra
 
 ```typescript
-interface FABPaymentExtra {
+interface AgenticPayPaymentExtra {
   quoteToken: string;                  // Signed JWT from service (auto-generated)
   capture?: 'manual' | 'auto';        // Capture mode (default: 'manual')
   reference?: string;                  // Payment reference
@@ -497,7 +497,7 @@ interface FABPaymentExtra {
 ## Error Handling
 
 ```typescript
-import { ValidationError, SignatureError, ExpiryError } from '@x402/fab';
+import { ValidationError, SignatureError, ExpiryError } from '@x402/aws-agentic-pay';
 
 try {
   await server.verifyPayment(paymentPayload, accepted);
@@ -546,7 +546,7 @@ Core implementation complete (v0.2.0):
 - Client token idempotency support
 - DPoP proof-of-possession (EC keys: P-256, P-384, P-521)
 - Authentication (API Key, OAuth2, AWS SigV4, Custom)
-- Express middleware (`fabPaymentMiddleware`)
+- Express middleware (`agenticPayMiddleware`)
 - Network-aware facilitator routing with default fallback
 - Quote token extensions (description, dimensions)
 - Sentinel values for redundant x402 core fields

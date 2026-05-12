@@ -14,13 +14,13 @@
 import { describe, it, expect } from 'vitest';
 import * as jose from 'jose';
 import { createMockAgenticPayClient } from '../helpers/mock-agentic-pay-client';
-import { FABScheme as FABClientScheme } from '../../src/fab/client/scheme';
-import { FABScheme as FABServerScheme } from '../../src/fab/server/scheme';
-import { settlePayment } from '../../src/fab/facilitator/settle';
+import { AgenticPayScheme as AgenticPayClientSchemeImpl } from '../../src/agentic-pay/client/scheme';
+import { AgenticPayScheme as AgenticPayServerSchemeImpl } from '../../src/agentic-pay/server/scheme';
+import { settlePayment } from '../../src/agentic-pay/facilitator/settle';
 import { generateDPoPKeyPair, toDpopJwk } from '../../src/dpop';
 import {
   DEFAULT_NETWORK,
-  FAB_SCHEME,
+  AGENTIC_PAY_SCHEME,
   DEFAULT_QUOTE_VALIDITY_SECONDS,
 } from '../../src/constants';
 import { IdempotencyConflictError, ValidationError } from '../../src/types';
@@ -30,7 +30,7 @@ describe('Agent Pay API Integration', () => {
   describe('Task 32: CreateAgentPayment API shape', () => {
     it('client sends only quoteToken, clientToken, dpopJwk to Agent Pay', async () => {
       const mock = await createMockAgenticPayClient('test-pay');
-      const scheme = new FABClientScheme({
+      const scheme = new AgenticPayClientSchemeImpl({
         agenticPayId: 'test-pay',
         agenticPayClient: mock.agenticPayClient,
       });
@@ -48,11 +48,11 @@ describe('Agent Pay API Integration', () => {
       } as any).setProtectedHeader({ alg: 'RS256' }).sign(mock.privateKey);
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'aws:marketplace',
         amount: '0.01',
         asset: 'iso4217:USD',
-        payTo: 'urn:x402:fab:see-quote',
+        payTo: 'urn:x402:agentic-pay:see-quote',
         maxTimeoutSeconds: 300,
         extra: { quoteToken } as unknown as Record<string, unknown>,
       };
@@ -193,7 +193,7 @@ describe('Agent Pay API Integration', () => {
 
     it('client scheme auto-generates clientToken', async () => {
       const mock = await createMockAgenticPayClient('test-pay');
-      const scheme = new FABClientScheme({
+      const scheme = new AgenticPayClientSchemeImpl({
         agenticPayId: 'test-pay',
         agenticPayClient: mock.agenticPayClient,
       });
@@ -206,9 +206,9 @@ describe('Agent Pay API Integration', () => {
       } as any).setProtectedHeader({ alg: 'RS256' }).sign(mock.privateKey);
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME, network: 'aws:marketplace',
+        scheme: AGENTIC_PAY_SCHEME, network: 'aws:marketplace',
         amount: '0.01', asset: 'iso4217:USD',
-        payTo: 'urn:x402:fab:see-quote', maxTimeoutSeconds: 300,
+        payTo: 'urn:x402:agentic-pay:see-quote', maxTimeoutSeconds: 300,
         extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
@@ -238,7 +238,7 @@ describe('Agent Pay API Integration', () => {
         mock.agenticPayClient,
         { x402Version: 2, payload: {} as any },
         {
-          scheme: 'fab', network: 'aws:marketplace',
+          scheme: 'aws:marketplace', network: 'aws:marketplace',
           amount: '1.00', asset: 'iso4217:USD',
           payTo: 'seller', maxTimeoutSeconds: 300, extra: {},
         },
@@ -258,13 +258,13 @@ describe('Agent Pay API Integration', () => {
         (await jose.generateKeyPair('RS256')).publicKey
       );
 
-      const serverScheme = new FABServerScheme({
+      const serverScheme = new AgenticPayServerSchemeImpl({
         signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
         serviceUrl: 'https://api.example.com',
       });
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'aws:marketplace',
         amount: '0.50',
         asset: 'iso4217:USD',
@@ -278,7 +278,7 @@ describe('Agent Pay API Integration', () => {
 
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
-        { x402Version: 2, scheme: 'fab', network: 'aws:marketplace' as any },
+        { x402Version: 2, scheme: 'aws:marketplace', network: 'aws:marketplace' as any },
         [],
       );
 
@@ -295,13 +295,13 @@ describe('Agent Pay API Integration', () => {
         (await jose.generateKeyPair('RS256')).publicKey
       );
 
-      const serverScheme = new FABServerScheme({
+      const serverScheme = new AgenticPayServerSchemeImpl({
         signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
         serviceUrl: 'https://api.example.com',
       });
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'aws:marketplace',
         amount: '0.50',
         asset: 'iso4217:USD',
@@ -312,7 +312,7 @@ describe('Agent Pay API Integration', () => {
 
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
-        { x402Version: 2, scheme: 'fab', network: 'aws:marketplace' as any },
+        { x402Version: 2, scheme: 'aws:marketplace', network: 'aws:marketplace' as any },
         [],
       );
 
@@ -328,14 +328,14 @@ describe('Agent Pay API Integration', () => {
         (await jose.generateKeyPair('RS256')).publicKey
       );
 
-      const serverScheme = new FABServerScheme({
+      const serverScheme = new AgenticPayServerSchemeImpl({
         signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
         serviceUrl: 'https://api.example.com',
       });
 
       const dimensions = { tokens: 1500, model: 'claude-4', region: 'us-east-1' };
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'aws:marketplace',
         amount: '0.02',
         asset: 'iso4217:USD',
@@ -346,7 +346,7 @@ describe('Agent Pay API Integration', () => {
 
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
-        { x402Version: 2, scheme: 'fab', network: 'aws:marketplace' as any },
+        { x402Version: 2, scheme: 'aws:marketplace', network: 'aws:marketplace' as any },
         [],
       );
 

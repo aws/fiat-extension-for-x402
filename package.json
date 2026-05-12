@@ -1,7 +1,7 @@
 {
-  "name": "@x402/fab",
+  "name": "@x402/aws-agentic-pay",
   "version": "0.1.0",
-  "description": "FAB (Federated Application Billing) extension for x402 protocol",
+  "description": "AWS Agentic Pay extension for x402 protocol",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -27,20 +27,20 @@
       "import": "./dist/facilitator.js",
       "require": "./dist/facilitator.cjs"
     },
-    "./fab/client": {
-      "types": "./dist/fab/client/index.d.ts",
-      "import": "./dist/fab/client/index.js",
-      "require": "./dist/fab/client/index.cjs"
+    "./agentic-pay/client": {
+      "types": "./dist/agentic-pay/client/index.d.ts",
+      "import": "./dist/agentic-pay/client/index.js",
+      "require": "./dist/agentic-pay/client/index.cjs"
     },
-    "./fab/server": {
-      "types": "./dist/fab/server/index.d.ts",
-      "import": "./dist/fab/server/index.js",
-      "require": "./dist/fab/server/index.cjs"
+    "./agentic-pay/server": {
+      "types": "./dist/agentic-pay/server/index.d.ts",
+      "import": "./dist/agentic-pay/server/index.js",
+      "require": "./dist/agentic-pay/server/index.cjs"
     },
-    "./fab/facilitator": {
-      "types": "./dist/fab/facilitator/index.d.ts",
-      "import": "./dist/fab/facilitator/index.js",
-      "require": "./dist/fab/facilitator/index.cjs"
+    "./agentic-pay/facilitator": {
+      "types": "./dist/agentic-pay/facilitator/index.d.ts",
+      "import": "./dist/agentic-pay/facilitator/index.js",
+      "require": "./dist/agentic-pay/facilitator/index.cjs"
     },
     "./middleware/express": {
       "types": "./dist/middleware/express.d.ts",

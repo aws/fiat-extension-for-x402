@@ -346,7 +346,7 @@ app.get('/.well-known/x402-supported', (_req, res) => {
   res.json({
     x402Version: 2,
     kinds: [
-      { x402Version: 2, scheme: 'fab', network: 'aws:marketplace', extra: { agenticPayId: ISSUER } },
+      { x402Version: 2, scheme: 'aws:marketplace', network: 'aws:marketplace', extra: { agenticPayId: ISSUER } },
     ],
   });
 });

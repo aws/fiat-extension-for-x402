@@ -221,7 +221,7 @@ describe('DefaultAgenticPayClient', () => {
     });
 
     // Note: Full verifyPaymentToken testing with real JWKS fetch is covered
-    // in integration tests (fab-test.test.ts) where the mock server serves JWKS.
+    // in integration tests (agentic-pay-test.test.ts) where the mock server serves JWKS.
     // Unit testing createRemoteJWKSet requires a real HTTP server because jose
     // uses its own internal fetch that doesn't respect vi.stubGlobal.
   });

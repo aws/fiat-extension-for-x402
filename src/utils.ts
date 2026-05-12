@@ -1,5 +1,5 @@
 /**
- * Utility functions for FAB x402 extension
+ * Utility functions for Agentic Pay x402 extension
  */
 
 import { webcrypto } from 'node:crypto';
@@ -91,7 +91,7 @@ export function extractQuoteFromPayment(payment: PaymentTokenPayload): string {
 
 /**
  * Generate a transaction ID
- * @param network - Network identifier (e.g., "fab:*")
+ * @param network - Network identifier (e.g., "aws:marketplace")
  * @param agenticPayId - Agentic Pay identifier
  * @returns Transaction ID in format {network}:{uniqueId}
  */
@@ -141,10 +141,10 @@ export function parseTransactionId(transactionId: string): { network: string; id
   const network = parts.slice(0, -1).join(':');
   const id = parts[parts.length - 1];
   
-  if (!network.startsWith('fab:')) {
+  if (!network || !id) {
     throw new ValidationError(
-      'Transaction ID network must start with "fab:"',
-      { network }
+      'Invalid transaction ID format. Expected {network}:{id}',
+      { transactionId }
     );
   }
   
@@ -158,8 +158,8 @@ export function parseTransactionId(transactionId: string): { network: string; id
  * @returns Formatted transaction ID
  */
 export function formatTransactionId(network: string, id: string): string {
-  if (!network.startsWith('fab:')) {
-    throw new ValidationError('Network must start with "fab:"', { network });
+  if (!network || !network.includes(':')) {
+    throw new ValidationError('Network must be in scheme:provider format', { network });
   }
   return `${network}:${id}`;
 }

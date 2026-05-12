@@ -27,11 +27,11 @@ describe('Agentic Pay Discovery', () => {
     it('should register multiple networks', () => {
       registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
       registerNetwork('fab:google', 'https://pay.google.com');
-      registerNetwork('fab:custom', 'https://custom-pay.example.com');
+      registerNetwork('custom:provider', 'https://custom-pay.example.com');
 
       expect(getAgenticPayBaseUrl('fab:aws')).toBe('https://pay.aws.amazon.com');
       expect(getAgenticPayBaseUrl('fab:google')).toBe('https://pay.google.com');
-      expect(getAgenticPayBaseUrl('fab:custom')).toBe('https://custom-pay.example.com');
+      expect(getAgenticPayBaseUrl('custom:provider')).toBe('https://custom-pay.example.com');
     });
 
     it('should overwrite existing registration', () => {
@@ -306,8 +306,8 @@ describe('Agentic Pay Discovery', () => {
     });
 
     it('should handle URLs with paths', () => {
-      registerNetwork('fab:custom', 'https://api.example.com/pay');
-      expect(getAgenticPayBaseUrl('fab:custom')).toBe('https://api.example.com/pay');
+      registerNetwork('custom:provider', 'https://api.example.com/pay');
+      expect(getAgenticPayBaseUrl('custom:provider')).toBe('https://api.example.com/pay');
     });
 
     it('should reject empty network identifier', () => {

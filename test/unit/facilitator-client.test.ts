@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { InProcessFacilitatorClient } from '../../src/facilitator-client';
-import { FABScheme as FABFacilitatorScheme } from '../../src/fab/facilitator/scheme';
+import { AgenticPayScheme as AgenticPayFacilitatorSchemeImpl } from '../../src/agentic-pay/facilitator/scheme';
 import * as jose from 'jose';
 
 describe('InProcessFacilitatorClient', () => {
@@ -10,7 +10,7 @@ describe('InProcessFacilitatorClient', () => {
       const jwk = await jose.exportJWK(publicKey);
       
       const schemes = new Map();
-      schemes.set('fab:test', new FABFacilitatorScheme({
+      schemes.set('fab:test', new AgenticPayFacilitatorSchemeImpl({
         signingKeys: { privateKey, publicKey: jwk, alg: 'RS256' },
         agenticPayId: 'test-agentic-pay',
         agenticPay: {
@@ -34,12 +34,12 @@ describe('InProcessFacilitatorClient', () => {
       const jwk2 = await jose.exportJWK(pub2);
       
       const schemes = new Map();
-      schemes.set('fab:test1', new FABFacilitatorScheme({
+      schemes.set('fab:test1', new AgenticPayFacilitatorSchemeImpl({
         signingKeys: { privateKey: pk1, publicKey: jwk1, alg: 'RS256' },
         agenticPayId: 'agentic-pay-1',
         agenticPay: { baseUrl: 'https://pay1.test.com' }
       }));
-      schemes.set('fab:test2', new FABFacilitatorScheme({
+      schemes.set('fab:test2', new AgenticPayFacilitatorSchemeImpl({
         signingKeys: { privateKey: pk2, publicKey: jwk2, alg: 'RS256' },
         agenticPayId: 'agentic-pay-2',
         agenticPay: { baseUrl: 'https://pay2.test.com' }
@@ -55,7 +55,7 @@ describe('InProcessFacilitatorClient', () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const jwk = await jose.exportJWK(publicKey);
       
-      const scheme = new FABFacilitatorScheme({
+      const scheme = new AgenticPayFacilitatorSchemeImpl({
         signingKeys: { privateKey, publicKey: jwk, alg: 'RS256' },
         agenticPayId: 'test-agentic-pay',
         agenticPay: {

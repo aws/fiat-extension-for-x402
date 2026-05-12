@@ -2,19 +2,19 @@
  * Multi-Facilitator Example
  *
  * Demonstrates the two-phase API: create a server/client, then register
- * networks individually. FAB handles registered networks while the default
+ * networks individually. Agentic Pay handles registered networks while the default
  * x402 facilitator handles everything else.
  *
  * In this example:
- * - aws:marketplace and eip155:8453 are handled by FAB (via the Agentic Pay provider)
+ * - aws:marketplace and eip155:8453 are handled by Agentic Pay (via the Agentic Pay provider)
  * - solana:mainnet would fall back to the official x402 facilitator
  *
  * This is the recommended pattern for services that want to accept
- * both FAB and native crypto payments.
+ * both Agentic Pay and native crypto payments.
  */
 
 import * as jose from 'jose';
-import { createFABResourceServer, createFABClient } from '../src/index';
+import { createAgenticPayResourceServer, createAgenticPayClient } from '../src/index';
 
 async function main() {
   console.log('🔀 Multi-Facilitator Example (Two-Phase API)');
@@ -27,7 +27,7 @@ async function main() {
 
   // ── Server Side ──────────────────────────────────────────────────
   //
-  // createFABResourceServer returns an object with a registerNetwork method.
+  // createAgenticPayResourceServer returns an object with a registerNetwork method.
   // Networks are added individually, then initialize() is called.
   //
   // This separates construction from configuration:
@@ -35,12 +35,12 @@ async function main() {
   //   2. Register networks one at a time (or chained)
   //   3. Initialize to fetch supported kinds from facilitators
   //
-  // The FAB facilitator is first in the array, so it takes precedence
+  // The Agentic Pay facilitator is first in the array, so it takes precedence
   // for the networks it claims. The default facilitator fills in the rest.
 
-  console.log('Server: Creating FAB resource server...');
+  console.log('Server: Creating Agentic Pay resource server...');
 
-  const fabServer = createFABResourceServer({
+  const apServer = createAgenticPayResourceServer({
     agenticPayBaseUrl: 'https://pay.example.com',
     agenticPayId: 'my-agentic-pay',
     signingKeys: {
@@ -52,7 +52,7 @@ async function main() {
   });
 
   // Register networks — can be chained
-  fabServer
+  apServer
     .registerNetwork('aws:marketplace')
     .registerNetwork('eip155:8453');
 
@@ -63,11 +63,11 @@ async function main() {
   try {
     // Routing decisions go in initialize().
     // In production, leave disableDefaultFallback false (the default)
-    // so non-FAB networks fall back to the official facilitator.
-    const server = await fabServer.initialize();
+    // so non-Agentic-Pay networks fall back to the official facilitator.
+    const server = await apServer.initialize();
     console.log('✓ Server initialized with multi-facilitator routing');
-    console.log(`  aws:marketplace       → FAB facilitator (Agentic Pay)`);
-    console.log(`  eip155:8453   → FAB facilitator (Agentic Pay)`);
+    console.log(`  aws:marketplace       → Agentic Pay facilitator (Agentic Pay)`);
+    console.log(`  eip155:8453   → Agentic Pay facilitator (Agentic Pay)`);
     console.log(`  solana:*      → default x402 facilitator`);
     console.log('');
   } catch (error) {
@@ -79,12 +79,12 @@ async function main() {
 
   // ── Client Side ──────────────────────────────────────────────────
   //
-  // createFABClient returns an object with a registerNetwork method.
+  // createAgenticPayClient returns an object with a registerNetwork method.
   // The client only needs schemes for networks it can pay on.
 
-  console.log('Client: Creating FAB client...');
+  console.log('Client: Creating Agentic Pay client...');
 
-  const fabClient = createFABClient({
+  const apClient = createAgenticPayClient({
     agenticPayBaseUrl: 'https://pay.example.com',
     agenticPayId: 'user-agentic-pay-123',
     agenticPayAuth: {
@@ -94,7 +94,7 @@ async function main() {
   });
 
   // Register networks
-  fabClient
+  apClient
     .registerNetwork('aws:marketplace')
     .registerNetwork('eip155:8453');
 
@@ -104,7 +104,7 @@ async function main() {
   console.log('');
 
   // The underlying x402Client is available via .client
-  const client = fabClient.client;
+  const client = apClient.client;
   console.log(`  x402Client instance: ${client.constructor.name}`);
   console.log('');
 
@@ -113,11 +113,11 @@ async function main() {
   // During server.initialize(), the x402ResourceServer calls getSupported()
   // on each facilitator client in order:
   //
-  //   1. AgenticPayFacilitatorClient (FAB) → claims aws:marketplace, eip155:8453
+  //   1. AgenticPayFacilitatorClient (Agentic Pay) → claims aws:marketplace, eip155:8453
   //   2. HTTPFacilitatorClient (default) → claims solana:mainnet, etc.
   //
   // The first facilitator to claim a (version, network, scheme) tuple wins.
-  // So FAB always handles its registered networks, and the default
+  // So Agentic Pay always handles its registered networks, and the default
   // facilitator handles everything else.
   //
   // The networkFilter on AgenticPayFacilitatorClient ensures Agentic Pay

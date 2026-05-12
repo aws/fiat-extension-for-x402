@@ -1,20 +1,20 @@
 /**
- * FAB Client Builder
+ * Agentic Pay Client Builder
  *
  * Two-phase API: create a client, then register networks.
  *
  * Usage:
- *   const client = createFABClient({ ... });
+ *   const client = createAgenticPayClient({ ... });
  *   client.registerNetwork('aws:marketplace');
  *   client.registerNetwork('eip155:8453');
  *
  * Or use the convenience builder:
- *   const client = buildFABClient({ ... });
+ *   const client = buildAgenticPayClient({ ... });
  */
 
 import { x402Client } from '@x402/core/client';
 import type { Network } from '@x402/core/types';
-import { FABScheme as FABClientScheme } from '../fab/client/scheme';
+import { AgenticPayScheme as AgenticPayClientSchemeImpl } from '../agentic-pay/client/scheme';
 import type { AuthConfig } from '../auth/types';
 import type { DPoPKeyPair } from '../types';
 import { ValidationError } from '../types';
@@ -22,10 +22,10 @@ import { ValidationError } from '../types';
 // ── Types ──────────────────────────────────────────────────────────
 
 /**
- * Base configuration for creating a FAB client.
+ * Base configuration for creating a Agentic Pay client.
  * Does not include networks — those are added via `registerNetwork`.
  */
-export interface FABClientOptions {
+export interface AgenticPayClientOptions {
   /** Agentic Pay base URL */
   agenticPayBaseUrl: string;
   /** Agentic Pay ID */
@@ -34,16 +34,16 @@ export interface FABClientOptions {
   agenticPayAuth?: AuthConfig;
   /** Optional: DPoP configuration */
   dpop?: { keyPair: DPoPKeyPair; enabled: boolean };
-  /** Optional: existing x402Client to add FAB networks to */
+  /** Optional: existing x402Client to add Agentic Pay networks to */
   existingClient?: x402Client;
 }
 
 /**
- * A FAB client with a fluent `registerNetwork` API.
+ * A Agentic Pay client with a fluent `registerNetwork` API.
  */
-export interface FABClient {
-  /** Register a network for FAB to handle. Returns `this` for chaining. */
-  registerNetwork(network: Network): FABClient;
+export interface AgenticPayClientBuilder {
+  /** Register a network for Agentic Pay to handle. Returns `this` for chaining. */
+  registerNetwork(network: Network): AgenticPayClientBuilder;
   /** The underlying x402Client. */
   readonly client: x402Client;
   /** Shortcut: delegates to client.createPaymentPayload */
@@ -51,10 +51,10 @@ export interface FABClient {
 }
 
 /**
- * Legacy config shape — kept for backward compatibility with `buildFABClient`.
+ * Legacy config shape — kept for backward compatibility with `buildAgenticPayClient`.
  */
-export interface FABClientConfig {
-  fabNetworks: Network[];
+export interface AgenticPayClientConfig {
+  networks: Network[];
   agenticPayBaseUrl: string;
   agenticPayId: string;
   agenticPayAuth?: AuthConfig;
@@ -64,7 +64,7 @@ export interface FABClientConfig {
 
 // ── Implementation ─────────────────────────────────────────────────
 
-function validateClientConfig(config: FABClientOptions): void {
+function validateClientConfig(config: AgenticPayClientOptions): void {
   if (!config.agenticPayBaseUrl) {
     throw new ValidationError('agenticPayBaseUrl is required');
   }
@@ -76,12 +76,12 @@ function validateClientConfig(config: FABClientOptions): void {
 }
 
 /**
- * Create a FAB client. Networks are registered separately
+ * Create a Agentic Pay client. Networks are registered separately
  * via `registerNetwork`.
  *
  * @example
  * ```typescript
- * const client = createFABClient({
+ * const client = createAgenticPayClient({
  *   agenticPayBaseUrl: 'https://pay.aws.amazon.com',
  *   agenticPayId: 'my-agentic-pay',
  *   agenticPayAuth: { type: 'apiKey', apiKey: process.env.AGENTIC_PAY_API_KEY },
@@ -93,14 +93,14 @@ function validateClientConfig(config: FABClientOptions): void {
  * const payload = await client.createPaymentPayload(paymentRequired);
  * ```
  */
-export function createFABClient(config: FABClientOptions): FABClient {
+export function createAgenticPayClient(config: AgenticPayClientOptions): AgenticPayClientBuilder {
   validateClientConfig(config);
 
   const x402 = config.existingClient ?? new x402Client();
   const registeredNetworks = new Set<Network>();
 
   // Single reusable scheme instance (stateless w.r.t. network)
-  const fabClientScheme = new FABClientScheme({
+  const apClientScheme = new AgenticPayClientSchemeImpl({
     agenticPayId: config.agenticPayId,
     agenticPay: {
       baseUrl: config.agenticPayBaseUrl,
@@ -108,17 +108,17 @@ export function createFABClient(config: FABClientOptions): FABClient {
     },
   });
 
-  const self: FABClient = {
+  const self: AgenticPayClientBuilder = {
     get client() {
       return x402;
     },
 
-    registerNetwork(network: Network): FABClient {
+    registerNetwork(network: Network): AgenticPayClientBuilder {
       if (registeredNetworks.has(network)) {
         return self; // idempotent
       }
       registeredNetworks.add(network);
-      x402.register(network, fabClientScheme);
+      x402.register(network, apClientScheme);
       return self;
     },
 
@@ -131,15 +131,15 @@ export function createFABClient(config: FABClientOptions): FABClient {
 /**
  * Convenience builder that creates and registers networks in one call.
  *
- * @param config - FAB client configuration (includes fabNetworks)
+ * @param config - Agentic Pay client configuration (includes networks)
  * @returns Configured x402Client
  */
-export function buildFABClient(config: FABClientConfig): x402Client {
-  if (!config.fabNetworks || config.fabNetworks.length === 0) {
-    throw new ValidationError('fabNetworks must be a non-empty array');
+export function buildAgenticPayClient(config: AgenticPayClientConfig): x402Client {
+  if (!config.networks || config.networks.length === 0) {
+    throw new ValidationError('networks must be a non-empty array');
   }
 
-  const c = createFABClient({
+  const c = createAgenticPayClient({
     agenticPayBaseUrl: config.agenticPayBaseUrl,
     agenticPayId: config.agenticPayId,
     agenticPayAuth: config.agenticPayAuth,
@@ -147,7 +147,7 @@ export function buildFABClient(config: FABClientConfig): x402Client {
     existingClient: config.existingClient,
   });
 
-  for (const network of config.fabNetworks) {
+  for (const network of config.networks) {
     c.registerNetwork(network);
   }
 

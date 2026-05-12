@@ -2,7 +2,7 @@
  * Agentic Pay Facilitator Client
  * 
  * Implements FacilitatorClient interface by verifying payment tokens cryptographically.
- * In FAB, the Agentic Pay provider IS the facilitator - no separate facilitator service needed.
+ * In Agentic Pay, the Agentic Pay provider IS the facilitator - no separate facilitator service needed.
  * 
  * This adapter translates x402 facilitator calls to cryptographic verification:
  * - verify() → verifies JWT signatures (payment token + quote token)
@@ -22,7 +22,7 @@ import type {
   SupportedResponse
 } from '@x402/core/types';
 import * as jose from 'jose';
-import { FABPayloadV2, FABPaymentExtra } from './types';
+import { AgenticPayPayloadV2, AgenticPayPaymentExtra } from './types';
 import { decodeQuoteToken } from './utils';
 
 /**
@@ -40,7 +40,7 @@ export interface AgenticPayFacilitatorAuthConfig {
  * Agentic Pay Facilitator Client
  * 
  * Calls Agentic Pay provider's API to verify and settle payments.
- * The Agentic Pay provider serves as the facilitator in FAB.
+ * The Agentic Pay provider serves as the facilitator in Agentic Pay.
  */
 export class AgenticPayFacilitatorClient implements FacilitatorClient {
   private jwksCache: Map<string, { jwks: jose.JSONWebKeySet; timestamp: number }> = new Map();
@@ -55,8 +55,8 @@ export class AgenticPayFacilitatorClient implements FacilitatorClient {
    * @param authConfig - Optional authentication configuration
    * @param networkFilter - Optional set of networks to claim. When set, getSupported()
    *   filters the Agentic Pay's response to only include kinds whose network is in this set.
-   *   This prevents the FAB facilitator from shadowing the default facilitator for
-   *   networks the integrator didn't intend to handle via FAB.
+   *   This prevents the Agentic Pay facilitator from shadowing the default facilitator for
+   *   networks the integrator didn't intend to handle via Agentic Pay.
    */
   constructor(
     private readonly agenticPayBaseUrl: string,
@@ -84,7 +84,7 @@ export class AgenticPayFacilitatorClient implements FacilitatorClient {
     const supported = await response.json() as SupportedResponse;
 
     // If network filter is set, only include kinds for registered networks.
-    // This prevents the FAB facilitator from claiming networks the integrator
+    // This prevents the Agentic Pay facilitator from claiming networks the integrator
     // didn't explicitly choose, which would shadow the default facilitator.
     if (this.networkFilter) {
       supported.kinds = supported.kinds.filter(
@@ -115,15 +115,15 @@ export class AgenticPayFacilitatorClient implements FacilitatorClient {
     requirements: PaymentRequirements
   ): Promise<VerifyResponse> {
     try {
-      const fabPayload = payload.payload as unknown as FABPayloadV2;
-      const extra = requirements.extra as unknown as FABPaymentExtra;
+      const apPayload = payload.payload as unknown as AgenticPayPayloadV2;
+      const extra = requirements.extra as unknown as AgenticPayPaymentExtra;
 
       // 1. Fetch Agentic Pay's JWKS
       const agenticPayJWKS = await this.fetchJWKS(this.agenticPayBaseUrl);
 
       // 2. Verify payment token signature
       const { payload: paymentTokenPayload } = await jose.jwtVerify(
-        fabPayload.paymentToken,
+        apPayload.paymentToken,
         jose.createLocalJWKSet(agenticPayJWKS)
       );
 
@@ -207,8 +207,8 @@ export class AgenticPayFacilitatorClient implements FacilitatorClient {
     payload: PaymentPayload,
     requirements: PaymentRequirements
   ): Promise<SettleResponse> {
-    const fabPayload = payload.payload as unknown as FABPayloadV2;
-    const paymentId = fabPayload.paymentId || fabPayload.transactionId || '';
+    const apPayload = payload.payload as unknown as AgenticPayPayloadV2;
+    const paymentId = apPayload.paymentId || apPayload.transactionId || '';
 
     // Agent Pay auto-captures — no HTTP call needed.
     return {

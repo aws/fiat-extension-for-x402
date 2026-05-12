@@ -1,7 +1,7 @@
 /**
- * FAB Facilitator Scheme Implementation
+ * Agentic Pay Facilitator Scheme Implementation
  * 
- * In FAB, the "facilitator" role is played by the Agentic Pay provider,
+ * In Agentic Pay, the "facilitator" role is played by the Agentic Pay provider,
  * which verifies and settles payments.
  */
 
@@ -13,28 +13,28 @@ import {
   VerifyResponse,
   Network
 } from '@x402/core/types';
-import type { FABFacilitatorSchemeConfig, AgenticPayClientForFacilitator } from '../../config';
+import type { AgenticPayFacilitatorSchemeConfig, AgenticPayClientForFacilitator } from '../../config';
 import { DefaultAgenticPayClient } from '../../agentic-pay-client';
-import { FABPayloadV2, ValidationError } from '../../types';
+import { AgenticPayPayloadV2, ValidationError } from '../../types';
 import { verifyPayment } from './verify';
 import { settlePayment } from './settle';
-import { FAB_SCHEME, FAB_CAIP_FAMILY } from '../../constants';
+import { AGENTIC_PAY_SCHEME, AGENTIC_PAY_CAIP_FAMILY } from '../../constants';
 
 /**
- * FAB facilitator implementation for Agentic Pay providers.
+ * Agentic Pay facilitator implementation for Agentic Pay providers.
  * Verifies and settles payments.
  */
-export class FABScheme implements SchemeNetworkFacilitator {
-  readonly scheme = FAB_SCHEME;
-  readonly caipFamily = FAB_CAIP_FAMILY;
+export class AgenticPayScheme implements SchemeNetworkFacilitator {
+  readonly scheme = AGENTIC_PAY_SCHEME;
+  readonly caipFamily = AGENTIC_PAY_CAIP_FAMILY;
   private readonly agenticPayClient: AgenticPayClientForFacilitator;
   private readonly agenticPayId: string;
 
   /**
-   * Create a new FAB facilitator scheme
+   * Create a new Agentic Pay facilitator scheme
    * @param config - Facilitator configuration with Agentic Pay client or config
    */
-  constructor(config: FABFacilitatorSchemeConfig) {
+  constructor(config: AgenticPayFacilitatorSchemeConfig) {
     // Store Agentic Pay ID
     this.agenticPayId = config.agenticPayId;
     
@@ -44,7 +44,7 @@ export class FABScheme implements SchemeNetworkFacilitator {
     } else if ('agenticPay' in config) {
       this.agenticPayClient = new DefaultAgenticPayClient(config.agenticPay);
     } else {
-      throw new ValidationError('FABFacilitatorScheme requires either agenticPayClient or Agentic Pay configuration');
+      throw new ValidationError('AgenticPayFacilitatorScheme requires either agenticPayClient or Agentic Pay configuration');
     }
   }
 
@@ -81,8 +81,8 @@ export class FABScheme implements SchemeNetworkFacilitator {
     payload: PaymentPayload,
     requirements: PaymentRequirements
   ): Promise<VerifyResponse> {
-    const fabPayload = payload.payload as unknown as FABPayloadV2;
-    return verifyPayment(this.agenticPayClient, payload, requirements, fabPayload);
+    const apPayload = payload.payload as unknown as AgenticPayPayloadV2;
+    return verifyPayment(this.agenticPayClient, payload, requirements, apPayload);
   }
 
   /**
@@ -96,7 +96,7 @@ export class FABScheme implements SchemeNetworkFacilitator {
     payload: PaymentPayload,
     requirements: PaymentRequirements
   ): Promise<SettleResponse> {
-    const fabPayload = payload.payload as unknown as FABPayloadV2;
-    return settlePayment(this.agenticPayClient, payload, requirements, fabPayload);
+    const apPayload = payload.payload as unknown as AgenticPayPayloadV2;
+    return settlePayment(this.agenticPayClient, payload, requirements, apPayload);
   }
 }

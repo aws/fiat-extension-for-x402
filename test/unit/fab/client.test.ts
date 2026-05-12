@@ -1,23 +1,23 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as jose from 'jose';
-import { FABScheme } from '../../../src/fab/client/scheme';
+import { AgenticPayScheme } from '../../../src/agentic-pay/client/scheme';
 import type { PaymentRequirements } from '@x402/core/types';
-import { FAB_SCHEME } from '../../../src/constants';
-import { FAB_SENTINEL_PAY_TO } from '../../../src/constants';
+import { AGENTIC_PAY_SCHEME } from '../../../src/constants';
+import { AGENTIC_PAY_SENTINEL_PAY_TO } from '../../../src/constants';
 import { createMockAgenticPayClient } from '../../helpers/mock-agentic-pay-client';
 
 /**
- * FAB Client Unit Tests
+ * Agentic Pay Client Unit Tests
  * 
  * Tests the client scheme with mock Agentic Pay client.
  * The client sends the quote token to the Agent Pay Service and receives
  * a signed payment JWT in return.
  */
 
-describe('FAB Client Scheme', () => {
+describe('Agentic Pay Client Scheme', () => {
   let privateKey: jose.KeyLike;
   let publicKey: jose.KeyLike;
-  let scheme: FABScheme;
+  let scheme: AgenticPayScheme;
   const agenticPayId = 'agentic-pay-test-456';
 
   beforeEach(async () => {
@@ -25,7 +25,7 @@ describe('FAB Client Scheme', () => {
     privateKey = mock.privateKey;
     publicKey = mock.publicKey;
 
-    scheme = new FABScheme({
+    scheme = new AgenticPayScheme({
       agenticPayId,
       agenticPayClient: mock.agenticPayClient
     });
@@ -48,7 +48,7 @@ describe('FAB Client Scheme', () => {
       .sign(privateKey);
 
     const requirements: PaymentRequirements = {
-      scheme: FAB_SCHEME,
+      scheme: AGENTIC_PAY_SCHEME,
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
@@ -77,7 +77,7 @@ describe('FAB Client Scheme', () => {
 
   it('should throw error when quote token is missing', async () => {
     const requirements: PaymentRequirements = {
-      scheme: FAB_SCHEME,
+      scheme: AGENTIC_PAY_SCHEME,
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
@@ -108,7 +108,7 @@ describe('FAB Client Scheme', () => {
       .sign(privateKey);
 
     const requirements: PaymentRequirements = {
-      scheme: FAB_SCHEME,
+      scheme: AGENTIC_PAY_SCHEME,
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
@@ -141,7 +141,7 @@ describe('FAB Client Scheme', () => {
       .sign(privateKey);
 
     const requirements: PaymentRequirements = {
-      scheme: FAB_SCHEME,
+      scheme: AGENTIC_PAY_SCHEME,
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
@@ -180,11 +180,11 @@ describe('FAB Client Scheme', () => {
 
       // Use sentinel payTo — this is what the server scheme produces
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
-        payTo: FAB_SENTINEL_PAY_TO,
+        payTo: AGENTIC_PAY_SENTINEL_PAY_TO,
         maxTimeoutSeconds: 300,
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
@@ -217,11 +217,11 @@ describe('FAB Client Scheme', () => {
         .sign(privateKey);
 
       const requirements: PaymentRequirements = {
-        scheme: FAB_SCHEME,
+        scheme: AGENTIC_PAY_SCHEME,
         network: 'fab:test',
         amount: '2.00',
         asset: 'iso4217:USD',
-        payTo: FAB_SENTINEL_PAY_TO,
+        payTo: AGENTIC_PAY_SENTINEL_PAY_TO,
         maxTimeoutSeconds: 300,
         extra: { quoteToken } as unknown as Record<string, unknown>
       };

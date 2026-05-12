@@ -1,7 +1,7 @@
 /**
- * FAB-specific types for the x402 protocol
+ * Agentic Pay-specific types for the x402 protocol
  * 
- * This module contains all type definitions for the FAB payment scheme,
+ * This module contains all type definitions for the Agentic Pay payment scheme,
  * including settlement types, payment structures, and error classes.
  */
 
@@ -10,9 +10,9 @@
 // ============================================================================
 
 /**
- * Settlement method codes (FAB-specific, with ISO 20022 mapping intent)
+ * Settlement method codes (Agentic Pay-specific, with ISO 20022 mapping intent)
  * 
- * Note: These are FAB conceptual codes, not official ISO 20022 settlement method codes.
+ * Note: These are Agentic Pay conceptual codes, not official ISO 20022 settlement method codes.
  * The actual ISO 20022 settlement methods are: INDA, INGA, COVE, CLRG.
  * 
  * - INST: Instant settlement (maps to immediate fund transfer via FedNow/SEPA)
@@ -32,7 +32,7 @@ export type SettlementCycle = 'MNTH' | 'WEEK' | 'QRTR';
 /**
  * Settlement terms for a payment
  */
-export interface FABSettlement {
+export interface AgenticPaySettlement {
   /** Settlement method (required) */
   method: SettlementMethod;
   /** Settlement cycle (optional) */
@@ -42,7 +42,7 @@ export interface FABSettlement {
 /**
  * Support contact information for disputes
  */
-export interface FABSupport {
+export interface AgenticPaySupport {
   /** URI for support/dispute resolution */
   uri: string;
   /** Support method type */
@@ -52,7 +52,7 @@ export interface FABSupport {
 /**
  * Terms and conditions reference
  */
-export interface FABTerms {
+export interface AgenticPayTerms {
   /** Human-readable description of the terms */
   description: string;
   /** URI to the full terms document */
@@ -64,20 +64,20 @@ export interface FABTerms {
 // ============================================================================
 
 /**
- * FAB-specific payment extra data
+ * Agentic Pay-specific payment extra data
  * This is stored in the `extra` field of x402 PaymentRequirements
  */
-export interface FABPaymentExtra {
+export interface AgenticPayPaymentExtra {
   /** Quote token (signed JWT from service) - REQUIRED */
   quoteToken: string;
   /** Product/service reference identifier - OPTIONAL */
   reference?: string;
   /** Settlement terms - OPTIONAL */
-  settlement?: FABSettlement;
+  settlement?: AgenticPaySettlement;
   /** Support/dispute contact information - OPTIONAL */
-  support?: FABSupport;
+  support?: AgenticPaySupport;
   /** Terms and conditions references - OPTIONAL */
-  terms?: FABTerms[];
+  terms?: AgenticPayTerms[];
 }
 
 /**
@@ -92,7 +92,7 @@ export interface QuoteTokenPrice {
 
 /**
  * Quote token JWT payload
- * This is the structure of the signed JWT in FABPaymentExtra.quoteToken
+ * This is the structure of the signed JWT in AgenticPayPaymentExtra.quoteToken
  */
 export interface QuoteTokenPayload {
   /** Issuer - service identity */
@@ -116,11 +116,11 @@ export interface QuoteTokenPayload {
   /** Key-value dimensions describing units consumed (e.g., { tokens: 1500, model: "claude-4" }) - OPTIONAL */
   dimensions?: Record<string, string | number>;
   /** Settlement terms - OPTIONAL */
-  settlement?: FABSettlement;
+  settlement?: AgenticPaySettlement;
   /** Support/dispute contact information - OPTIONAL */
-  support?: FABSupport;
+  support?: AgenticPaySupport;
   /** Terms and conditions references - OPTIONAL */
-  terms?: FABTerms[];
+  terms?: AgenticPayTerms[];
 }
 
 /**
@@ -158,9 +158,9 @@ export interface PaymentTokenPayload {
 }
 
 /**
- * FAB payload for x402 PaymentPayload
+ * Agentic Pay payload for x402 PaymentPayload
  */
-export interface FABPayloadV2 {
+export interface AgenticPayPayloadV2 {
   /** Payment token (signed JWT from Agentic Pay) */
   paymentToken: string;
   /** Payment ID from Agentic Pay (format: awsmp-{UUIDv7}) */
@@ -246,11 +246,11 @@ export interface DPoPNonceStore {
 // ============================================================================
 
 /**
- * Base error class for all FAB-related errors
+ * Base error class for all Agentic Pay-related errors
  */
-export class FABError extends Error {
+export class AgenticPayError extends Error {
   /**
-   * Create a new FAB error
+   * Create a new Agentic Pay error
    * @param message - Human-readable error message
    * @param code - Machine-readable error code
    * @param details - Additional error context
@@ -261,9 +261,9 @@ export class FABError extends Error {
     public details?: Record<string, unknown>
   ) {
     super(message);
-    this.name = 'FABError';
+    this.name = 'AgenticPayError';
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, FABError);
+      Error.captureStackTrace(this, AgenticPayError);
     }
   }
 }
@@ -271,7 +271,7 @@ export class FABError extends Error {
 /**
  * Error thrown when validation fails
  */
-export class ValidationError extends FABError {
+export class ValidationError extends AgenticPayError {
   constructor(message: string, details?: Record<string, unknown>) {
     super(message, 'VALIDATION_ERROR', details);
     this.name = 'ValidationError';
@@ -284,7 +284,7 @@ export class ValidationError extends FABError {
 /**
  * Error thrown when JWT signature verification fails
  */
-export class SignatureError extends FABError {
+export class SignatureError extends AgenticPayError {
   constructor(message: string, public tokenType: 'quote' | 'payment') {
     super(message, 'SIGNATURE_ERROR', { tokenType });
     this.name = 'SignatureError';
@@ -297,7 +297,7 @@ export class SignatureError extends FABError {
 /**
  * Error thrown when a token has expired
  */
-export class ExpiryError extends FABError {
+export class ExpiryError extends AgenticPayError {
   constructor(
     message: string,
     public expiry: number,
@@ -314,7 +314,7 @@ export class ExpiryError extends FABError {
 /**
  * Error thrown when data values don't match expected values
  */
-export class MismatchError extends FABError {
+export class MismatchError extends AgenticPayError {
   constructor(
     message: string,
     public expected: unknown,
@@ -331,7 +331,7 @@ export class MismatchError extends FABError {
 /**
  * Error thrown when DPoP proof verification fails
  */
-export class DPoPError extends FABError {
+export class DPoPError extends AgenticPayError {
   constructor(message: string, details?: Record<string, unknown>) {
     super(message, 'DPOP_ERROR', details);
     this.name = 'DPoPError';
@@ -346,7 +346,7 @@ export class DPoPError extends FABError {
  * The same clientToken with the same parameters returns the cached response (idempotency).
  * A different set of parameters triggers this error.
  */
-export class IdempotencyConflictError extends FABError {
+export class IdempotencyConflictError extends AgenticPayError {
   /** The clientToken that caused the conflict */
   readonly clientToken: string;
 

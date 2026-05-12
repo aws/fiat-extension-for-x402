@@ -2,12 +2,12 @@
  * Authentication error types
  */
 
-import { FABError } from '../types';
+import { AgenticPayError } from '../types';
 
 /**
  * Base authentication error
  */
-export class AuthenticationError extends FABError {
+export class AuthenticationError extends AgenticPayError {
   constructor(
     message: string,
     public readonly authMethod: string,

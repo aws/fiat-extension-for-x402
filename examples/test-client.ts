@@ -1,11 +1,11 @@
 /**
- * Test Client with FAB Payment
+ * Test Client with Agentic Pay Payment
  * 
- * Demonstrates how to use x402Client with FAB to access protected endpoints.
+ * Demonstrates how to use x402Client with Agentic Pay to access protected endpoints.
  * Shows the complete flow:
  * 1. Try to access protected endpoint
  * 2. Receive 402 Payment Required
- * 3. Create payment using FAB
+ * 3. Create payment using Agentic Pay
  * 4. Retry with payment
  * 5. Access granted
  * 
@@ -16,7 +16,7 @@
  * - Test service running on port 3002
  */
 
-import { createFABClient } from '../src/index';
+import { createAgenticPayClient } from '../src/index';
 import { generateDPoPKeyPair } from '../src/dpop';
 import {
   initFlowLog,
@@ -40,7 +40,7 @@ async function main() {
   logFlow('CLIENT', `Agentic Pay ID: ${AGENTIC_PAY_ID}`);
   
   console.log('');
-  console.log('🧪 Testing FAB Payment Flow with Authentication & DPoP');
+  console.log('🧪 Testing Agentic Pay Payment Flow with Authentication & DPoP');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('');
 
@@ -52,12 +52,12 @@ async function main() {
     console.log('   ✓ DPoP keys generated (ES256)');
     console.log('');
 
-    // Step 2: Create x402 client with FAB using the two-phase API
+    // Step 2: Create x402 client with Agentic Pay using the two-phase API
     // Create the client, then register networks individually.
-    console.log('2️⃣  Setting up x402 client with FAB...');
-    logFlow('CLIENT', 'Setting up x402 client with FAB scheme, auth, and DPoP');
+    console.log('2️⃣  Setting up x402 client with Agentic Pay...');
+    logFlow('CLIENT', 'Setting up x402 client with Agentic Pay scheme, auth, and DPoP');
     
-    const fabClient = createFABClient({
+    const apClient = createAgenticPayClient({
       agenticPayBaseUrl: AGENTIC_PAY_BASE_URL,
       agenticPayId: AGENTIC_PAY_ID,
       agenticPayAuth: {
@@ -67,11 +67,11 @@ async function main() {
     });
 
     // Register networks individually
-    fabClient.registerNetwork('aws:marketplace');
-    fabClient.registerNetwork('eip155:8453');
+    apClient.registerNetwork('aws:marketplace');
+    apClient.registerNetwork('eip155:8453');
 
     // The underlying x402Client handles payment creation
-    const paymentClient = fabClient.client;
+    const paymentClient = apClient.client;
 
     console.log('   ✓ Client configured');
     console.log(`   Agentic Pay: ${AGENTIC_PAY_BASE_URL}`);
@@ -131,7 +131,7 @@ async function main() {
     console.log(`   Network: ${paymentRequired.accepts[0].network}`);
     console.log(`   Amount: ${paymentRequired.accepts[0].amount}`);
     
-    // Create payment using FAB
+    // Create payment using Agentic Pay
     const paymentPayload = await paymentClient.createPaymentPayload(paymentRequired);
     
     logFlowObject('CLIENT', 'Created Payment Payload', paymentPayload);
@@ -257,9 +257,9 @@ async function main() {
     console.log(`   Transaction: ${data3.data.transaction}`);
     console.log('');
 
-    // Step 8: Test /baz endpoint on EVM Base mainnet (eip155:8453) via FAB
-    console.log('8️⃣  Testing /baz endpoint on eip155:8453 (EVM Base via FAB)...');
-    logFlowStep('CLIENT', 7, 'Test /baz on eip155:8453 (EVM Base mainnet delegated to Agentic Pay via FAB)');
+    // Step 8: Test /baz endpoint on EVM Base mainnet (eip155:8453) via Agentic Pay
+    console.log('8️⃣  Testing /baz endpoint on eip155:8453 (EVM Base via Agentic Pay)...');
+    logFlowStep('CLIENT', 7, 'Test /baz on eip155:8453 (EVM Base mainnet delegated to Agentic Pay via Agentic Pay)');
     
     // Get 402 response for /baz
     const response7 = await fetch(`${SERVICE_URL}/baz`);
@@ -283,7 +283,7 @@ async function main() {
     console.log(`   Network: ${paymentRequired3.accepts[0].network}`);
     console.log(`   Amount: ${paymentRequired3.accepts[0].amount}`);
     
-    // Create payment for /baz — Agentic Pay handles eip155:8453 via FAB
+    // Create payment for /baz — Agentic Pay handles eip155:8453 via Agentic Pay
     const paymentPayload3 = await paymentClient.createPaymentPayload(paymentRequired3);
     
     logFlowObject('CLIENT', 'Created Payment Payload for /baz (eip155:8453)', paymentPayload3);
@@ -311,7 +311,7 @@ async function main() {
     const data4 = await response8.json();
     logFlowObject('CLIENT', 'Success Response for /baz (eip155:8453)', data4);
     
-    console.log('   ✓ Payment successful on eip155:8453 (EVM Base) via FAB!');
+    console.log('   ✓ Payment successful on eip155:8453 (EVM Base) via Agentic Pay!');
     console.log(`   Message: ${data4.message}`);
     console.log(`   Network: ${data4.data.network}`);
     console.log(`   Paid by: ${data4.data.paidBy}`);
@@ -325,7 +325,7 @@ async function main() {
     console.log('  • Client authenticates to Agentic Pay using API Key');
     console.log('  • Client receives 402 Payment Required');
     console.log('  • Parses payment requirements from WWW-Authenticate header');
-    console.log('  • Creates payment using FAB scheme (calls Agentic Pay with auth)');
+    console.log('  • Creates payment using Agentic Pay scheme (calls Agentic Pay with auth)');
     console.log('  • Payment token is bound to DPoP key (cnf claim)');
     console.log('  • Retries request with x402 Authorization header');
     console.log('  • Payment can be reused for subsequent requests');

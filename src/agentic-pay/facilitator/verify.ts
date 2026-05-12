@@ -1,11 +1,11 @@
 /**
- * FAB Payment Verification Logic
+ * Agentic Pay Payment Verification Logic
  */
 
 import * as jose from 'jose';
 import { PaymentPayload, PaymentRequirements, VerifyResponse } from '@x402/core/types';
 import type { AgenticPayClientForFacilitator } from '../../config';
-import { FABPayloadV2, FABPaymentExtra, MismatchError } from '../../types';
+import { AgenticPayPayloadV2, AgenticPayPaymentExtra, MismatchError } from '../../types';
 import { decodeQuoteToken } from '../../utils';
 
 /**
@@ -21,7 +21,7 @@ export interface VerifyPaymentOptions {
 }
 
 /**
- * Verify a FAB payment
+ * Verify a Agentic Pay payment
  * 
  * Verification steps:
  * 1. Verify payment token signature via Agentic Pay client (Agent Pay's ES384 key)
@@ -33,13 +33,13 @@ export interface VerifyPaymentOptions {
  * 
  * Note: Agent Pay auto-captures on creation — there is no separate settlement step.
  * This function does NOT use requirements.payTo or requirements.maxTimeoutSeconds.
- * In FAB, those fields contain sentinel values (see spec §2.4). The signed quote token
+ * In Agentic Pay, those fields contain sentinel values (see spec §2.4). The signed quote token
  * is the authoritative source for payment details.
  * 
  * @param agenticPayClient - Agentic Pay client for verification
  * @param payload - Payment payload
  * @param requirements - Payment requirements
- * @param fabPayload - FAB-specific payload
+ * @param apPayload - Agentic Pay-specific payload
  * @param options - Optional verification options (e.g., serviceJWKSUrl override)
  * @returns Verification response
  */
@@ -47,15 +47,15 @@ export async function verifyPayment(
   agenticPayClient: AgenticPayClientForFacilitator,
   payload: PaymentPayload,
   requirements: PaymentRequirements,
-  fabPayload: FABPayloadV2,
+  apPayload: AgenticPayPayloadV2,
   options?: VerifyPaymentOptions
 ): Promise<VerifyResponse> {
   try {
     // 1. Verify payment token signature (Agent Pay's ES384 key)
-    const paymentJWT = await agenticPayClient.verifyPaymentToken(fabPayload.paymentToken);
+    const paymentJWT = await agenticPayClient.verifyPaymentToken(apPayload.paymentToken);
 
     // 2. Verify payment ID matches
-    const payloadPaymentId = fabPayload.paymentId || fabPayload.transactionId;
+    const payloadPaymentId = apPayload.paymentId || apPayload.transactionId;
     const tokenPaymentId = paymentJWT.payment_id ||
       paymentJWT.payment_context?.transaction_id;
 
@@ -68,7 +68,7 @@ export async function verifyPayment(
     }
 
     // 3. Verify quote token exists in requirements
-    const extra = requirements.extra as unknown as FABPaymentExtra;
+    const extra = requirements.extra as unknown as AgenticPayPaymentExtra;
     if (!extra?.quoteToken) {
       return {
         isValid: false,

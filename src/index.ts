@@ -1,15 +1,15 @@
 /**
- * @x402/fab - FAB x402 TypeScript Extension
+ * @x402/aws-agentic-pay - Agentic Pay x402 TypeScript Extension
  * 
- * This module provides the FAB (Federated Application Billing) implementation
+ * This module provides the Agentic Pay (Federated Application Billing) implementation
  * for the x402 payment protocol.
  */
 
 // Scheme implementations
-export { FABClientScheme, FABServerScheme, FABFacilitatorScheme } from './fab';
+export { AgenticPayClientScheme, AgenticPayServerScheme, AgenticPayFacilitatorScheme } from './agentic-pay';
 
 // Pre-configured network schemes
-export { FABAWSClientScheme, FABAWSServerScheme, FABAWSFacilitatorScheme } from './networks';
+export { AgenticPayAWSClientScheme, AgenticPayAWSServerScheme, AgenticPayAWSFacilitatorScheme } from './networks';
 
 // Configuration types
 export type {
@@ -18,10 +18,10 @@ export type {
   AgenticPayClientForClient,
   AgenticPayClientForFacilitator,
   AgenticPayClient,
-  FABClientSchemeConfig,
-  FABServerSchemeConfig,
-  FABFacilitatorSchemeConfig,
-  ServiceFABSigner as ServiceFABSignerInterface,
+  AgenticPayClientSchemeConfig,
+  AgenticPayServerSchemeConfig,
+  AgenticPayFacilitatorSchemeConfig,
+  ServiceAgenticPaySigner as ServiceAgenticPaySignerInterface,
   DpopJwk,
   CreateAgentPaymentRequest,
   CreateAgentPaymentResponse,
@@ -39,22 +39,22 @@ export { AgenticPayFacilitatorClient } from './agentic-pay-facilitator-client';
 export type { AgenticPayFacilitatorAuthConfig } from './agentic-pay-facilitator-client';
 
 // Signers
-export { toServiceFABSigner, toAgenticPayFABSigner } from './signer';
-export type { ServiceFABSigner, AgenticPayFABSigner } from './signer';
+export { toServiceAgenticPaySigner, toAgenticPaySigner } from './signer';
+export type { ServiceAgenticPaySigner, AgenticPaySigner } from './signer';
 
 // Types
 export type {
   SettlementMethod,
   SettlementCycle,
-  FABSettlement,
-  FABSupport,
-  FABTerms,
-  FABPaymentExtra,
+  AgenticPaySettlement,
+  AgenticPaySupport,
+  AgenticPayTerms,
+  AgenticPayPaymentExtra,
   QuoteTokenPrice,
   QuoteTokenPayload,
   PaymentContext,
   PaymentTokenPayload,
-  FABPayloadV2,
+  AgenticPayPayloadV2,
   DPoPKeyPair,
   DPoPProofPayload,
   DPoPProofOptions,
@@ -64,7 +64,7 @@ export type {
 
 // Error classes
 export {
-  FABError,
+  AgenticPayError,
   ValidationError,
   SignatureError,
   ExpiryError,
@@ -75,13 +75,13 @@ export {
 
 // Constants
 export {
-  FAB_SCHEME,
+  AGENTIC_PAY_SCHEME,
   SETTLEMENT_METHODS,
   SETTLEMENT_CYCLES,
   DEFAULT_QUOTE_VALIDITY_SECONDS,
   DEFAULT_PAYMENT_VALIDITY_SECONDS,
-  FAB_CAIP_FAMILY,
-  FAB_SENTINEL_PAY_TO,
+  AGENTIC_PAY_CAIP_FAMILY,
+  AGENTIC_PAY_SENTINEL_PAY_TO,
   DEFAULT_NETWORK
 } from './constants';
 
@@ -124,28 +124,28 @@ export {
 
 // Express Middleware
 export {
-  fabPaymentMiddleware,
-  type FABMiddlewareConfig,
-  type FABRouteConfig,
-  type FABRoutesConfig,
+  agenticPayMiddleware,
+  type AgenticPayMiddlewareConfig,
+  type AgenticPayRouteConfig,
+  type AgenticPayRoutesConfig,
   type PaymentInfo,
 } from './middleware';
 
 // Builders (network-aware facilitator routing)
 export {
-  createFABResourceServer,
-  createFABClient,
-  buildFABResourceServer,
-  buildFABClient,
-  registerFABNetworks
+  createAgenticPayResourceServer,
+  createAgenticPayClient,
+  buildAgenticPayResourceServer,
+  buildAgenticPayClient,
+  registerAgenticPayNetworks
 } from './builders';
 export type {
-  FABResourceServerOptions,
-  FABResourceServer,
+  AgenticPayResourceServerOptions,
+  AgenticPayResourceServer,
   NetworkOptions,
   InitializeOptions,
-  FABClientOptions,
-  FABClient,
-  FABResourceServerConfig,
-  FABClientConfig
+  AgenticPayClientOptions,
+  AgenticPayClientBuilder,
+  AgenticPayResourceServerConfig,
+  AgenticPayClientConfig
 } from './builders';

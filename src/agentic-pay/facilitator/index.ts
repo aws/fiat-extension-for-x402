@@ -1,7 +1,7 @@
 /**
- * FAB Facilitator exports
+ * Agentic Pay Facilitator exports
  */
 
-export { FABScheme } from './scheme';
+export { AgenticPayScheme } from './scheme';
 export { verifyPayment } from './verify';
 export { settlePayment } from './settle';

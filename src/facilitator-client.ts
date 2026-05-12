@@ -29,11 +29,11 @@ import type {
  * ```typescript
  * import { x402Facilitator } from '@x402/core/facilitator';
  * import { x402ResourceServer } from '@x402/core/server';
- * import { InProcessFacilitatorClient, FABFacilitatorScheme } from '@x402/fab';
+ * import { InProcessFacilitatorClient, AgenticPayFacilitatorScheme } from '@x402/aws-agentic-pay';
  * 
- * // Create facilitator with FAB scheme
+ * // Create facilitator with Agentic Pay scheme
  * const facilitator = new x402Facilitator()
- *   .register('aws:marketplace', new FABFacilitatorScheme({
+ *   .register('aws:marketplace', new AgenticPayFacilitatorSchemeImpl({
  *     agenticPayId: 'my-agentic-pay',
  *     agenticPay: { baseUrl: 'https://pay.example.com' }
  *   }));

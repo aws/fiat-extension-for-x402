@@ -1,23 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import {
-  FAB_SCHEME,
+  AGENTIC_PAY_SCHEME,
   SETTLEMENT_METHODS,
   SETTLEMENT_CYCLES,
   DEFAULT_QUOTE_VALIDITY_SECONDS,
   DEFAULT_PAYMENT_VALIDITY_SECONDS,
-  FAB_CAIP_FAMILY,
+  AGENTIC_PAY_CAIP_FAMILY,
 } from '../../src/constants';
 
 describe('Constants', () => {
-  describe('FAB_SCHEME', () => {
-    it('should be "fab"', () => {
-      expect(FAB_SCHEME).toBe('fab');
+  describe('AGENTIC_PAY_SCHEME', () => {
+    it('should be "aws:marketplace"', () => {
+      expect(AGENTIC_PAY_SCHEME).toBe('aws:marketplace');
     });
   });
 
-  describe('FAB_CAIP_FAMILY', () => {
+  describe('AGENTIC_PAY_CAIP_FAMILY', () => {
     it('should be "fab:*"', () => {
-      expect(FAB_CAIP_FAMILY).toBe('fab:*');
+      expect(AGENTIC_PAY_CAIP_FAMILY).toBe('aws:*');
     });
   });
 

@@ -1,24 +1,24 @@
 /**
- * FAB Resource Server Builder
+ * Agentic Pay Resource Server Builder
  *
  * Two-phase API: create a server, then register networks.
  * This separates construction from configuration and makes it easy
  * to extend later (e.g., register different networks with different options).
  *
  * Usage:
- *   const server = createFABResourceServer({ ... });
+ *   const server = createAgenticPayResourceServer({ ... });
  *   server.registerNetwork('aws:marketplace');
  *   server.registerNetwork('eip155:8453');
  *   await server.initialize();
  *
  * Or use the convenience builder that does it all in one call:
- *   const server = await buildFABResourceServer({ ... });
+ *   const server = await buildAgenticPayResourceServer({ ... });
  */
 
 import { x402ResourceServer } from '@x402/core/server';
 import { HTTPFacilitatorClient } from '@x402/core/http';
 import type { Network } from '@x402/core/types';
-import { FABScheme as FABServerScheme } from '../fab/server/scheme';
+import { AgenticPayScheme as AgenticPayServerSchemeImpl } from '../agentic-pay/server/scheme';
 import { AgenticPayFacilitatorClient } from '../agentic-pay-facilitator-client';
 import type { AgenticPayFacilitatorAuthConfig } from '../agentic-pay-facilitator-client';
 import type { SigningKeysConfig } from '../config';
@@ -27,13 +27,13 @@ import { ValidationError } from '../types';
 // ── Types ──────────────────────────────────────────────────────────
 
 /**
- * Base configuration for creating a FAB resource server.
+ * Base configuration for creating a Agentic Pay resource server.
  * Only includes identity and signing config — no routing concerns.
  */
-export interface FABResourceServerOptions {
-  /** Agentic Pay base URL for the FAB facilitator */
+export interface AgenticPayResourceServerOptions {
+  /** Agentic Pay base URL for the Agentic Pay facilitator */
   agenticPayBaseUrl: string;
-  /** Agentic Pay ID for the FAB facilitator */
+  /** Agentic Pay ID for the Agentic Pay facilitator */
   agenticPayId: string;
   /** Service signing keys for quote tokens */
   signingKeys: SigningKeysConfig;
@@ -62,12 +62,12 @@ export interface NetworkOptions {
 }
 
 /**
- * A FAB resource server with a fluent `registerNetwork` API.
+ * A Agentic Pay resource server with a fluent `registerNetwork` API.
  * Call `initialize()` after registering all networks.
  */
-export interface FABResourceServer {
-  /** Register a network for FAB to handle. Returns `this` for chaining. */
-  registerNetwork(network: Network, options?: NetworkOptions): FABResourceServer;
+export interface AgenticPayResourceServer {
+  /** Register a network for Agentic Pay to handle. Returns `this` for chaining. */
+  registerNetwork(network: Network, options?: NetworkOptions): AgenticPayResourceServer;
   /** Initialize the server (fetches supported kinds from facilitators). */
   initialize(options?: InitializeOptions): Promise<x402ResourceServer>;
   /** The underlying x402ResourceServer (available before initialize for advanced use). */
@@ -75,10 +75,10 @@ export interface FABResourceServer {
 }
 
 /**
- * Legacy config shape — kept for backward compatibility with `buildFABResourceServer`.
+ * Legacy config shape — kept for backward compatibility with `buildAgenticPayResourceServer`.
  */
-export interface FABResourceServerConfig {
-  fabNetworks: Network[];
+export interface AgenticPayResourceServerConfig {
+  networks: Network[];
   agenticPayBaseUrl: string;
   agenticPayId: string;
   signingKeys: SigningKeysConfig;
@@ -90,7 +90,7 @@ export interface FABResourceServerConfig {
 
 // ── Implementation ─────────────────────────────────────────────────
 
-function validateBaseConfig(config: FABResourceServerOptions): void {
+function validateBaseConfig(config: AgenticPayResourceServerOptions): void {
   if (!config.agenticPayBaseUrl) {
     throw new ValidationError('agenticPayBaseUrl is required');
   }
@@ -108,7 +108,7 @@ function validateBaseConfig(config: FABResourceServerOptions): void {
 }
 
 /**
- * Create a FAB resource server. Networks are registered separately
+ * Create a Agentic Pay resource server. Networks are registered separately
  * via `registerNetwork`, then `initialize()` wires up facilitator
  * routing and starts the server.
  *
@@ -117,7 +117,7 @@ function validateBaseConfig(config: FABResourceServerOptions): void {
  *
  * @example
  * ```typescript
- * const server = createFABResourceServer({
+ * const server = createAgenticPayResourceServer({
  *   agenticPayBaseUrl: 'https://pay.aws.amazon.com',
  *   agenticPayId: 'my-agentic-pay',
  *   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
@@ -130,22 +130,22 @@ function validateBaseConfig(config: FABResourceServerOptions): void {
  * const x402Server = await server.initialize();
  * ```
  */
-export function createFABResourceServer(
-  config: FABResourceServerOptions
-): FABResourceServer {
+export function createAgenticPayResourceServer(
+  config: AgenticPayResourceServerOptions
+): AgenticPayResourceServer {
   validateBaseConfig(config);
 
   const registeredNetworks = new Set<Network>();
   const networkFilter = new Set<Network>();
 
-  // Shared FAB server scheme (stateless w.r.t. network)
-  const fabServerScheme = new FABServerScheme({
+  // Shared Agentic Pay server scheme (stateless w.r.t. network)
+  const apServerScheme = new AgenticPayServerSchemeImpl({
     signingKeys: config.signingKeys,
     serviceUrl: config.serviceUrl,
   });
 
-  // FAB facilitator client — networkFilter is mutated by registerNetwork
-  const fabFacilitatorClient = new AgenticPayFacilitatorClient(
+  // Agentic Pay facilitator client — networkFilter is mutated by registerNetwork
+  const apFacilitatorClient = new AgenticPayFacilitatorClient(
     config.agenticPayBaseUrl,
     config.agenticPayAuth,
     networkFilter
@@ -153,13 +153,13 @@ export function createFABResourceServer(
 
   let initialized = false;
 
-  const self: FABResourceServer = {
+  const self: AgenticPayResourceServer = {
     // server is lazily built during initialize()
     get server() {
       return (self as any)._server;
     },
 
-    registerNetwork(network: Network, _options?: NetworkOptions): FABResourceServer {
+    registerNetwork(network: Network, _options?: NetworkOptions): AgenticPayResourceServer {
       if (initialized) {
         throw new ValidationError('Cannot register networks after initialize()');
       }
@@ -178,8 +178,8 @@ export function createFABResourceServer(
         );
       }
 
-      // Build facilitator client array: FAB first (precedence), default second (fallback)
-      const facilitatorClients: any[] = [fabFacilitatorClient];
+      // Build facilitator client array: Agentic Pay first (precedence), default second (fallback)
+      const facilitatorClients: any[] = [apFacilitatorClient];
 
       if (!options?.disableDefaultFallback) {
         const defaultFacilitator = options?.defaultFacilitatorUrl
@@ -190,9 +190,9 @@ export function createFABResourceServer(
 
       const server = new x402ResourceServer(facilitatorClients);
 
-      // Register FAB server scheme for each network
+      // Register Agentic Pay server scheme for each network
       for (const network of registeredNetworks) {
-        server.register(network, fabServerScheme);
+        server.register(network, apServerScheme);
       }
 
       await server.initialize();
@@ -212,17 +212,17 @@ export function createFABResourceServer(
  * Convenience builder that creates, registers networks, and initializes
  * in one call.
  *
- * @param config - FAB resource server configuration (includes fabNetworks)
+ * @param config - Agentic Pay resource server configuration (includes networks)
  * @returns Initialized x402ResourceServer
  */
-export async function buildFABResourceServer(
-  config: FABResourceServerConfig
+export async function buildAgenticPayResourceServer(
+  config: AgenticPayResourceServerConfig
 ): Promise<x402ResourceServer> {
-  if (!config.fabNetworks || config.fabNetworks.length === 0) {
-    throw new ValidationError('fabNetworks must be a non-empty array');
+  if (!config.networks || config.networks.length === 0) {
+    throw new ValidationError('networks must be a non-empty array');
   }
 
-  const s = createFABResourceServer({
+  const s = createAgenticPayResourceServer({
     agenticPayBaseUrl: config.agenticPayBaseUrl,
     agenticPayId: config.agenticPayId,
     signingKeys: config.signingKeys,
@@ -230,7 +230,7 @@ export async function buildFABResourceServer(
     agenticPayAuth: config.agenticPayAuth,
   });
 
-  for (const network of config.fabNetworks) {
+  for (const network of config.networks) {
     s.registerNetwork(network);
   }
 

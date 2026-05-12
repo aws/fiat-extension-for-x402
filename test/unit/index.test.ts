@@ -1,46 +1,46 @@
 import { describe, it, expect } from 'vitest';
-import * as FAB from '../../src/index';
+import * as AgenticPay from '../../src/index';
 
-describe('FAB Package Exports', () => {
-  it('should export FABClientScheme', () => {
-    expect(FAB.FABClientScheme).toBeDefined();
+describe('Agentic Pay Package Exports', () => {
+  it('should export AgenticPayClientScheme', () => {
+    expect(AgenticPay.AgenticPayClientScheme).toBeDefined();
   });
 
-  it('should export FABServerScheme', () => {
-    expect(FAB.FABServerScheme).toBeDefined();
+  it('should export AgenticPayServerScheme', () => {
+    expect(AgenticPay.AgenticPayServerScheme).toBeDefined();
   });
 
-  it('should export FABFacilitatorScheme', () => {
-    expect(FAB.FABFacilitatorScheme).toBeDefined();
+  it('should export AgenticPayFacilitatorScheme', () => {
+    expect(AgenticPay.AgenticPayFacilitatorScheme).toBeDefined();
   });
 
   it('should export signer functions', () => {
-    expect(FAB.toServiceFABSigner).toBeDefined();
-    expect(FAB.toAgenticPayFABSigner).toBeDefined();
+    expect(AgenticPay.toServiceAgenticPaySigner).toBeDefined();
+    expect(AgenticPay.toAgenticPaySigner).toBeDefined();
   });
 
   it('should export error classes', () => {
-    expect(FAB.FABError).toBeDefined();
-    expect(FAB.ValidationError).toBeDefined();
-    expect(FAB.SignatureError).toBeDefined();
-    expect(FAB.ExpiryError).toBeDefined();
-    expect(FAB.MismatchError).toBeDefined();
-    expect(FAB.DPoPError).toBeDefined();
+    expect(AgenticPay.AgenticPayError).toBeDefined();
+    expect(AgenticPay.ValidationError).toBeDefined();
+    expect(AgenticPay.SignatureError).toBeDefined();
+    expect(AgenticPay.ExpiryError).toBeDefined();
+    expect(AgenticPay.MismatchError).toBeDefined();
+    expect(AgenticPay.DPoPError).toBeDefined();
   });
 
   it('should export constants', () => {
-    expect(FAB.FAB_SCHEME).toBe('fab');
-    expect(FAB.FAB_CAIP_FAMILY).toBe('fab:*');
-    expect(FAB.SETTLEMENT_METHODS).toBeDefined();
-    expect(FAB.SETTLEMENT_CYCLES).toBeDefined();
+    expect(AgenticPay.AGENTIC_PAY_SCHEME).toBe('aws:marketplace');
+    expect(AgenticPay.AGENTIC_PAY_CAIP_FAMILY).toBe('aws:*');
+    expect(AgenticPay.SETTLEMENT_METHODS).toBeDefined();
+    expect(AgenticPay.SETTLEMENT_CYCLES).toBeDefined();
   });
 
   it('should export utility functions', () => {
-    expect(FAB.decodeQuoteToken).toBeDefined();
-    expect(FAB.verifyQuoteToken).toBeDefined();
-    expect(FAB.verifyPaymentToken).toBeDefined();
-    expect(FAB.extractQuoteFromPayment).toBeDefined();
-    expect(FAB.generateTransactionId).toBeDefined();
-    expect(FAB.parseMoneyToDecimal).toBeDefined();
+    expect(AgenticPay.decodeQuoteToken).toBeDefined();
+    expect(AgenticPay.verifyQuoteToken).toBeDefined();
+    expect(AgenticPay.verifyPaymentToken).toBeDefined();
+    expect(AgenticPay.extractQuoteFromPayment).toBeDefined();
+    expect(AgenticPay.generateTransactionId).toBeDefined();
+    expect(AgenticPay.parseMoneyToDecimal).toBeDefined();
   });
 });

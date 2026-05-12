@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { buildFABResourceServer } from '../../../src/builders/resource-server-builder';
-import type { FABResourceServerConfig } from '../../../src/builders/resource-server-builder';
+import { buildAgenticPayResourceServer } from '../../../src/builders/resource-server-builder';
+import type { AgenticPayResourceServerConfig } from '../../../src/builders/resource-server-builder';
 import { ValidationError } from '../../../src/types';
 import * as jose from 'jose';
 
@@ -8,7 +8,7 @@ import * as jose from 'jose';
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
-describe('buildFABResourceServer', () => {
+describe('buildAgenticPayResourceServer', () => {
   let signingKeys: { privateKey: jose.KeyLike; publicKey: jose.JWK; alg: 'RS256' };
 
   beforeEach(async () => {
@@ -29,16 +29,16 @@ describe('buildFABResourceServer', () => {
           json: async () => ({
             kinds: networks.map(n => ({
               x402Version: 2,
-              scheme: 'fab',
+              scheme: 'aws:marketplace',
               network: n,
               extra: { agenticPayId: 'test-agentic-pay' },
             })),
             extensions: [],
-            signers: { 'fab:*': ['test-agentic-pay'] },
+            signers: { 'aws:*': ['test-agentic-pay'] },
           }),
         };
       }
-      // Default facilitator /supported — return some non-FAB networks
+      // Default facilitator /supported — return some non-Agentic-Pay networks
       if (url.includes('/supported')) {
         return {
           ok: true,
@@ -56,26 +56,26 @@ describe('buildFABResourceServer', () => {
     });
   }
 
-  it('should build server with FAB schemes for specified networks', async () => {
+  it('should build server with Agentic Pay schemes for specified networks', async () => {
     mockAgenticPaySupported(['fab:aws', 'eip155:8453']);
 
-    const server = await buildFABResourceServer({
-      fabNetworks: ['fab:aws', 'eip155:8453'],
+    const server = await buildAgenticPayResourceServer({
+      networks: ['fab:aws', 'eip155:8453'],
       agenticPayBaseUrl: 'https://pay.example.com',
       agenticPayId: 'test-agentic-pay',
       signingKeys,
       serviceUrl: 'https://api.example.com',
     });
 
-    expect(server.hasRegisteredScheme('fab:aws', 'fab')).toBe(true);
-    expect(server.hasRegisteredScheme('eip155:8453', 'fab')).toBe(true);
+    expect(server.hasRegisteredScheme('fab:aws', 'aws:marketplace')).toBe(true);
+    expect(server.hasRegisteredScheme('eip155:8453', 'aws:marketplace')).toBe(true);
   });
 
   it('should include default facilitator when disableDefaultFallback is false', async () => {
     mockAgenticPaySupported(['fab:aws']);
 
-    const server = await buildFABResourceServer({
-      fabNetworks: ['fab:aws'],
+    const server = await buildAgenticPayResourceServer({
+      networks: ['fab:aws'],
       agenticPayBaseUrl: 'https://pay.example.com',
       agenticPayId: 'test-agentic-pay',
       signingKeys,
@@ -83,8 +83,8 @@ describe('buildFABResourceServer', () => {
       disableDefaultFallback: false,
     });
 
-    // FAB network should be registered
-    expect(server.hasRegisteredScheme('fab:aws', 'fab')).toBe(true);
+    // Agentic Pay network should be registered
+    expect(server.hasRegisteredScheme('fab:aws', 'aws:marketplace')).toBe(true);
     // Both facilitator clients were queried during initialize().
     // The Agentic Pay's x402-supported endpoint is one call, and the default
     // facilitator's /supported endpoint is another. Both go through fetch.
@@ -98,8 +98,8 @@ describe('buildFABResourceServer', () => {
   it('should exclude default facilitator when disableDefaultFallback is true', async () => {
     mockAgenticPaySupported(['fab:aws']);
 
-    const server = await buildFABResourceServer({
-      fabNetworks: ['fab:aws'],
+    const server = await buildAgenticPayResourceServer({
+      networks: ['fab:aws'],
       agenticPayBaseUrl: 'https://pay.example.com',
       agenticPayId: 'test-agentic-pay',
       signingKeys,
@@ -107,7 +107,7 @@ describe('buildFABResourceServer', () => {
       disableDefaultFallback: true,
     });
 
-    expect(server.hasRegisteredScheme('fab:aws', 'fab')).toBe(true);
+    expect(server.hasRegisteredScheme('fab:aws', 'aws:marketplace')).toBe(true);
     // Only the Agentic Pay's x402-supported should have been called
     const supportedCalls = mockFetch.mock.calls.filter(
       (c: any) => c[0].includes('x402-supported')
@@ -123,8 +123,8 @@ describe('buildFABResourceServer', () => {
           ok: true,
           json: async () => ({
             kinds: [
-              { x402Version: 2, scheme: 'fab', network: 'fab:aws', extra: {} },
-              { x402Version: 2, scheme: 'fab', network: 'fab:test', extra: {} },
+              { x402Version: 2, scheme: 'aws:marketplace', network: 'fab:aws', extra: {} },
+              { x402Version: 2, scheme: 'aws:marketplace', network: 'fab:test', extra: {} },
             ],
             extensions: [],
             signers: {},
@@ -140,24 +140,24 @@ describe('buildFABResourceServer', () => {
       return { ok: false, statusText: 'Not Found' };
     });
 
-    const server = await buildFABResourceServer({
-      fabNetworks: ['fab:aws'],
+    const server = await buildAgenticPayResourceServer({
+      networks: ['fab:aws'],
       agenticPayBaseUrl: 'https://pay.example.com',
       agenticPayId: 'test-agentic-pay',
       signingKeys,
       serviceUrl: 'https://api.example.com',
     });
 
-    // fab:aws should be registered (in fabNetworks)
-    expect(server.hasRegisteredScheme('fab:aws', 'fab')).toBe(true);
+    // fab:aws should be registered (in networks)
+    expect(server.hasRegisteredScheme('fab:aws', 'aws:marketplace')).toBe(true);
     // fab:test should NOT have a supported kind (filtered out by networkFilter)
-    expect(server.getSupportedKind(2, 'fab:test', 'fab')).toBeUndefined();
+    expect(server.getSupportedKind(2, 'fab:test', 'aws:marketplace')).toBeUndefined();
   });
 
-  it('should throw on empty fabNetworks', async () => {
+  it('should throw on empty networks', async () => {
     await expect(
-      buildFABResourceServer({
-        fabNetworks: [],
+      buildAgenticPayResourceServer({
+        networks: [],
         agenticPayBaseUrl: 'https://pay.example.com',
         agenticPayId: 'test-agentic-pay',
         signingKeys,
@@ -168,8 +168,8 @@ describe('buildFABResourceServer', () => {
 
   it('should throw on invalid agenticPayBaseUrl', async () => {
     await expect(
-      buildFABResourceServer({
-        fabNetworks: ['fab:aws'],
+      buildAgenticPayResourceServer({
+        networks: ['fab:aws'],
         agenticPayBaseUrl: 'not-a-url',
         agenticPayId: 'test-agentic-pay',
         signingKeys,
@@ -180,8 +180,8 @@ describe('buildFABResourceServer', () => {
 
   it('should throw on missing signingKeys', async () => {
     await expect(
-      buildFABResourceServer({
-        fabNetworks: ['fab:aws'],
+      buildAgenticPayResourceServer({
+        networks: ['fab:aws'],
         agenticPayBaseUrl: 'https://pay.example.com',
         agenticPayId: 'test-agentic-pay',
         signingKeys: undefined as any,

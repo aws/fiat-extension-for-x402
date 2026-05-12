@@ -22,7 +22,7 @@ export interface AgenticPayDiscoveryMetadata {
   dpop_signing_alg_values_supported?: string[];
   /** Authentication methods accepted by payment endpoint */
   token_endpoint_auth_methods_supported?: string[];
-  /** Grant types supported (FAB uses 'quote_token') */
+  /** Grant types supported (Agentic Pay uses 'quote_token') */
   grant_types_supported?: string[];
 }
 
@@ -55,14 +55,14 @@ const networkRegistry = new Map<string, string>();
  * 
  * @example
  * ```typescript
- * // Register AWS FAB network
+ * // Register AWS Agentic Pay network
  * registerNetwork('aws:marketplace', 'https://pay.aws.amazon.com');
  * 
- * // Register custom FAB network
- * registerNetwork('fab:custom', 'https://custom-pay.example.com');
+ * // Register custom Agentic Pay network
+ * registerNetwork('custom:provider', 'https://custom-pay.example.com');
  * 
- * // Register internal FAB network
- * registerNetwork('fab:internal', 'https://internal-pay.corp.com');
+ * // Register internal Agentic Pay network
+ * registerNetwork('internal:provider', 'https://internal-pay.corp.com');
  * ```
  */
 export function registerNetwork(network: string, baseUrl: string): void {
@@ -96,7 +96,7 @@ export function registerNetwork(network: string, baseUrl: string): void {
  * 
  * @example
  * ```typescript
- * unregisterNetwork('fab:custom');
+ * unregisterNetwork('custom:provider');
  * ```
  */
 export function unregisterNetwork(network: string): boolean {

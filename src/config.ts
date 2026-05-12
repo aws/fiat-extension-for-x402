@@ -1,5 +1,5 @@
 /**
- * Configuration types for FAB scheme registration
+ * Configuration types for Agentic Pay scheme registration
  */
 
 import type { KeyLike, JWK } from 'jose';
@@ -135,7 +135,7 @@ export interface ListAgentPaymentsResponse {
 
 /**
  * Client-side Agentic Pay operations
- * Used by FABClientScheme to create payments via the Agent Pay API
+ * Used by AgenticPayClientScheme to create payments via the Agent Pay API
  */
 export interface AgenticPayClientForClient {
   /**
@@ -151,7 +151,7 @@ export interface AgenticPayClientForClient {
 
 /**
  * Facilitator-side Agentic Pay operations
- * Used by FABFacilitatorScheme to verify payments
+ * Used by AgenticPayFacilitatorScheme to verify payments
  * 
  * Note: Agent Pay auto-captures on creation — there is no separate capture/settle step.
  */
@@ -188,28 +188,28 @@ export interface AgenticPayClient extends AgenticPayClientForClient, AgenticPayC
 /**
  * Client scheme configuration
  */
-export type FABClientSchemeConfig = 
+export type AgenticPayClientSchemeConfig = 
   | { agenticPayId: string; agenticPay: AgenticPayConfig }
   | { agenticPayId: string; agenticPayClient: AgenticPayClientForClient; auth?: AuthConfig };
 
 /**
  * Server scheme configuration
  */
-export type FABServerSchemeConfig = 
+export type AgenticPayServerSchemeConfig = 
   | { signingKeys: SigningKeysConfig; serviceUrl: string; agenticPay?: AgenticPayConfig }
-  | { signer: ServiceFABSigner };
+  | { signer: ServiceAgenticPaySigner };
 
 /**
  * Facilitator scheme configuration
  */
-export type FABFacilitatorSchemeConfig = 
+export type AgenticPayFacilitatorSchemeConfig = 
   | { agenticPayId: string; agenticPay: AgenticPayConfig }
   | { agenticPayId: string; agenticPayClient: AgenticPayClientForFacilitator; auth?: AuthConfig };
 
 /**
  * Service signer interface (for custom implementations)
  */
-export interface ServiceFABSigner {
+export interface ServiceAgenticPaySigner {
   signQuote(payload: unknown): Promise<string>;
   getPublicKey(): unknown;
   getServiceUrl(): string;

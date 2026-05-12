@@ -1,22 +1,22 @@
 /**
- * Express Middleware for FAB x402 Payment Protection
+ * Express Middleware for Agentic Pay x402 Payment Protection
  *
- * Provides plug-and-play Express middleware that protects routes with FAB payments.
+ * Provides plug-and-play Express middleware that protects routes with Agentic Pay payments.
  * Handles the full lifecycle: 402 generation, payment verification, and settlement.
  *
- * This middleware works directly with @x402/core and the FAB builders — it does NOT
+ * This middleware works directly with @x402/core and the Agentic Pay builders — it does NOT
  * depend on @x402/express. If you already use @x402/express's paymentMiddleware,
- * you can use createFABResourceServer directly instead of this middleware.
+ * you can use createAgenticPayResourceServer directly instead of this middleware.
  *
  * @example
  * ```typescript
  * import express from 'express';
- * import { fabPaymentMiddleware } from '@x402/fab/middleware/express';
+ * import { agenticPayMiddleware } from '@x402/agentic-pay/middleware/express';
  *
  * const app = express();
  * app.use(express.json());
  *
- * app.use(fabPaymentMiddleware({
+ * app.use(agenticPayMiddleware({
  *   agenticPayBaseUrl: 'https://pay.aws.amazon.com',
  *   agenticPayId: 'my-agentic-pay',
  *   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
@@ -43,7 +43,7 @@ import type { Network } from '@x402/core/types';
 import type { x402ResourceServer } from '@x402/core/server';
 import type { SigningKeysConfig } from '../config';
 import type { AgenticPayFacilitatorAuthConfig } from '../agentic-pay-facilitator-client';
-import { createFABResourceServer } from '../builders/resource-server-builder';
+import { createAgenticPayResourceServer } from '../builders/resource-server-builder';
 import { ValidationError } from '../types';
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ import { ValidationError } from '../types';
 /**
  * Per-route payment configuration.
  */
-export interface FABRouteConfig {
+export interface AgenticPayRouteConfig {
   /** Price for this route (e.g., 0.15) */
   price: number | string;
   /** Network to use (e.g., 'aws:marketplace') */
@@ -78,24 +78,24 @@ export interface FABRouteConfig {
  * - Wildcard: "GET /api/*"
  * - All methods: "/api/premium" (matches any HTTP method)
  */
-export type FABRoutesConfig = Record<string, FABRouteConfig>;
+export type AgenticPayRoutesConfig = Record<string, AgenticPayRouteConfig>;
 
 /**
  * Middleware configuration.
  */
-export interface FABMiddlewareConfig {
+export interface AgenticPayMiddlewareConfig {
   /** Agentic Pay provider base URL */
   agenticPayBaseUrl: string;
-  /** Agentic Pay ID for the FAB facilitator */
+  /** Agentic Pay ID for the Agentic Pay facilitator */
   agenticPayId: string;
   /** Service signing keys for quote tokens */
   signingKeys: SigningKeysConfig;
   /** Service URL (used as issuer in quote tokens) */
   serviceUrl: string;
-  /** Networks to register for FAB (e.g., ['aws:marketplace']) */
+  /** Networks to register for Agentic Pay (e.g., ['aws:marketplace']) */
   networks: Network[];
   /** Route payment configurations */
-  routes: FABRoutesConfig;
+  routes: AgenticPayRoutesConfig;
   /** Optional Agentic Pay auth for facilitator API calls */
   agenticPayAuth?: AgenticPayFacilitatorAuthConfig;
   /** Disable default x402 facilitator fallback. Defaults to false. */
@@ -138,8 +138,8 @@ export interface PaymentInfo {
 declare global {
   namespace Express {
     interface Request {
-      /** FAB payment info, set by fabPaymentMiddleware after successful verification */
-      fabPayment?: PaymentInfo;
+      /** Agentic Pay payment info, set by agenticPayMiddleware after successful verification */
+      agenticPayPayment?: PaymentInfo;
     }
   }
 }
@@ -149,10 +149,10 @@ declare global {
 interface CompiledRoute {
   method: string; // uppercase, or '*' for any
   regex: RegExp;
-  config: FABRouteConfig;
+  config: AgenticPayRouteConfig;
 }
 
-function compileRoutes(routes: FABRoutesConfig): CompiledRoute[] {
+function compileRoutes(routes: AgenticPayRoutesConfig): CompiledRoute[] {
   return Object.entries(routes).map(([pattern, config]) => {
     // Parse "METHOD /path" or just "/path"
     const parts = pattern.trim().split(/\s+/);
@@ -179,7 +179,7 @@ function compileRoutes(routes: FABRoutesConfig): CompiledRoute[] {
   });
 }
 
-function matchRoute(compiledRoutes: CompiledRoute[], method: string, path: string): FABRouteConfig | undefined {
+function matchRoute(compiledRoutes: CompiledRoute[], method: string, path: string): AgenticPayRouteConfig | undefined {
   for (const route of compiledRoutes) {
     if (route.method !== '*' && route.method !== method.toUpperCase()) continue;
     if (route.regex.test(path)) return route.config;
@@ -227,17 +227,17 @@ function extractPaymentPayload(req: Request): any | null {
 // ── Middleware factory ──────────────────────────────────────────────
 
 /**
- * Create Express middleware that protects routes with FAB payments.
+ * Create Express middleware that protects routes with Agentic Pay payments.
  *
  * The middleware intercepts requests to configured routes, returns 402 if no
  * payment is present, verifies payments, settles them, and then calls next().
- * After verification, `req.fabPayment` contains the payment details.
+ * After verification, `req.agenticPayPayment` contains the payment details.
  *
  * @param config - Middleware configuration
  * @returns Express middleware function
  */
-export function fabPaymentMiddleware(
-  config: FABMiddlewareConfig,
+export function agenticPayMiddleware(
+  config: AgenticPayMiddlewareConfig,
 ): (req: Request, res: Response, next: NextFunction) => void {
   // Validate config
   if (!config.networks || config.networks.length === 0) {
@@ -254,7 +254,7 @@ export function fabPaymentMiddleware(
 
   function getServer(): Promise<x402ResourceServer> {
     if (!serverPromise) {
-      const fabServer = createFABResourceServer({
+      const apServer = createAgenticPayResourceServer({
         agenticPayBaseUrl: config.agenticPayBaseUrl,
         agenticPayId: config.agenticPayId,
         signingKeys: config.signingKeys,
@@ -263,10 +263,10 @@ export function fabPaymentMiddleware(
       });
 
       for (const network of config.networks) {
-        fabServer.registerNetwork(network);
+        apServer.registerNetwork(network);
       }
 
-      serverPromise = fabServer.initialize({
+      serverPromise = apServer.initialize({
         disableDefaultFallback: config.disableDefaultFallback,
       });
     }
@@ -280,7 +280,7 @@ export function fabPaymentMiddleware(
     });
   }
 
-  return function fabMiddleware(req: Request, res: Response, next: NextFunction) {
+  return function agenticPayMw(req: Request, res: Response, next: NextFunction) {
     const routeConfig = matchRoute(compiledRoutes, req.method, req.path);
 
     // Not a protected route — pass through
@@ -296,7 +296,7 @@ export function fabPaymentMiddleware(
       if (!paymentPayload) {
         // No payment — return 402
         const requirements = await server.buildPaymentRequirements({
-          scheme: 'fab',
+          scheme: 'aws:marketplace',
           network: routeConfig.network,
           payTo: routeConfig.payTo,
           price: routeConfig.price,
@@ -335,10 +335,10 @@ export function fabPaymentMiddleware(
       }
 
       // Build payment info
-      const fabPayload = paymentPayload.payload;
+      const apPayload = paymentPayload.payload;
       const payment: PaymentInfo = {
         payer: verifyResult.payer || 'unknown',
-        transactionId: fabPayload?.transactionId || '',
+        transactionId: apPayload?.transactionId || '',
         network: accepted.network,
         amount: accepted.amount,
         asset: accepted.asset,
@@ -355,13 +355,13 @@ export function fabPaymentMiddleware(
       }
 
       // Attach payment info to request and proceed
-      req.fabPayment = payment;
+      req.agenticPayPayment = payment;
       next();
     })().catch((err) => {
       if (config.onError) {
         config.onError(err, req, res);
       } else {
-        console.error('[fab-middleware] Error:', err);
+        console.error('[agentic-pay-middleware] Error:', err);
         sendError(res, 500, 'Internal server error', err instanceof Error ? err.message : String(err));
       }
     });

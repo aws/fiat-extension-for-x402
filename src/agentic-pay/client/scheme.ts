@@ -1,7 +1,7 @@
 /**
- * FAB Client Scheme Implementation
+ * Agentic Pay Client Scheme Implementation
  * 
- * In FAB, the "client" role is played by the AI agent (buyer),
+ * In Agentic Pay, the "client" role is played by the AI agent (buyer),
  * which sends the quote token to the Agent Pay Service and receives
  * a signed payment JWT in return.
  */
@@ -12,35 +12,35 @@ import {
   PaymentPayloadResult
 } from '@x402/core/types';
 import type {
-  FABClientSchemeConfig,
+  AgenticPayClientSchemeConfig,
   AgenticPayClientForClient,
   DpopJwk
 } from '../../config';
 import { DefaultAgenticPayClient } from '../../agentic-pay-client';
 import {
-  FABPaymentExtra,
-  FABPayloadV2,
+  AgenticPayPaymentExtra,
+  AgenticPayPayloadV2,
   ValidationError
 } from '../../types';
-import { FAB_SCHEME } from '../../constants';
+import { AGENTIC_PAY_SCHEME } from '../../constants';
 
 /**
- * FAB client implementation.
+ * Agentic Pay client implementation.
  * Sends quote tokens to the Agent Pay Service and wraps the response
  * into an x402 PaymentPayload.
  */
-export class FABScheme implements SchemeNetworkClient {
-  readonly scheme = FAB_SCHEME;
+export class AgenticPayScheme implements SchemeNetworkClient {
+  readonly scheme = AGENTIC_PAY_SCHEME;
   private readonly agenticPayId: string;
   private readonly agenticPayClient: AgenticPayClientForClient;
   private readonly dpopJwk?: DpopJwk;
   private readonly clientTokenGenerator?: () => string;
 
   /**
-   * Create a new FAB client scheme
+   * Create a new Agentic Pay client scheme
    * @param config - Client configuration with Agentic Pay ID and client or config
    */
-  constructor(config: FABClientSchemeConfig & {
+  constructor(config: AgenticPayClientSchemeConfig & {
     dpopJwk?: DpopJwk;
     clientTokenGenerator?: () => string;
   }) {
@@ -53,12 +53,12 @@ export class FABScheme implements SchemeNetworkClient {
     } else if ('agenticPay' in config) {
       this.agenticPayClient = new DefaultAgenticPayClient(config.agenticPay);
     } else {
-      throw new ValidationError('FABClientScheme requires either agenticPayClient or Agentic Pay configuration');
+      throw new ValidationError('AgenticPayClientScheme requires either agenticPayClient or Agentic Pay configuration');
     }
   }
 
   /**
-   * Create a payment payload for FAB scheme
+   * Create a payment payload for Agentic Pay scheme
    * 
    * Sends the quote token to the Agent Pay Service which verifies the quote,
    * captures the payment, and returns a signed Payment JWT. The Agent Pay
@@ -73,8 +73,8 @@ export class FABScheme implements SchemeNetworkClient {
     x402Version: number,
     paymentRequirements: PaymentRequirements
   ): Promise<PaymentPayloadResult> {
-    // Extract FAB extra data
-    const extra = paymentRequirements.extra as unknown as FABPaymentExtra;
+    // Extract Agentic Pay extra data
+    const extra = paymentRequirements.extra as unknown as AgenticPayPaymentExtra;
     if (!extra?.quoteToken) {
       throw new ValidationError('Missing quoteToken in payment requirements');
     }
@@ -91,8 +91,8 @@ export class FABScheme implements SchemeNetworkClient {
       dpopJwk: this.dpopJwk,
     });
 
-    // Create FAB payload with payment token from Agent Pay
-    const payload: FABPayloadV2 = {
+    // Create Agentic Pay payload with payment token from Agent Pay
+    const payload: AgenticPayPayloadV2 = {
       paymentToken: result.paymentToken,
       paymentId: result.paymentId,
       // Backward compat: also set transactionId

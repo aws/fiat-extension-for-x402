@@ -3,7 +3,7 @@ sequenceDiagram
     participant Service as Service (API Provider)
     participant AP as Agentic Pay (Agentic Pay)
 
-    Note over Client,AP: FAB Payment Flow
+    Note over Client,AP: Agentic Pay Payment Flow
 
     Client->>Service: 1. GET /resource
     Service->>Service: 2. No payment — generate quote token (signed JWT)

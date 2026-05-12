@@ -81,21 +81,29 @@ describe('Utils', () => {
       expect(() => parseTransactionId('fab')).toThrow(ValidationError);
     });
 
-    it('should throw ValidationError if network does not start with fab:', () => {
-      expect(() => parseTransactionId('aws:abc123')).toThrow(ValidationError);
-      expect(() => parseTransactionId('evm:eth:abc123')).toThrow(ValidationError);
+    it('should accept any scheme:provider format (not just fab:)', () => {
+      const result1 = parseTransactionId('aws:abc123');
+      expect(result1.network).toBe('aws');
+      expect(result1.id).toBe('abc123');
+
+      const result2 = parseTransactionId('evm:eth:abc123');
+      expect(result2.network).toBe('evm:eth');
+      expect(result2.id).toBe('abc123');
     });
   });
 
   describe('formatTransactionId', () => {
     it('should format transaction ID from components', () => {
-      const result = formatTransactionId('fab:aws', 'abc123def456');
-      expect(result).toBe('fab:aws:abc123def456');
+      const result = formatTransactionId('aws:marketplace', 'abc123def456');
+      expect(result).toBe('aws:marketplace:abc123def456');
     });
 
-    it('should throw ValidationError if network does not start with fab:', () => {
+    it('should throw ValidationError if network has no colon (invalid format)', () => {
       expect(() => formatTransactionId('aws', 'abc123')).toThrow(ValidationError);
-      expect(() => formatTransactionId('evm:eth', 'abc123')).toThrow(ValidationError);
+    });
+
+    it('should accept any scheme:provider network format', () => {
+      expect(formatTransactionId('evm:eth', 'abc123')).toBe('evm:eth:abc123');
     });
   });
 
@@ -109,8 +117,12 @@ describe('Utils', () => {
     it('should return false for invalid transaction IDs', () => {
       expect(isValidTransactionId('invalid')).toBe(false);
       expect(isValidTransactionId('fab')).toBe(false);
-      expect(isValidTransactionId('aws:abc123')).toBe(false);
-      expect(isValidTransactionId('evm:eth:abc123')).toBe(false);
+      expect(isValidTransactionId('')).toBe(false);
+    });
+
+    it('should return true for valid transaction IDs with any network format', () => {
+      expect(isValidTransactionId('aws:abc123')).toBe(true);
+      expect(isValidTransactionId('evm:eth:abc123')).toBe(true);
     });
   });
 
@@ -258,7 +270,7 @@ describe('Utils', () => {
         formatTransactionId('invalid', 'abc123');
       } catch (error) {
         expect(error).toBeInstanceOf(ValidationError);
-        expect((error as ValidationError).message).toContain('Network must start with "fab:"');
+        expect((error as ValidationError).message).toContain('scheme:provider format');
       }
     });
   });
@@ -292,7 +304,11 @@ describe('Utils', () => {
 
     it('should throw for malformed IDs', () => {
       expect(() => extractNetworkFromTransactionId('fab')).toThrow(ValidationError);
-      expect(() => extractNetworkFromTransactionId('notfab:aws:123')).toThrow(ValidationError);
+      expect(() => extractNetworkFromTransactionId('nocolon')).toThrow(ValidationError);
+    });
+
+    it('should extract network from any scheme:provider format', () => {
+      expect(extractNetworkFromTransactionId('notfab:aws:123')).toBe('notfab:aws');
     });
   });
 });

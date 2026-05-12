@@ -2,4 +2,4 @@
  * Pre-configured network schemes
  */
 
-export { FABAWSClientScheme, FABAWSServerScheme, FABAWSFacilitatorScheme } from './aws';
+export { AgenticPayAWSClientScheme, AgenticPayAWSServerScheme, AgenticPayAWSFacilitatorScheme } from './aws';

@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as jose from 'jose';
-import { toServiceFABSigner, toAgenticPayFABSigner } from '../../src/signer';
-import type { ServiceFABSigner, AgenticPayFABSigner } from '../../src/signer';
+import { toServiceAgenticPaySigner, toAgenticPaySigner } from '../../src/signer';
+import type { ServiceAgenticPaySigner, AgenticPaySigner } from '../../src/signer';
 import type { QuoteTokenPayload, PaymentTokenPayload } from '../../src/types';
 
-describe('FAB Signers', () => {
-  describe('ServiceFABSigner', () => {
+describe('Agentic Pay Signers', () => {
+  describe('ServiceAgenticPaySigner', () => {
     let privateKey: jose.KeyLike;
     let publicKey: jose.KeyLike;
-    let signer: ServiceFABSigner;
+    let signer: ServiceAgenticPaySigner;
 
     beforeEach(async () => {
       // Generate test key pair
@@ -66,10 +66,10 @@ describe('FAB Signers', () => {
     });
   });
 
-  describe('AgenticPayFABSigner', () => {
+  describe('AgenticPaySigner', () => {
     let privateKey: jose.KeyLike;
     let publicKey: jose.KeyLike;
-    let signer: AgenticPayFABSigner;
+    let signer: AgenticPaySigner;
 
     beforeEach(async () => {
       // Generate test key pair
@@ -129,12 +129,12 @@ describe('FAB Signers', () => {
     });
   });
 
-  describe('toServiceFABSigner adapter', () => {
-    it('should create a ServiceFABSigner from jose keys', async () => {
+  describe('toServiceAgenticPaySigner adapter', () => {
+    it('should create a ServiceAgenticPaySigner from jose keys', async () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
       
-      const signer = toServiceFABSigner(privateKey, publicJWK, 'https://api.test.com');
+      const signer = toServiceAgenticPaySigner(privateKey, publicJWK, 'https://api.test.com');
       
       expect(signer).toBeDefined();
       expect(signer.getServiceUrl()).toBe('https://api.test.com');
@@ -145,7 +145,7 @@ describe('FAB Signers', () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
       
-      const signer = toServiceFABSigner(privateKey, publicJWK, 'https://api.test.com');
+      const signer = toServiceAgenticPaySigner(privateKey, publicJWK, 'https://api.test.com');
       
       const payload: QuoteTokenPayload = {
         iss: 'https://api.test.com',
@@ -166,12 +166,12 @@ describe('FAB Signers', () => {
     });
   });
 
-  describe('toAgenticPayFABSigner adapter', () => {
-    it('should create a AgenticPayFABSigner from jose keys', async () => {
+  describe('toAgenticPaySigner adapter', () => {
+    it('should create a AgenticPaySigner from jose keys', async () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
       
-      const signer = toAgenticPayFABSigner(privateKey, publicJWK, 'agentic-pay-provider-123');
+      const signer = toAgenticPaySigner(privateKey, publicJWK, 'agentic-pay-provider-123');
       
       expect(signer).toBeDefined();
       expect(signer.getAddresses()).toEqual(['agentic-pay-provider-123']);
@@ -182,7 +182,7 @@ describe('FAB Signers', () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
       
-      const signer = toAgenticPayFABSigner(privateKey, publicJWK, 'agentic-pay-test');
+      const signer = toAgenticPaySigner(privateKey, publicJWK, 'agentic-pay-test');
       
       const payload: PaymentTokenPayload = {
         iss: 'agentic-pay-test',
@@ -207,7 +207,7 @@ describe('FAB Signers', () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
       
-      const signer = toAgenticPayFABSigner(privateKey, publicJWK, 'my-agentic-pay-id');
+      const signer = toAgenticPaySigner(privateKey, publicJWK, 'my-agentic-pay-id');
       
       const addresses = signer.getAddresses();
       expect(addresses).toHaveLength(1);
