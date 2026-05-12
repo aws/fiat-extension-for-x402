@@ -114,6 +114,26 @@ export type { AgentPayDiscoveryMetadata } from './discovery';
 // Security utilities
 export { ALLOWED_ALGORITHMS, secureCompare, validateUrl } from './security';
 
+// Zod Schemas (runtime validation)
+export {
+  QuoteTokenPayloadSchema,
+  QuoteTokenPriceSchema,
+  AgentPaySettlementSchema,
+  AgentPaySupportSchema,
+  AgentPayTermsSchema,
+  AgentPayPaymentExtraSchema,
+  AgentPayPayloadV2Schema,
+  DpopJwkSchema,
+  CreateAgentPaymentRequestSchema,
+  CreateAgentPaymentResponseSchema,
+  GetAgentPaymentResponseSchema,
+  ListAgentPaymentsResponseSchema,
+  parseQuoteToken,
+  safeParseQuoteToken,
+  parsePaymentPayload,
+  parseCreatePaymentResponse,
+} from './schemas';
+
 // DPoP (Demonstrating Proof-of-Possession)
 export {
   generateDPoPKeyPair,
