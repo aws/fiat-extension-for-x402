@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `@x402/aws-agentic-pay` SDK implements several security measures to protect payment flows between AI agents, API services, and the AWS Marketplace Agent Pay Service.
+The `aws-agent-pay-x402` SDK implements several security measures to protect payment flows between AI agents, API services, and the AWS Marketplace Agent Pay Service.
 
 ## Algorithm Allowlist
 
@@ -65,7 +65,7 @@ Error messages include contextual information (HTTP status codes, field names) b
 
 1. **Don't disable HTTPS** — The `validateUrl` utility allows HTTP only for localhost. Never use HTTP in production.
 
-2. **Don't skip token verification** — Always verify payment token signatures before delivering resources. The `agenticPayMiddleware` does this automatically.
+2. **Don't skip token verification** — Always verify payment token signatures before delivering resources. The `agentPayMiddleware` does this automatically.
 
 3. **Don't reuse DPoP keys** — Generate a fresh key pair per session using `generateDPoPKeyPair()`.
 

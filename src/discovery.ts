@@ -1,20 +1,20 @@
 /**
- * Agentic Pay Endpoint Discovery
+ * Agent Pay Endpoint Discovery
  * 
- * Utilities for discovering Agentic Pay provider endpoints via OIDC discovery.
+ * Utilities for discovering Agent Pay provider endpoints via OIDC discovery.
  */
 
 /**
- * Agentic Pay discovery metadata (OIDC Discovery response)
+ * Agent Pay discovery metadata (OIDC Discovery response)
  */
-export interface AgenticPayDiscoveryMetadata {
-  /** Agentic Pay's canonical identifier (matches iss claim in Payment JWTs) */
+export interface AgentPayDiscoveryMetadata {
+  /** Agent Pay's canonical identifier (matches iss claim in Payment JWTs) */
   issuer: string;
-  /** URL where services can fetch Agentic Pay's public keys */
+  /** URL where services can fetch Agent Pay's public keys */
   jwks_uri: string;
   /** URL where clients create payment transactions */
   payment_endpoint: string;
-  /** Settlement methods this Agentic Pay provider supports */
+  /** Settlement methods this Agent Pay provider supports */
   supported_settlement_methods?: string[];
   /** Algorithms used to sign Payment JWTs */
   signing_alg_values_supported?: string[];
@@ -22,7 +22,7 @@ export interface AgenticPayDiscoveryMetadata {
   dpop_signing_alg_values_supported?: string[];
   /** Authentication methods accepted by payment endpoint */
   token_endpoint_auth_methods_supported?: string[];
-  /** Grant types supported (Agentic Pay uses 'quote_token') */
+  /** Grant types supported (Agent Pay uses 'quote_token') */
   grant_types_supported?: string[];
 }
 
@@ -30,7 +30,7 @@ export interface AgenticPayDiscoveryMetadata {
  * Cache for discovery metadata
  */
 const discoveryCache = new Map<string, {
-  metadata: AgenticPayDiscoveryMetadata;
+  metadata: AgentPayDiscoveryMetadata;
   expiresAt: number;
 }>();
 
@@ -48,20 +48,20 @@ const jwksCache = new Map<string, {
 const networkRegistry = new Map<string, string>();
 
 /**
- * Register a network's Agentic Pay base URL
+ * Register a network's Agent Pay base URL
  * 
- * @param network - Network identifier (e.g., 'aws:marketplace')
- * @param baseUrl - Agentic Pay base URL (e.g., 'https://pay.aws.amazon.com')
+ * @param network - Network identifier (e.g., 'aws:base')
+ * @param baseUrl - Agent Pay base URL (e.g., 'https://pay.aws.amazon.com')
  * 
  * @example
  * ```typescript
- * // Register AWS Agentic Pay network
- * registerNetwork('aws:marketplace', 'https://pay.aws.amazon.com');
+ * // Register AWS Agent Pay network
+ * registerNetwork('aws:base', 'https://pay.aws.amazon.com');
  * 
- * // Register custom Agentic Pay network
+ * // Register custom Agent Pay network
  * registerNetwork('custom:provider', 'https://custom-pay.example.com');
  * 
- * // Register internal Agentic Pay network
+ * // Register internal Agent Pay network
  * registerNetwork('internal:provider', 'https://internal-pay.corp.com');
  * ```
  */
@@ -111,7 +111,7 @@ export function unregisterNetwork(network: string): boolean {
  * @example
  * ```typescript
  * const networks = getRegisteredNetworks();
- * console.log(networks.get('aws:marketplace'));
+ * console.log(networks.get('aws:base'));
  * ```
  */
 export function getRegisteredNetworks(): Map<string, string> {
@@ -131,26 +131,26 @@ export function clearNetworkRegistry(): void {
 }
 
 /**
- * Get Agentic Pay base URL from network identifier
+ * Get Agent Pay base URL from network identifier
  * 
- * Looks up Agentic Pay base URL from the registry. If not found, throws an error.
+ * Looks up Agent Pay base URL from the registry. If not found, throws an error.
  * You must register networks using registerNetwork() before calling this.
  * 
- * @param network - Network identifier (e.g., 'aws:marketplace')
- * @returns Agentic Pay base URL
+ * @param network - Network identifier (e.g., 'aws:base')
+ * @returns Agent Pay base URL
  * @throws Error if network identifier is invalid or not registered
  * 
  * @example
  * ```typescript
  * // Register first
- * registerNetwork('aws:marketplace', 'https://pay.aws.amazon.com');
+ * registerNetwork('aws:base', 'https://pay.aws.amazon.com');
  * 
  * // Then get
- * const baseUrl = getAgenticPayBaseUrl('aws:marketplace');
+ * const baseUrl = getAgentPayBaseUrl('aws:base');
  * // → "https://pay.aws.amazon.com"
  * ```
  */
-export function getAgenticPayBaseUrl(network: string): string {
+export function getAgentPayBaseUrl(network: string): string {
   // Validate network format: scheme:provider
   const parts = network.split(':');
   if (parts.length < 2) {
@@ -173,23 +173,23 @@ export function getAgenticPayBaseUrl(network: string): string {
 }
 
 /**
- * Discover Agentic Pay endpoints via OIDC discovery
+ * Discover Agent Pay endpoints via OIDC discovery
  * 
- * Fetches the Agentic Pay's OIDC discovery document to get endpoint URLs
+ * Fetches the Agent Pay's OIDC discovery document to get endpoint URLs
  * and supported capabilities.
  * 
- * @param network - Network identifier (e.g., 'aws:marketplace')
+ * @param network - Network identifier (e.g., 'aws:base')
  * @param options - Discovery options
- * @returns Agentic Pay discovery metadata
+ * @returns Agent Pay discovery metadata
  * 
  * @example
  * ```typescript
- * const metadata = await discoverAgenticPayEndpoints('aws:marketplace');
+ * const metadata = await discoverAgentPayEndpoints('aws:base');
  * console.log(metadata.payment_endpoint);
  * // → 'https://pay.aws.amazon.com/v1/transactions'
  * ```
  */
-export async function discoverAgenticPayEndpoints(
+export async function discoverAgentPayEndpoints(
   network: string,
   options: {
     /** Skip cache and force fresh fetch */
@@ -197,7 +197,7 @@ export async function discoverAgenticPayEndpoints(
     /** Custom fetch function (for testing) */
     fetch?: typeof globalThis.fetch;
   } = {}
-): Promise<AgenticPayDiscoveryMetadata> {
+): Promise<AgentPayDiscoveryMetadata> {
   const fetchFn = options.fetch || globalThis.fetch;
   
   // Check cache
@@ -209,17 +209,17 @@ export async function discoverAgenticPayEndpoints(
   }
   
   // Fetch discovery document
-  const baseUrl = getAgenticPayBaseUrl(network);
+  const baseUrl = getAgentPayBaseUrl(network);
   const discoveryUrl = `${baseUrl}/.well-known/openid-configuration`;
   
   const response = await fetchFn(discoveryUrl);
   if (!response.ok) {
     throw new Error(
-      `Failed to discover Agentic Pay endpoints for ${network}: ${response.status} ${response.statusText}`
+      `Failed to discover Agent Pay endpoints for ${network}: ${response.status} ${response.statusText}`
     );
   }
   
-  const metadata = await response.json() as AgenticPayDiscoveryMetadata;
+  const metadata = await response.json() as AgentPayDiscoveryMetadata;
   
   // Validate required fields
   if (!metadata.issuer || !metadata.jwks_uri || !metadata.payment_endpoint) {
@@ -238,19 +238,19 @@ export async function discoverAgenticPayEndpoints(
 }
 
 /**
- * Fetch Agentic Pay's public keys (JWKS) for signature verification
+ * Fetch Agent Pay's public keys (JWKS) for signature verification
  * 
- * @param network - Network identifier (e.g., 'aws:marketplace')
+ * @param network - Network identifier (e.g., 'aws:base')
  * @param options - Fetch options
  * @returns JSON Web Key Set
  * 
  * @example
  * ```typescript
- * const jwks = await fetchAgenticPayPublicKeys('aws:marketplace');
+ * const jwks = await fetchAgentPayPublicKeys('aws:base');
  * // Use with jose library to verify signatures
  * ```
  */
-export async function fetchAgenticPayPublicKeys(
+export async function fetchAgentPayPublicKeys(
   network: string,
   options: {
     /** Skip cache and force fresh fetch */
@@ -262,7 +262,7 @@ export async function fetchAgenticPayPublicKeys(
   const fetchFn = options.fetch || globalThis.fetch;
   
   // Get JWKS URI from discovery
-  const metadata = await discoverAgenticPayEndpoints(network, options);
+  const metadata = await discoverAgentPayEndpoints(network, options);
   const jwksUri = metadata.jwks_uri;
   
   // Check cache
@@ -277,7 +277,7 @@ export async function fetchAgenticPayPublicKeys(
   const response = await fetchFn(jwksUri);
   if (!response.ok) {
     throw new Error(
-      `Failed to fetch Agentic Pay public keys from ${jwksUri}: ${response.status} ${response.statusText}`
+      `Failed to fetch Agent Pay public keys from ${jwksUri}: ${response.status} ${response.statusText}`
     );
   }
   

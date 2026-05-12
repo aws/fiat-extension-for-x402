@@ -1,5 +1,5 @@
 /**
- * Mock Agentic Pay Server
+ * Mock Agent Pay Server
  * 
  * Simulates the AWS Marketplace Agent Pay Service API (version 2026-04-20).
  * Implements the exact API signature:
@@ -10,7 +10,7 @@
  * 
  * Auth: AWS SigV4 (simplified validation — checks for presence of AWS4-HMAC-SHA256)
  * 
- * Run with: npx tsx examples/mock-agentic-pay-server.ts
+ * Run with: npx tsx examples/mock-agent-pay-server.ts
  */
 
 import express from 'express';
@@ -50,8 +50,8 @@ async function initializeKeys() {
   publicJWK.alg = 'ES384';
   publicJWK.use = 'sig';
 
-  logFlowStep('AGENTIC_PAY', 1, 'Agent Pay Service Initialization');
-  logFlowKeys('AGENTIC_PAY', 'Signing Keys (ES384)', { publicKey: publicJWK });
+  logFlowStep('AGENT_PAY', 1, 'Agent Pay Service Initialization');
+  logFlowKeys('AGENT_PAY', 'Signing Keys (ES384)', { publicKey: publicJWK });
   console.log('✓ Agent Pay keys generated (ES384)');
   console.log('');
 }
@@ -106,8 +106,8 @@ app.use('/ListAgentPayments', sigV4Middleware);
 
 app.post('/CreateAgentPayment', async (req, res) => {
   try {
-    logFlowStep('AGENTIC_PAY', 2, 'CreateAgentPayment');
-    logFlowRequest('AGENTIC_PAY', 'POST', '/CreateAgentPayment', req.headers, req.body);
+    logFlowStep('AGENT_PAY', 2, 'CreateAgentPayment');
+    logFlowRequest('AGENT_PAY', 'POST', '/CreateAgentPayment', req.headers, req.body);
 
     const { quoteToken, clientToken, dpopJwk } = req.body;
 
@@ -127,7 +127,7 @@ app.post('/CreateAgentPayment', async (req, res) => {
       const existing = clientTokenMap.get(clientToken)!;
       // Same clientToken + same quoteToken → return cached response
       if (existing.quoteToken === quoteToken) {
-        logFlow('AGENTIC_PAY', `Idempotent response for clientToken: ${clientToken}`);
+        logFlow('AGENT_PAY', `Idempotent response for clientToken: ${clientToken}`);
         return res.status(201).json({
           paymentId: existing.paymentId,
           paymentToken: existing.paymentToken,
@@ -227,7 +227,7 @@ app.post('/CreateAgentPayment', async (req, res) => {
       clientTokenMap.set(clientToken, record);
     }
 
-    logFlowSuccess('AGENTIC_PAY', `Payment created: ${paymentId}`);
+    logFlowSuccess('AGENT_PAY', `Payment created: ${paymentId}`);
     console.log(`✓ Created payment ${paymentId}`);
     console.log(`  Amount: ${price.amount} ${price.currency}`);
     console.log(`  Seller: ${quotePayload.iss}`);
@@ -240,7 +240,7 @@ app.post('/CreateAgentPayment', async (req, res) => {
       createdAt,
     });
   } catch (error) {
-    logFlowError('AGENTIC_PAY', 'CreateAgentPayment error', error);
+    logFlowError('AGENT_PAY', 'CreateAgentPayment error', error);
     return res.status(500).json({
       message: 'An internal error occurred or a dependency is unavailable. Retry with the same clientToken.',
     });
@@ -254,7 +254,7 @@ app.post('/CreateAgentPayment', async (req, res) => {
 app.get('/GetAgentPayment/:paymentId', (req, res) => {
   const { paymentId } = req.params;
 
-  logFlowStep('AGENTIC_PAY', 3, `GetAgentPayment: ${paymentId}`);
+  logFlowStep('AGENT_PAY', 3, `GetAgentPayment: ${paymentId}`);
 
   // Validate format
   if (!paymentId || paymentId.length !== 42 || !paymentId.startsWith('awsmp-')) {
@@ -286,7 +286,7 @@ app.get('/GetAgentPayment/:paymentId', (req, res) => {
 // ============================================================================
 
 app.post('/ListAgentPayments', (req, res) => {
-  logFlowStep('AGENTIC_PAY', 4, 'ListAgentPayments');
+  logFlowStep('AGENT_PAY', 4, 'ListAgentPayments');
 
   const { sort, maxResults = 50, nextToken } = req.body || {};
 
@@ -346,7 +346,7 @@ app.get('/.well-known/x402-supported', (_req, res) => {
   res.json({
     x402Version: 2,
     kinds: [
-      { x402Version: 2, scheme: 'aws:marketplace', network: 'aws:marketplace', extra: { agenticPayId: ISSUER } },
+      { x402Version: 2, scheme: 'aws:base', network: 'aws:base', extra: { agentPayId: ISSUER } },
     ],
   });
 });

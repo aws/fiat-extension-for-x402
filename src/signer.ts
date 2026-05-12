@@ -1,9 +1,9 @@
 /**
- * Signer interfaces and adapters for Agentic Pay JWT operations
+ * Signer interfaces and adapters for Agent Pay JWT operations
  * 
- * Agentic Pay uses JWT signing instead of crypto Agentic Pay signing.
+ * Agent Pay uses JWT signing instead of crypto Agent Pay signing.
  * This module provides interfaces and adapter functions for both
- * service-side (quote token signing) and Agentic Pay-side (payment token signing).
+ * service-side (quote token signing) and Agent Pay-side (payment token signing).
  */
 
 import * as jose from 'jose';
@@ -12,7 +12,7 @@ import { QuoteTokenPayload, PaymentTokenPayload } from './types';
 /**
  * Signer for service-side operations (quote token signing)
  */
-export interface ServiceAgenticPaySigner {
+export interface ServiceAgentPaySigner {
   /**
    * Sign a quote token JWT
    * @param payload - Quote token payload to sign
@@ -34,9 +34,9 @@ export interface ServiceAgenticPaySigner {
 }
 
 /**
- * Signer for Agentic Pay-side operations (payment token signing)
+ * Signer for Agent Pay-side operations (payment token signing)
  */
-export interface AgenticPaySigner {
+export interface AgentPaySigner {
   /**
    * Sign a payment token JWT
    * @param payload - Payment token payload to sign
@@ -51,19 +51,19 @@ export interface AgenticPaySigner {
   getPublicKey(): jose.JWK;
   
   /**
-   * Get Agentic Pay addresses (for facilitator supported endpoint)
-   * @returns Array of Agentic Pay IDs
+   * Get Agent Pay addresses (for facilitator supported endpoint)
+   * @returns Array of Agent Pay IDs
    */
   getAddresses(): string[];
 }
 
 /**
- * Convert a jose KeyLike to a ServiceAgenticPaySigner
+ * Convert a jose KeyLike to a ServiceAgentPaySigner
  * 
  * @param privateKey - Private key for signing (RS256 or ES256)
  * @param publicKey - Public key in JWK format
  * @param serviceUrl - Service URL (issuer)
- * @returns ServiceAgenticPaySigner instance
+ * @returns ServiceAgentPaySigner instance
  * 
  * @example
  * ```typescript
@@ -72,18 +72,18 @@ export interface AgenticPaySigner {
  * const { privateKey, publicKey } = await generateKeyPair('RS256');
  * const publicJWK = await exportJWK(publicKey);
  * 
- * const signer = toServiceAgenticPaySigner(
+ * const signer = toServiceAgentPaySigner(
  *   privateKey,
  *   publicJWK,
  *   'https://api.service.com'
  * );
  * ```
  */
-export function toServiceAgenticPaySigner(
+export function toServiceAgentPaySigner(
   privateKey: jose.KeyLike,
   publicKey: jose.JWK,
   serviceUrl: string
-): ServiceAgenticPaySigner {
+): ServiceAgentPaySigner {
   return {
     async signQuote(payload: QuoteTokenPayload): Promise<string> {
       return await new jose.SignJWT(payload as any)
@@ -100,12 +100,12 @@ export function toServiceAgenticPaySigner(
 }
 
 /**
- * Convert a jose KeyLike to a AgenticPaySigner
+ * Convert a jose KeyLike to a AgentPaySigner
  * 
  * @param privateKey - Private key for signing (RS256 or ES256)
  * @param publicKey - Public key in JWK format
- * @param agenticPayId - Agentic Pay identifier
- * @returns AgenticPaySigner instance
+ * @param agentPayId - Agent Pay identifier
+ * @returns AgentPaySigner instance
  * 
  * @example
  * ```typescript
@@ -114,18 +114,18 @@ export function toServiceAgenticPaySigner(
  * const { privateKey, publicKey } = await generateKeyPair('RS256');
  * const publicJWK = await exportJWK(publicKey);
  * 
- * const signer = toAgenticPaySigner(
+ * const signer = toAgentPaySigner(
  *   privateKey,
  *   publicJWK,
- *   'agentic-pay-provider-id'
+ *   'agent-pay-provider-id'
  * );
  * ```
  */
-export function toAgenticPaySigner(
+export function toAgentPaySigner(
   privateKey: jose.KeyLike,
   publicKey: jose.JWK,
-  agenticPayId: string
-): AgenticPaySigner {
+  agentPayId: string
+): AgentPaySigner {
   return {
     async signPayment(payload: PaymentTokenPayload): Promise<string> {
       return await new jose.SignJWT(payload as any)
@@ -136,7 +136,7 @@ export function toAgenticPaySigner(
       return publicKey;
     },
     getAddresses(): string[] {
-      return [agenticPayId];
+      return [agentPayId];
     }
   };
 }

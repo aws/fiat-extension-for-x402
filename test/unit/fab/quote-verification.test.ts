@@ -7,20 +7,20 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as jose from 'jose';
-import { verifyPayment } from '../../../src/agentic-pay/facilitator/verify';
+import { verifyPayment } from '../../../src/agent-pay/facilitator/verify';
 import { clearServiceJWKSCache } from '../../../src/utils';
-import type { AgenticPayClientForFacilitator } from '../../../src/config';
+import type { AgentPayClientForFacilitator } from '../../../src/config';
 import type { PaymentPayload, PaymentRequirements } from '@x402/core/types';
-import type { AgenticPayPayloadV2 } from '../../../src/types';
-import { AGENTIC_PAY_SCHEME } from '../../../src/constants';
+import type { AgentPayPayloadV2 } from '../../../src/types';
+import { AGENT_PAY_SCHEME } from '../../../src/constants';
 
 describe('Quote Token Signature Verification (Task 27)', () => {
   let servicePrivateKey: jose.KeyLike;
   let servicePublicKey: jose.KeyLike;
   let servicePublicJWK: jose.JWK;
-  let agenticPayPrivateKey: jose.KeyLike;
-  let agenticPayPublicKey: jose.KeyLike;
-  let mockAgenticPayClient: AgenticPayClientForFacilitator;
+  let agentPayPrivateKey: jose.KeyLike;
+  let agentPayPublicKey: jose.KeyLike;
+  let mockAgentPayClient: AgentPayClientForFacilitator;
   const serviceUrl = 'https://api.example.com';
 
   // Mock fetch for JWKS endpoints
@@ -39,15 +39,15 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     servicePublicJWK.alg = 'RS256';
     servicePublicJWK.use = 'sig';
 
-    // Generate Agentic Pay key pair (for payment token signing)
+    // Generate Agent Pay key pair (for payment token signing)
     const apKeys = await jose.generateKeyPair('RS256');
-    agenticPayPrivateKey = apKeys.privateKey;
-    agenticPayPublicKey = apKeys.publicKey;
+    agentPayPrivateKey = apKeys.privateKey;
+    agentPayPublicKey = apKeys.publicKey;
 
-    // Mock Agentic Pay client that verifies payment tokens
-    mockAgenticPayClient = {
+    // Mock Agent Pay client that verifies payment tokens
+    mockAgentPayClient = {
       verifyPaymentToken: async (token: string) => {
-        const { payload } = await jose.jwtVerify(token, agenticPayPublicKey);
+        const { payload } = await jose.jwtVerify(token, agentPayPublicKey);
         return {
           iss: payload.iss as string,
           sub: payload.sub as string | undefined,
@@ -82,7 +82,7 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     const now = Math.floor(Date.now() / 1000);
     const payload = {
       iss: serviceUrl,
-      aud: 'aws:marketplace',
+      aud: 'aws:base',
       iat: now,
       exp: now + 300,
       jti: 'quote-test-001',
@@ -108,7 +108,7 @@ describe('Quote Token Signature Verification (Task 27)', () => {
       payment_context: { transaction_id: paymentId, quote_token: quoteToken },
     } as any)
       .setProtectedHeader({ alg: 'RS256' })
-      .sign(agenticPayPrivateKey);
+      .sign(agentPayPrivateKey);
   }
 
   function buildPayloadAndRequirements(quoteToken: string, paymentToken: string, paymentId: string) {
@@ -117,15 +117,15 @@ describe('Quote Token Signature Verification (Task 27)', () => {
       payload: { paymentToken, paymentId, transactionId: paymentId } as unknown as Record<string, unknown>,
     };
     const requirements: PaymentRequirements = {
-      scheme: AGENTIC_PAY_SCHEME,
-      network: 'aws:marketplace',
+      scheme: AGENT_PAY_SCHEME,
+      network: 'aws:base',
       amount: '0.10',
       asset: 'iso4217:USD',
-      payTo: 'urn:x402:agentic-pay:see-quote',
+      payTo: 'urn:x402:agent-pay:see-quote',
       maxTimeoutSeconds: 300,
       extra: { quoteToken } as unknown as Record<string, unknown>,
     };
-    const apPayload: AgenticPayPayloadV2 = { paymentToken, paymentId, transactionId: paymentId };
+    const apPayload: AgentPayPayloadV2 = { paymentToken, paymentId, transactionId: paymentId };
     return { payload, requirements, apPayload };
   }
 
@@ -135,7 +135,7 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
     const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
 
-    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, apPayload);
+    const result = await verifyPayment(mockAgentPayClient, payload, requirements, apPayload);
 
     expect(result.isValid).toBe(true);
     expect(result.payer).toBe('buyer-123');
@@ -146,7 +146,7 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     const wrongKeys = await jose.generateKeyPair('RS256');
     const quoteToken = await new jose.SignJWT({
       iss: serviceUrl,
-      aud: 'aws:marketplace',
+      aud: 'aws:base',
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 300,
       jti: 'quote-bad-sig',
@@ -160,7 +160,7 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
     const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
 
-    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, apPayload);
+    const result = await verifyPayment(mockAgentPayClient, payload, requirements, apPayload);
 
     expect(result.isValid).toBe(false);
     expect(result.invalidReason).toBe('invalid_quote');
@@ -180,7 +180,7 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
     const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
 
-    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, apPayload);
+    const result = await verifyPayment(mockAgentPayClient, payload, requirements, apPayload);
 
     expect(result.isValid).toBe(false);
     expect(result.invalidReason).toBe('invalid_quote');
@@ -191,7 +191,7 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     // Create quote token without iss
     const now = Math.floor(Date.now() / 1000);
     const quoteToken = await new jose.SignJWT({
-      aud: 'aws:marketplace',
+      aud: 'aws:base',
       iat: now,
       exp: now + 300,
       jti: 'quote-no-iss',
@@ -205,7 +205,7 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
     const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
 
-    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, apPayload);
+    const result = await verifyPayment(mockAgentPayClient, payload, requirements, apPayload);
 
     expect(result.isValid).toBe(false);
     expect(result.invalidReason).toBe('invalid_quote');
@@ -223,7 +223,7 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
     const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
 
-    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, apPayload);
+    const result = await verifyPayment(mockAgentPayClient, payload, requirements, apPayload);
 
     expect(result.isValid).toBe(false);
     expect(result.invalidReason).toBe('quote_expired');
@@ -239,7 +239,7 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
     const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
 
-    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, apPayload);
+    const result = await verifyPayment(mockAgentPayClient, payload, requirements, apPayload);
 
     expect(result.isValid).toBe(true);
   });
@@ -262,7 +262,7 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
     const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
 
-    const result = await verifyPayment(mockAgenticPayClient, payload, requirements, apPayload, {
+    const result = await verifyPayment(mockAgentPayClient, payload, requirements, apPayload, {
       serviceJWKSUrl: customJwksUrl,
     });
 

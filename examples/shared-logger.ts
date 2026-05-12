@@ -1,7 +1,7 @@
 /**
- * Shared Logger for Agentic Pay Payment Flow
+ * Shared Logger for Agent Pay Payment Flow
  * 
- * Provides centralized logging for Agentic Pay, service, and client
+ * Provides centralized logging for Agent Pay, service, and client
  * to create a complete, verifiable payment flow log.
  */
 
@@ -15,7 +15,7 @@ const __dirname = path.dirname(__filename);
 const LOG_DIR = path.join(__dirname, '../logs');
 const FLOW_LOG_FILE = path.join(LOG_DIR, 'payment-flow.log');
 
-export type AgentType = 'AGENTIC_PAY' | 'SERVICE' | 'CLIENT';
+export type AgentType = 'AGENT_PAY' | 'SERVICE' | 'CLIENT';
 
 /**
  * Ensure log directory exists
@@ -36,7 +36,7 @@ export function initFlowLog() {
   }
   const header = `
 ${'='.repeat(100)}
-AGENTIC PAY PAYMENT FLOW LOG
+AGENT PAY PAYMENT FLOW LOG
 Started: ${new Date().toISOString()}
 ${'='.repeat(100)}
 

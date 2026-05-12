@@ -1,6 +1,6 @@
-# SDD Collaboration Process — Agentic Pay x402 Extension
+# SDD Collaboration Process — Agent Pay x402 Extension
 
-**Applies to:** `@x402/aws-agentic-pay` development  
+**Applies to:** `aws-agent-pay-x402` development  
 **Methodology:** Spec-Driven Development (SDD), targeting spec-as-source  
 **Last Updated:** 2026-03-05
 
@@ -24,7 +24,7 @@ The project maintains two levels of specification:
 
 ### System Spec (`docs/spec.md`)
 - Business context and domain model
-- Personas and their interactions (API providers, API consumers, Agentic Pay providers)
+- Personas and their interactions (API providers, API consumers, Agent Pay providers)
 - All requirements in EARS syntax, validated against INCOSE guidelines
 - Non-functional requirements (performance, security, compatibility, testability)
 - Correctness properties (formal invariants for property-based testing)

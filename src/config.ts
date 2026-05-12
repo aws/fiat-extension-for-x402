@@ -1,5 +1,5 @@
 /**
- * Configuration types for Agentic Pay scheme registration
+ * Configuration types for Agent Pay scheme registration
  */
 
 import type { KeyLike, JWK } from 'jose';
@@ -15,12 +15,12 @@ export interface SigningKeysConfig {
 }
 
 /**
- * Agentic Pay endpoint configuration
+ * Agent Pay endpoint configuration
  * All endpoints are standardized and derived from baseUrl
  */
-export interface AgenticPayConfig {
+export interface AgentPayConfig {
   /**
-   * Base URL for Agentic Pay provider (e.g., 'https://pay.aws.amazon.com')
+   * Base URL for Agent Pay provider (e.g., 'https://pay.aws.amazon.com')
    * 
    * Standardized endpoints:
    * - POST ${baseUrl}/CreateAgentPayment - create/authorize payment
@@ -31,7 +31,7 @@ export interface AgenticPayConfig {
   baseUrl: string;
   
   /**
-   * Optional authentication configuration for Agentic Pay API calls
+   * Optional authentication configuration for Agent Pay API calls
    * Supports API Key, AWS SigV4, OAuth2, and custom authentication
    */
   auth?: AuthConfig;
@@ -134,10 +134,10 @@ export interface ListAgentPaymentsResponse {
 // ============================================================================
 
 /**
- * Client-side Agentic Pay operations
- * Used by AgenticPayClientScheme to create payments via the Agent Pay API
+ * Client-side Agent Pay operations
+ * Used by AgentPayClientScheme to create payments via the Agent Pay API
  */
-export interface AgenticPayClientForClient {
+export interface AgentPayClientForClient {
   /**
    * Create a payment with the Agent Pay Service.
    * Sends the seller-signed quote token; Agent Pay verifies, captures,
@@ -150,15 +150,15 @@ export interface AgenticPayClientForClient {
 }
 
 /**
- * Facilitator-side Agentic Pay operations
- * Used by AgenticPayFacilitatorScheme to verify payments
+ * Facilitator-side Agent Pay operations
+ * Used by AgentPayFacilitatorScheme to verify payments
  * 
  * Note: Agent Pay auto-captures on creation — there is no separate capture/settle step.
  */
-export interface AgenticPayClientForFacilitator {
+export interface AgentPayClientForFacilitator {
   /**
    * Verify a payment token's signature
-   * Fetches Agentic Pay's public keys from JWKS endpoint and verifies
+   * Fetches Agent Pay's public keys from JWKS endpoint and verifies
    * 
    * @param token - Payment token JWT to verify
    * @returns Decoded and verified payment token payload
@@ -181,35 +181,35 @@ export interface AgenticPayClientForFacilitator {
 }
 
 /**
- * Combined interface for full Agentic Pay client
+ * Combined interface for full Agent Pay client
  */
-export interface AgenticPayClient extends AgenticPayClientForClient, AgenticPayClientForFacilitator {}
+export interface AgentPayClient extends AgentPayClientForClient, AgentPayClientForFacilitator {}
 
 /**
  * Client scheme configuration
  */
-export type AgenticPayClientSchemeConfig = 
-  | { agenticPayId: string; agenticPay: AgenticPayConfig }
-  | { agenticPayId: string; agenticPayClient: AgenticPayClientForClient; auth?: AuthConfig };
+export type AgentPayClientSchemeConfig = 
+  | { agentPayId: string; agentPay: AgentPayConfig }
+  | { agentPayId: string; agentPayClient: AgentPayClientForClient; auth?: AuthConfig };
 
 /**
  * Server scheme configuration
  */
-export type AgenticPayServerSchemeConfig = 
-  | { signingKeys: SigningKeysConfig; serviceUrl: string; agenticPay?: AgenticPayConfig }
-  | { signer: ServiceAgenticPaySigner };
+export type AgentPayServerSchemeConfig = 
+  | { signingKeys: SigningKeysConfig; serviceUrl: string; agentPay?: AgentPayConfig }
+  | { signer: ServiceAgentPaySigner };
 
 /**
  * Facilitator scheme configuration
  */
-export type AgenticPayFacilitatorSchemeConfig = 
-  | { agenticPayId: string; agenticPay: AgenticPayConfig }
-  | { agenticPayId: string; agenticPayClient: AgenticPayClientForFacilitator; auth?: AuthConfig };
+export type AgentPayFacilitatorSchemeConfig = 
+  | { agentPayId: string; agentPay: AgentPayConfig }
+  | { agentPayId: string; agentPayClient: AgentPayClientForFacilitator; auth?: AuthConfig };
 
 /**
  * Service signer interface (for custom implementations)
  */
-export interface ServiceAgenticPaySigner {
+export interface ServiceAgentPaySigner {
   signQuote(payload: unknown): Promise<string>;
   getPublicKey(): unknown;
   getServiceUrl(): string;

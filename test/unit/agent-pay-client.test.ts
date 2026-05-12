@@ -1,5 +1,5 @@
 /**
- * DefaultAgenticPayClient Tests
+ * DefaultAgentPayClient Tests
  * 
  * Verifies the HTTP client calls the correct Agent Pay API endpoints
  * with the correct request shape and handles responses properly.
@@ -7,17 +7,17 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as jose from 'jose';
-import { DefaultAgenticPayClient } from '../../src/agentic-pay-client';
+import { DefaultAgentPayClient } from '../../src/agent-pay-client';
 import { ValidationError, IdempotencyConflictError } from '../../src/types';
 
-describe('DefaultAgenticPayClient', () => {
+describe('DefaultAgentPayClient', () => {
   const mockFetch = vi.fn();
   const baseUrl = 'https://pay.aws.amazon.com';
-  let client: DefaultAgenticPayClient;
+  let client: DefaultAgentPayClient;
 
   beforeEach(() => {
     vi.stubGlobal('fetch', mockFetch);
-    client = new DefaultAgenticPayClient({ baseUrl });
+    client = new DefaultAgentPayClient({ baseUrl });
   });
 
   afterEach(() => {
@@ -161,7 +161,7 @@ describe('DefaultAgenticPayClient', () => {
     });
 
     it('should strip trailing slash from baseUrl', async () => {
-      const clientWithSlash = new DefaultAgenticPayClient({ baseUrl: 'https://pay.aws.amazon.com/' });
+      const clientWithSlash = new DefaultAgentPayClient({ baseUrl: 'https://pay.aws.amazon.com/' });
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({ paymentId: 'x', paymentToken: 'y', createdAt: 'z' }),
@@ -221,14 +221,14 @@ describe('DefaultAgenticPayClient', () => {
     });
 
     // Note: Full verifyPaymentToken testing with real JWKS fetch is covered
-    // in integration tests (agentic-pay-test.test.ts) where the mock server serves JWKS.
+    // in integration tests (agent-pay-test.test.ts) where the mock server serves JWKS.
     // Unit testing createRemoteJWKSet requires a real HTTP server because jose
     // uses its own internal fetch that doesn't respect vi.stubGlobal.
   });
 
   describe('authentication', () => {
     it('should apply authenticator to createPayment requests', async () => {
-      const clientWithAuth = new DefaultAgenticPayClient({
+      const clientWithAuth = new DefaultAgentPayClient({
         baseUrl,
         auth: {
           type: 'awsSigV4',

@@ -1,7 +1,7 @@
 /**
- * Agentic Pay Facilitator exports
+ * Agent Pay Facilitator exports
  */
 
-export { AgenticPayScheme } from './scheme';
+export { AgentPayScheme } from './scheme';
 export { verifyPayment } from './verify';
 export { settlePayment } from './settle';

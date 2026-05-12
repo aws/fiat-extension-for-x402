@@ -1,21 +1,21 @@
 import { describe, it, expect } from 'vitest';
 import type {
-  AgenticPayPaymentExtra,
+  AgentPayPaymentExtra,
   QuoteTokenPrice,
   QuoteTokenPayload,
   PaymentContext,
   PaymentTokenPayload,
   SettlementMethod,
   SettlementCycle,
-  AgenticPaySettlement,
-  AgenticPaySupport,
-  AgenticPayTerms,
+  AgentPaySettlement,
+  AgentPaySupport,
+  AgentPayTerms,
 } from '../../src/types';
 
 describe('Payment Types', () => {
-  describe('AgenticPayPaymentExtra', () => {
+  describe('AgentPayPaymentExtra', () => {
     it('should accept minimal payment extra with only quoteToken', () => {
-      const extra: AgenticPayPaymentExtra = {
+      const extra: AgentPayPaymentExtra = {
         quoteToken: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
       };
       expect(extra.quoteToken).toBeDefined();
@@ -24,7 +24,7 @@ describe('Payment Types', () => {
     });
 
     it('should accept payment extra with all optional fields', () => {
-      const extra: AgenticPayPaymentExtra = {
+      const extra: AgentPayPaymentExtra = {
         quoteToken: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
         reference: 'WEATHER_DATA_TIER1',
         settlement: {
@@ -229,9 +229,9 @@ describe('Settlement Types', () => {
     });
   });
 
-  describe('AgenticPaySettlement', () => {
+  describe('AgentPaySettlement', () => {
     it('should accept settlement with method only', () => {
-      const settlement: AgenticPaySettlement = {
+      const settlement: AgentPaySettlement = {
         method: 'INST',
       };
       expect(settlement.method).toBe('INST');
@@ -239,7 +239,7 @@ describe('Settlement Types', () => {
     });
 
     it('should accept settlement with method and cycle', () => {
-      const settlement: AgenticPaySettlement = {
+      const settlement: AgentPaySettlement = {
         method: 'CLRG',
         cycle: 'MNTH',
       };
@@ -248,9 +248,9 @@ describe('Settlement Types', () => {
     });
   });
 
-  describe('AgenticPaySupport', () => {
+  describe('AgentPaySupport', () => {
     it('should accept support with uri and method', () => {
-      const support: AgenticPaySupport = {
+      const support: AgentPaySupport = {
         uri: 'https://api.weather.com/disputes',
         method: 'human',
       };
@@ -259,9 +259,9 @@ describe('Settlement Types', () => {
     });
   });
 
-  describe('AgenticPayTerms', () => {
+  describe('AgentPayTerms', () => {
     it('should accept terms with description and uri', () => {
-      const terms: AgenticPayTerms = {
+      const terms: AgentPayTerms = {
         description: 'End User License Agreement',
         uri: 'https://api.weather.com/eula',
       };

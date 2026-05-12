@@ -1,5 +1,5 @@
 /**
- * Utility functions for Agentic Pay x402 extension
+ * Utility functions for Agent Pay x402 extension
  */
 
 import { webcrypto } from 'node:crypto';
@@ -91,11 +91,11 @@ export function extractQuoteFromPayment(payment: PaymentTokenPayload): string {
 
 /**
  * Generate a transaction ID
- * @param network - Network identifier (e.g., "aws:marketplace")
- * @param agenticPayId - Agentic Pay identifier
+ * @param network - Network identifier (e.g., "aws:base")
+ * @param agentPayId - Agent Pay identifier
  * @returns Transaction ID in format {network}:{uniqueId}
  */
-export function generateTransactionId(network: string, agenticPayId: string): string {
+export function generateTransactionId(network: string, agentPayId: string): string {
   const uniqueId = crypto.randomUUID().replace(/-/g, '').substring(0, 16);
   return `${network}:${uniqueId}`;
 }

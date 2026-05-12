@@ -1,12 +1,12 @@
 /**
- * Default Agentic Pay client implementation
+ * Default Agent Pay client implementation
  * Handles HTTP communication with the AWS Marketplace Agent Pay Service
  */
 
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type {
-  AgenticPayClient,
-  AgenticPayConfig,
+  AgentPayClient,
+  AgentPayConfig,
   CreateAgentPaymentRequest,
   CreateAgentPaymentResponse,
   GetAgentPaymentResponse,
@@ -26,21 +26,21 @@ interface JWKSCacheEntry {
 }
 
 /**
- * Default Agentic Pay client implementation
+ * Default Agent Pay client implementation
  * Communicates with the AWS Marketplace Agent Pay Service API
  */
-export class DefaultAgenticPayClient implements AgenticPayClient {
+export class DefaultAgentPayClient implements AgentPayClient {
   private readonly baseUrl: string;
   private readonly authenticator?: Authenticator;
   private jwksCache: Map<string, JWKSCacheEntry> = new Map();
   private readonly JWKS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
   /**
-   * Create a new default Agentic Pay client
+   * Create a new default Agent Pay client
    * 
-   * @param config - Agentic Pay configuration with baseUrl and optional auth
+   * @param config - Agent Pay configuration with baseUrl and optional auth
    */
-  constructor(config: AgenticPayConfig) {
+  constructor(config: AgentPayConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, ''); // Remove trailing slash
     
     // Create authenticator if auth config provided
@@ -92,7 +92,7 @@ export class DefaultAgenticPayClient implements AgenticPayClient {
         }
 
         throw new ValidationError(
-          `Agentic Pay authorization failed (${response.status}): ${message}`
+          `Agent Pay authorization failed (${response.status}): ${message}`
         );
       }
 
@@ -100,7 +100,7 @@ export class DefaultAgenticPayClient implements AgenticPayClient {
       
       if (!result.paymentId || !result.paymentToken) {
         throw new ValidationError(
-          'Invalid Agentic Pay response: missing paymentId or paymentToken'
+          'Invalid Agent Pay response: missing paymentId or paymentToken'
         );
       }
 
@@ -110,7 +110,7 @@ export class DefaultAgenticPayClient implements AgenticPayClient {
         throw error;
       }
       throw new ValidationError(
-        `Failed to authorize payment with Agentic Pay: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to authorize payment with Agent Pay: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -186,7 +186,7 @@ export class DefaultAgenticPayClient implements AgenticPayClient {
 
   /**
    * Verify a payment token's signature.
-   * Fetches Agentic Pay's public keys from JWKS endpoint and verifies JWT.
+   * Fetches Agent Pay's public keys from JWKS endpoint and verifies JWT.
    * 
    * @param token - Payment token JWT to verify
    * @returns Decoded and verified payment token payload

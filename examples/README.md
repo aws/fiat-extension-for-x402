@@ -1,14 +1,14 @@
-# Agentic Pay x402 Extension Examples
+# Agent Pay x402 Extension Examples
 
-Working examples demonstrating the Agentic Pay x402 extension with authentication and DPoP support.
+Working examples demonstrating the Agent Pay x402 extension with authentication and DPoP support.
 
 ## Quick Start
 
 Run the three components in separate terminals:
 
 ```bash
-# Terminal 1: Start Agentic Pay server (port 3001)
-npm run example:Agentic Pay
+# Terminal 1: Start Agent Pay server (port 3001)
+npm run example:Agent Pay
 
 # Terminal 2: Start test service (port 3002)
 npm run example:service
@@ -19,21 +19,21 @@ npm run example:client
 
 ## What Gets Demonstrated
 
-- **Two-Phase API**: `createAgenticPayResourceServer` / `createAgenticPayClient` with `registerNetwork()` for adding networks individually
-- **Multi-Facilitator Routing**: Agentic Pay handles registered networks, default x402 facilitator handles the rest
-- **Method Chaining**: `server.registerNetwork('aws:marketplace').registerNetwork('eip155:8453')`
-- **Authentication**: API Key, OAuth2, and AWS SigV4 authentication to Agentic Pay
+- **Two-Phase API**: `createAgentPayResourceServer` / `createAgentPayClient` with `registerNetwork()` for adding networks individually
+- **Multi-Facilitator Routing**: Agent Pay handles registered networks, default x402 facilitator handles the rest
+- **Method Chaining**: `server.registerNetwork('aws:base').registerNetwork('eip155:8453')`
+- **Authentication**: API Key, OAuth2, and AWS SigV4 authentication to Agent Pay
 - **DPoP**: Token binding with ephemeral client keys to prevent theft
 - **Payment Flow**: Complete 402 Payment Required → authorize → pay → access flow
 - **Auto Capture**: Automatic payment settlement on verification
-- **Cross-Network FAB**: Agentic Pay handling both `aws:marketplace` and `eip155:8453` (EVM Base) via the same Agentic Pay
+- **Cross-Network FAB**: Agent Pay handling both `aws:base` and `eip155:8453` (EVM Base) via the same Agent Pay
 
 ## Files
 
-- `mock-agentic-pay-server.ts` - Agentic Pay provider with authentication (port 3001)
-- `test-service.ts` - Protected API using `createAgenticPayResourceServer` (port 3002)
-- `test-client.ts` - Client using `createAgenticPayClient` with auth and DPoP
-- `multi-facilitator.ts` - Standalone example showing Agentic Pay + default facilitator routing
+- `mock-agent-pay-server.ts` - Agent Pay provider with authentication (port 3001)
+- `test-service.ts` - Protected API using `createAgentPayResourceServer` (port 3002)
+- `test-client.ts` - Client using `createAgentPayClient` with auth and DPoP
+- `multi-facilitator.ts` - Standalone example showing Agent Pay + default facilitator routing
 - `shared-logger.ts` - Unified logging for all examples
 
 ## Logs
@@ -58,14 +58,14 @@ tail -f logs/payment-flow.log
 
 ## Configuration
 
-### Agentic Pay Authentication
+### Agent Pay Authentication
 
 Authentication is enabled by default. To disable:
 ```bash
-AGENTIC_PAY_AUTH_ENABLED=false npm run example:Agentic Pay
+AGENT_PAY_AUTH_ENABLED=false npm run example:Agent Pay
 ```
 
-Accepted credentials (configured in `mock-agentic-pay-server.ts`):
+Accepted credentials (configured in `mock-agent-pay-server.ts`):
 - API Key: `test-api-key-123`, `demo-key-456`
 - OAuth2 Token: `test-bearer-token`
 - AWS SigV4: Any request with `AWS4-HMAC-SHA256` header (simplified validation)
@@ -73,12 +73,12 @@ Accepted credentials (configured in `mock-agentic-pay-server.ts`):
 ### Ports
 
 Change ports by editing the respective files:
-- Agentic Pay: `mock-agentic-pay-server.ts` → `const PORT = 3001`
+- Agent Pay: `mock-agent-pay-server.ts` → `const PORT = 3001`
 - Service: `test-service.ts` → `const PORT = 3002`
 
 ## Requirements
 
 - Node.js 18+
-- Both `@x402/core` and `@x402/aws-agentic-pay` packages (examples use local source)
+- Both `@x402/core` and `aws-agent-pay-x402` packages (examples use local source)
 - All dependencies installed (`npm install`)
 - Ports 3001 and 3002 available

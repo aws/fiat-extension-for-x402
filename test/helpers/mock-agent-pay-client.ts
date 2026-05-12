@@ -1,17 +1,17 @@
 /**
- * Mock Agentic Pay client for testing
+ * Mock Agent Pay client for testing
  * Simulates Agent Pay Service behavior without making HTTP calls
  */
 
 import * as jose from 'jose';
-import type { AgenticPayClient, CreateAgentPaymentRequest, CreateAgentPaymentResponse } from '../../src/config';
+import type { AgentPayClient, CreateAgentPaymentRequest, CreateAgentPaymentResponse } from '../../src/config';
 
 /**
- * Create a mock Agentic Pay client for testing
+ * Create a mock Agent Pay client for testing
  * Uses in-memory key pairs to simulate Agent Pay Service signing
  */
-export async function createMockAgenticPayClient(agenticPayId: string = 'test-agentic-pay-123'): Promise<{
-  agenticPayClient: AgenticPayClient;
+export async function createMockAgentPayClient(agentPayId: string = 'test-agent-pay-123'): Promise<{
+  agentPayClient: AgentPayClient;
   privateKey: jose.KeyLike;
   publicKey: jose.KeyLike;
 }> {
@@ -22,7 +22,7 @@ export async function createMockAgenticPayClient(agenticPayId: string = 'test-ag
   const paymentStore = new Map<string, CreateAgentPaymentResponse>();
   let paymentCounter = 0;
 
-  const agenticPayClient: AgenticPayClient = {
+  const agentPayClient: AgentPayClient = {
     // Client-side: create payment (matches Agent Pay API)
     createPayment: async (request: CreateAgentPaymentRequest): Promise<CreateAgentPaymentResponse> => {
       // Check idempotency
@@ -37,7 +37,7 @@ export async function createMockAgenticPayClient(agenticPayId: string = 'test-ag
       const now = Math.floor(Date.now() / 1000);
       const paymentTokenPayload: Record<string, unknown> = {
         iss: 'aws-marketplace',
-        sub: agenticPayId,
+        sub: agentPayId,
         iat: now,
         exp: now + 3600,
         payment_id: paymentId,
@@ -92,7 +92,7 @@ export async function createMockAgenticPayClient(agenticPayId: string = 'test-ag
   };
   
   return {
-    agenticPayClient,
+    agentPayClient,
     privateKey,
     publicKey
   };

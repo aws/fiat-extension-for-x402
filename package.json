@@ -1,7 +1,7 @@
 {
-  "name": "@x402/aws-agentic-pay",
+  "name": "aws-agent-pay-x402",
   "version": "0.1.0",
-  "description": "AWS Agentic Pay extension for x402 protocol",
+  "description": "AWS Agent Pay extension for x402 protocol",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -27,20 +27,20 @@
       "import": "./dist/facilitator.js",
       "require": "./dist/facilitator.cjs"
     },
-    "./agentic-pay/client": {
-      "types": "./dist/agentic-pay/client/index.d.ts",
-      "import": "./dist/agentic-pay/client/index.js",
-      "require": "./dist/agentic-pay/client/index.cjs"
+    "./agent-pay/client": {
+      "types": "./dist/agent-pay/client/index.d.ts",
+      "import": "./dist/agent-pay/client/index.js",
+      "require": "./dist/agent-pay/client/index.cjs"
     },
-    "./agentic-pay/server": {
-      "types": "./dist/agentic-pay/server/index.d.ts",
-      "import": "./dist/agentic-pay/server/index.js",
-      "require": "./dist/agentic-pay/server/index.cjs"
+    "./agent-pay/server": {
+      "types": "./dist/agent-pay/server/index.d.ts",
+      "import": "./dist/agent-pay/server/index.js",
+      "require": "./dist/agent-pay/server/index.cjs"
     },
-    "./agentic-pay/facilitator": {
-      "types": "./dist/agentic-pay/facilitator/index.d.ts",
-      "import": "./dist/agentic-pay/facilitator/index.js",
-      "require": "./dist/agentic-pay/facilitator/index.cjs"
+    "./agent-pay/facilitator": {
+      "types": "./dist/agent-pay/facilitator/index.d.ts",
+      "import": "./dist/agent-pay/facilitator/index.js",
+      "require": "./dist/agent-pay/facilitator/index.cjs"
     },
     "./middleware/express": {
       "types": "./dist/middleware/express.d.ts",
@@ -67,7 +67,7 @@
     "billing",
     "http-402",
     "fiat",
-    "agentic-pay"
+    "agent-pay"
   ],
   "author": "",
   "license": "MIT",
@@ -98,7 +98,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "ssh://git.amazon.com/pkg/AgenticPayX402SDKExtension-Typescript"
+    "url": "ssh://git.amazon.com/pkg/AgentPayX402SDKExtension-Typescript"
   },
-  "homepage": "https://code.amazon.com/packages/AgenticPayX402SDKExtension-Typescript"
+  "homepage": "https://code.amazon.com/packages/AgentPayX402SDKExtension-Typescript"
 }

@@ -1,12 +1,12 @@
 /**
- * Agentic Pay Payment Verification Logic
+ * Agent Pay Payment Verification Logic
  */
 
 import * as jose from 'jose';
 import { ALLOWED_ALGORITHMS, secureCompare } from '../../security';
 import { PaymentPayload, PaymentRequirements, VerifyResponse } from '@x402/core/types';
-import type { AgenticPayClientForFacilitator } from '../../config';
-import { AgenticPayPayloadV2, AgenticPayPaymentExtra, MismatchError } from '../../types';
+import type { AgentPayClientForFacilitator } from '../../config';
+import { AgentPayPayloadV2, AgentPayPaymentExtra, MismatchError } from '../../types';
 import { decodeQuoteToken } from '../../utils';
 
 /**
@@ -22,10 +22,10 @@ export interface VerifyPaymentOptions {
 }
 
 /**
- * Verify a Agentic Pay payment
+ * Verify a Agent Pay payment
  * 
  * Verification steps:
- * 1. Verify payment token signature via Agentic Pay client (Agent Pay's ES384 key)
+ * 1. Verify payment token signature via Agent Pay client (Agent Pay's ES384 key)
  * 2. Verify payment ID matches
  * 3. Verify quote token exists in requirements
  * 4. Verify quote token signature (service's key via JWKS) — MANDATORY
@@ -34,26 +34,26 @@ export interface VerifyPaymentOptions {
  * 
  * Note: Agent Pay auto-captures on creation — there is no separate settlement step.
  * This function does NOT use requirements.payTo or requirements.maxTimeoutSeconds.
- * In Agentic Pay, those fields contain sentinel values (see spec §2.4). The signed quote token
+ * In Agent Pay, those fields contain sentinel values (see spec §2.4). The signed quote token
  * is the authoritative source for payment details.
  * 
- * @param agenticPayClient - Agentic Pay client for verification
+ * @param agentPayClient - Agent Pay client for verification
  * @param payload - Payment payload
  * @param requirements - Payment requirements
- * @param apPayload - Agentic Pay-specific payload
+ * @param apPayload - Agent Pay-specific payload
  * @param options - Optional verification options (e.g., serviceJWKSUrl override)
  * @returns Verification response
  */
 export async function verifyPayment(
-  agenticPayClient: AgenticPayClientForFacilitator,
+  agentPayClient: AgentPayClientForFacilitator,
   payload: PaymentPayload,
   requirements: PaymentRequirements,
-  apPayload: AgenticPayPayloadV2,
+  apPayload: AgentPayPayloadV2,
   options?: VerifyPaymentOptions
 ): Promise<VerifyResponse> {
   try {
     // 1. Verify payment token signature (Agent Pay's ES384 key)
-    const paymentJWT = await agenticPayClient.verifyPaymentToken(apPayload.paymentToken);
+    const paymentJWT = await agentPayClient.verifyPaymentToken(apPayload.paymentToken);
 
     // 2. Verify payment ID matches
     const payloadPaymentId = apPayload.paymentId || apPayload.transactionId;
@@ -69,7 +69,7 @@ export async function verifyPayment(
     }
 
     // 3. Verify quote token exists in requirements
-    const extra = requirements.extra as unknown as AgenticPayPaymentExtra;
+    const extra = requirements.extra as unknown as AgentPayPaymentExtra;
     if (!extra?.quoteToken) {
       return {
         isValid: false,

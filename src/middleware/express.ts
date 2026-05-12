@@ -1,32 +1,32 @@
 /**
- * Express Middleware for Agentic Pay x402 Payment Protection
+ * Express Middleware for Agent Pay x402 Payment Protection
  *
- * Provides plug-and-play Express middleware that protects routes with Agentic Pay payments.
+ * Provides plug-and-play Express middleware that protects routes with Agent Pay payments.
  * Handles the full lifecycle: 402 generation, payment verification, and settlement.
  *
- * This middleware works directly with @x402/core and the Agentic Pay builders — it does NOT
- * depend on @x402/express. If you already use @x402/express's paymentMiddleware,
- * you can use createAgenticPayResourceServer directly instead of this middleware.
+ * This middleware works directly with @x402/core and the Agent Pay builders — it does NOT
+ * depend on x402-express. If you already use x402-express's paymentMiddleware,
+ * you can use createAgentPayResourceServer directly instead of this middleware.
  *
  * @example
  * ```typescript
  * import express from 'express';
- * import { agenticPayMiddleware } from '@x402/agentic-pay/middleware/express';
+ * import { agentPayMiddleware } from 'aws-agent-pay-x402/middleware/express';
  *
  * const app = express();
  * app.use(express.json());
  *
- * app.use(agenticPayMiddleware({
- *   agenticPayBaseUrl: 'https://pay.aws.amazon.com',
- *   agenticPayId: 'my-agentic-pay',
+ * app.use(agentPayMiddleware({
+ *   agentPayBaseUrl: 'https://pay.aws.amazon.com',
+ *   agentPayId: 'my-agent-pay',
  *   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
  *   serviceUrl: 'https://api.example.com',
- *   networks: ['aws:marketplace'],
+ *   networks: ['aws:base'],
  *   routes: {
  *     'GET /api/premium': {
  *       price: 0.15,
- *       network: 'aws:marketplace',
- *       payTo: 'seller-agentic-pay-id',
+ *       network: 'aws:base',
+ *       payTo: 'seller-agent-pay-id',
  *       asset: 'iso4217:USD',
  *     },
  *   },
@@ -42,8 +42,8 @@ import type { Request, Response, NextFunction } from 'express';
 import type { Network } from '@x402/core/types';
 import type { x402ResourceServer } from '@x402/core/server';
 import type { SigningKeysConfig } from '../config';
-import type { AgenticPayFacilitatorAuthConfig } from '../agentic-pay-facilitator-client';
-import { createAgenticPayResourceServer } from '../builders/resource-server-builder';
+import type { AgentPayFacilitatorAuthConfig } from '../agent-pay-facilitator-client';
+import { createAgentPayResourceServer } from '../builders/resource-server-builder';
 import { ValidationError } from '../types';
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -51,12 +51,12 @@ import { ValidationError } from '../types';
 /**
  * Per-route payment configuration.
  */
-export interface AgenticPayRouteConfig {
+export interface AgentPayRouteConfig {
   /** Price for this route (e.g., 0.15) */
   price: number | string;
-  /** Network to use (e.g., 'aws:marketplace') */
+  /** Network to use (e.g., 'aws:base') */
   network: Network;
-  /** Recipient Agentic Pay ID */
+  /** Recipient Agent Pay ID */
   payTo: string;
   /** Asset identifier (e.g., 'iso4217:USD'). Used in PaymentInfo only; the scheme derives the asset from the price. */
   asset?: string;
@@ -78,26 +78,26 @@ export interface AgenticPayRouteConfig {
  * - Wildcard: "GET /api/*"
  * - All methods: "/api/premium" (matches any HTTP method)
  */
-export type AgenticPayRoutesConfig = Record<string, AgenticPayRouteConfig>;
+export type AgentPayRoutesConfig = Record<string, AgentPayRouteConfig>;
 
 /**
  * Middleware configuration.
  */
-export interface AgenticPayMiddlewareConfig {
-  /** Agentic Pay provider base URL */
-  agenticPayBaseUrl: string;
-  /** Agentic Pay ID for the Agentic Pay facilitator */
-  agenticPayId: string;
+export interface AgentPayMiddlewareConfig {
+  /** Agent Pay provider base URL */
+  agentPayBaseUrl: string;
+  /** Agent Pay ID for the Agent Pay facilitator */
+  agentPayId: string;
   /** Service signing keys for quote tokens */
   signingKeys: SigningKeysConfig;
   /** Service URL (used as issuer in quote tokens) */
   serviceUrl: string;
-  /** Networks to register for Agentic Pay (e.g., ['aws:marketplace']) */
+  /** Networks to register for Agent Pay (e.g., ['aws:base']) */
   networks: Network[];
   /** Route payment configurations */
-  routes: AgenticPayRoutesConfig;
-  /** Optional Agentic Pay auth for facilitator API calls */
-  agenticPayAuth?: AgenticPayFacilitatorAuthConfig;
+  routes: AgentPayRoutesConfig;
+  /** Optional Agent Pay auth for facilitator API calls */
+  agentPayAuth?: AgentPayFacilitatorAuthConfig;
   /** Disable default x402 facilitator fallback. Defaults to false. */
   disableDefaultFallback?: boolean;
 
@@ -138,8 +138,8 @@ export interface PaymentInfo {
 declare global {
   namespace Express {
     interface Request {
-      /** Agentic Pay payment info, set by agenticPayMiddleware after successful verification */
-      agenticPayPayment?: PaymentInfo;
+      /** Agent Pay payment info, set by agentPayMiddleware after successful verification */
+      agentPayPayment?: PaymentInfo;
     }
   }
 }
@@ -149,10 +149,10 @@ declare global {
 interface CompiledRoute {
   method: string; // uppercase, or '*' for any
   regex: RegExp;
-  config: AgenticPayRouteConfig;
+  config: AgentPayRouteConfig;
 }
 
-function compileRoutes(routes: AgenticPayRoutesConfig): CompiledRoute[] {
+function compileRoutes(routes: AgentPayRoutesConfig): CompiledRoute[] {
   return Object.entries(routes).map(([pattern, config]) => {
     // Parse "METHOD /path" or just "/path"
     const parts = pattern.trim().split(/\s+/);
@@ -179,7 +179,7 @@ function compileRoutes(routes: AgenticPayRoutesConfig): CompiledRoute[] {
   });
 }
 
-function matchRoute(compiledRoutes: CompiledRoute[], method: string, path: string): AgenticPayRouteConfig | undefined {
+function matchRoute(compiledRoutes: CompiledRoute[], method: string, path: string): AgentPayRouteConfig | undefined {
   for (const route of compiledRoutes) {
     if (route.method !== '*' && route.method !== method.toUpperCase()) continue;
     if (route.regex.test(path)) return route.config;
@@ -227,17 +227,17 @@ function extractPaymentPayload(req: Request): any | null {
 // ── Middleware factory ──────────────────────────────────────────────
 
 /**
- * Create Express middleware that protects routes with Agentic Pay payments.
+ * Create Express middleware that protects routes with Agent Pay payments.
  *
  * The middleware intercepts requests to configured routes, returns 402 if no
  * payment is present, verifies payments, settles them, and then calls next().
- * After verification, `req.agenticPayPayment` contains the payment details.
+ * After verification, `req.agentPayPayment` contains the payment details.
  *
  * @param config - Middleware configuration
  * @returns Express middleware function
  */
-export function agenticPayMiddleware(
-  config: AgenticPayMiddlewareConfig,
+export function agentPayMiddleware(
+  config: AgentPayMiddlewareConfig,
 ): (req: Request, res: Response, next: NextFunction) => void {
   // Validate config
   if (!config.networks || config.networks.length === 0) {
@@ -254,12 +254,12 @@ export function agenticPayMiddleware(
 
   function getServer(): Promise<x402ResourceServer> {
     if (!serverPromise) {
-      const apServer = createAgenticPayResourceServer({
-        agenticPayBaseUrl: config.agenticPayBaseUrl,
-        agenticPayId: config.agenticPayId,
+      const apServer = createAgentPayResourceServer({
+        agentPayBaseUrl: config.agentPayBaseUrl,
+        agentPayId: config.agentPayId,
         signingKeys: config.signingKeys,
         serviceUrl: config.serviceUrl,
-        agenticPayAuth: config.agenticPayAuth,
+        agentPayAuth: config.agentPayAuth,
       });
 
       for (const network of config.networks) {
@@ -280,7 +280,7 @@ export function agenticPayMiddleware(
     });
   }
 
-  return function agenticPayMw(req: Request, res: Response, next: NextFunction) {
+  return function agentPayMw(req: Request, res: Response, next: NextFunction) {
     const routeConfig = matchRoute(compiledRoutes, req.method, req.path);
 
     // Not a protected route — pass through
@@ -296,7 +296,7 @@ export function agenticPayMiddleware(
       if (!paymentPayload) {
         // No payment — return 402
         const requirements = await server.buildPaymentRequirements({
-          scheme: 'aws:marketplace',
+          scheme: 'aws:base',
           network: routeConfig.network,
           payTo: routeConfig.payTo,
           price: routeConfig.price,
@@ -355,13 +355,13 @@ export function agenticPayMiddleware(
       }
 
       // Attach payment info to request and proceed
-      req.agenticPayPayment = payment;
+      req.agentPayPayment = payment;
       next();
     })().catch((err) => {
       if (config.onError) {
         config.onError(err, req, res);
       } else {
-        console.error('[agentic-pay-middleware] Error:', err);
+        console.error('[agent-pay-middleware] Error:', err);
         sendError(res, 500, 'Internal server error', err instanceof Error ? err.message : String(err));
       }
     });

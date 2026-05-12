@@ -1,39 +1,39 @@
 /**
- * Agentic Pay Network Registration Helper
+ * Agent Pay Network Registration Helper
  *
- * Lower-level helper for registering Agentic Pay server schemes on an existing
+ * Lower-level helper for registering Agent Pay server schemes on an existing
  * x402ResourceServer without modifying facilitator client configuration.
  */
 
 import { x402ResourceServer } from '@x402/core/server';
 import type { Network } from '@x402/core/types';
-import { AgenticPayScheme as AgenticPayServerSchemeImpl } from '../agentic-pay/server/scheme';
+import { AgentPayScheme as AgentPayServerSchemeImpl } from '../agent-pay/server/scheme';
 import type { SigningKeysConfig } from '../config';
 import { ValidationError } from '../types';
 
 /**
- * Register Agentic Pay server schemes for the specified networks on an existing
- * x402ResourceServer. A single AgenticPayServerScheme instance is reused across
+ * Register Agent Pay server schemes for the specified networks on an existing
+ * x402ResourceServer. A single AgentPayServerScheme instance is reused across
  * all networks.
  *
- * This does NOT handle facilitator client setup — use `buildAgenticPayResourceServer`
+ * This does NOT handle facilitator client setup — use `buildAgentPayResourceServer`
  * for a fully configured server with facilitator routing.
  *
  * @param server - Existing x402ResourceServer to register schemes on
- * @param networks - Networks to register Agentic Pay for
+ * @param networks - Networks to register Agent Pay for
  * @param config - Signing keys and service URL
  * @returns The same x402ResourceServer for chaining
  *
  * @example
  * ```typescript
  * const server = new x402ResourceServer(myFacilitatorClient);
- * registerAgenticPayNetworks(server, ['aws:marketplace', 'eip155:8453'], {
+ * registerAgentPayNetworks(server, ['aws:base', 'eip155:8453'], {
  *   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
  *   serviceUrl: 'https://api.example.com',
  * });
  * ```
  */
-export function registerAgenticPayNetworks(
+export function registerAgentPayNetworks(
   server: x402ResourceServer,
   networks: Network[],
   config: { signingKeys: SigningKeysConfig; serviceUrl: string }
@@ -42,7 +42,7 @@ export function registerAgenticPayNetworks(
     throw new ValidationError('networks must be a non-empty array');
   }
 
-  const apServerScheme = new AgenticPayServerSchemeImpl({
+  const apServerScheme = new AgentPayServerSchemeImpl({
     signingKeys: config.signingKeys,
     serviceUrl: config.serviceUrl,
   });

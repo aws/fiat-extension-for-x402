@@ -1,10 +1,10 @@
 /**
- * Tests for Agentic Pay Express Middleware
+ * Tests for Agent Pay Express Middleware
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Request, Response, NextFunction } from 'express';
-import { agenticPayMiddleware, type AgenticPayMiddlewareConfig } from '../../../src/middleware/express';
+import { agentPayMiddleware, type AgentPayMiddlewareConfig } from '../../../src/middleware/express';
 
 // ── Mocks ──────────────────────────────────────────────────────────
 
@@ -25,7 +25,7 @@ const mockRegisterNetwork = vi.fn().mockReturnThis();
 const mockInitialize = vi.fn().mockResolvedValue(mockServer);
 
 vi.mock('../../../src/builders/resource-server-builder', () => ({
-  createAgenticPayResourceServer: vi.fn(() => ({
+  createAgentPayResourceServer: vi.fn(() => ({
     registerNetwork: mockRegisterNetwork,
     initialize: mockInitialize,
   })),
@@ -67,20 +67,20 @@ function createMockRes(): Response & { _status: number; _json: any; _headers: Re
   return res;
 }
 
-const baseConfig: AgenticPayMiddlewareConfig = {
-  agenticPayBaseUrl: 'https://pay.example.com',
-  agenticPayId: 'test-agentic-pay',
+const baseConfig: AgentPayMiddlewareConfig = {
+  agentPayBaseUrl: 'https://pay.example.com',
+  agentPayId: 'test-agent-pay',
   signingKeys: {
     privateKey: {} as any,
     publicKey: { kty: 'RSA' } as any,
     alg: 'RS256',
   },
   serviceUrl: 'https://api.example.com',
-  networks: ['aws:marketplace' as any],
+  networks: ['aws:base' as any],
   routes: {
     'GET /api/premium': {
       price: 0.15,
-      network: 'aws:marketplace' as any,
+      network: 'aws:base' as any,
       payTo: 'seller-pay',
       asset: 'iso4217:USD',
     },
@@ -89,7 +89,7 @@ const baseConfig: AgenticPayMiddlewareConfig = {
 
 // ── Tests ──────────────────────────────────────────────────────────
 
-describe('agenticPayMiddleware', () => {
+describe('agentPayMiddleware', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockInitialize.mockResolvedValue(mockServer);
@@ -98,21 +98,21 @@ describe('agenticPayMiddleware', () => {
   describe('configuration validation', () => {
     it('throws if networks is empty', () => {
       expect(() =>
-        agenticPayMiddleware({ ...baseConfig, networks: [] })
+        agentPayMiddleware({ ...baseConfig, networks: [] })
       ).toThrow('networks must be a non-empty array');
     });
 
     it('throws if routes is empty', () => {
       expect(() =>
-        agenticPayMiddleware({ ...baseConfig, routes: {} })
+        agentPayMiddleware({ ...baseConfig, routes: {} })
       ).toThrow('routes must be a non-empty object');
     });
 
     it('throws on invalid route pattern', () => {
       expect(() =>
-        agenticPayMiddleware({
+        agentPayMiddleware({
           ...baseConfig,
-          routes: { 'GET /api premium extra': { price: 1, network: 'aws:marketplace' as any, payTo: 'x' } },
+          routes: { 'GET /api premium extra': { price: 1, network: 'aws:base' as any, payTo: 'x' } },
         })
       ).toThrow('Invalid route pattern');
     });
@@ -120,7 +120,7 @@ describe('agenticPayMiddleware', () => {
 
   describe('route matching', () => {
     it('passes through requests to non-protected routes', () => {
-      const middleware = agenticPayMiddleware(baseConfig);
+      const middleware = agentPayMiddleware(baseConfig);
       const req = createMockReq({ path: '/api/public', method: 'GET' });
       const res = createMockRes();
       const next = vi.fn();
@@ -131,7 +131,7 @@ describe('agenticPayMiddleware', () => {
     });
 
     it('does not pass through for wrong HTTP method', () => {
-      const middleware = agenticPayMiddleware(baseConfig);
+      const middleware = agentPayMiddleware(baseConfig);
       const req = createMockReq({ path: '/api/premium', method: 'POST' });
       const res = createMockRes();
       const next = vi.fn();
@@ -143,18 +143,18 @@ describe('agenticPayMiddleware', () => {
     });
 
     it('matches wildcard routes', () => {
-      const config: AgenticPayMiddlewareConfig = {
+      const config: AgentPayMiddlewareConfig = {
         ...baseConfig,
         routes: {
           'GET /api/*': {
             price: 0.15,
-            network: 'aws:marketplace' as any,
+            network: 'aws:base' as any,
             payTo: 'seller-pay',
           },
         },
       };
 
-      const middleware = agenticPayMiddleware(config);
+      const middleware = agentPayMiddleware(config);
       const req = createMockReq({ path: '/api/anything/here', method: 'GET' });
       const res = createMockRes();
       const next = vi.fn();
@@ -167,18 +167,18 @@ describe('agenticPayMiddleware', () => {
     });
 
     it('matches routes without method prefix (any method)', () => {
-      const config: AgenticPayMiddlewareConfig = {
+      const config: AgentPayMiddlewareConfig = {
         ...baseConfig,
         routes: {
           '/api/premium': {
             price: 0.15,
-            network: 'aws:marketplace' as any,
+            network: 'aws:base' as any,
             payTo: 'seller-pay',
           },
         },
       };
 
-      const middleware = agenticPayMiddleware(config);
+      const middleware = agentPayMiddleware(config);
       const req = createMockReq({ path: '/api/premium', method: 'POST' });
       const res = createMockRes();
       const next = vi.fn();
@@ -194,12 +194,12 @@ describe('agenticPayMiddleware', () => {
     it('returns 402 when no payment header is present', async () => {
       const mockPaymentRequired = {
         x402Version: 2,
-        accepts: [{ scheme: 'aws:marketplace', network: 'aws:marketplace' }],
+        accepts: [{ scheme: 'agent-pay', network: 'aws:base' }],
       };
-      mockBuildPaymentRequirements.mockResolvedValue([{ scheme: 'aws:marketplace' }]);
+      mockBuildPaymentRequirements.mockResolvedValue([{ scheme: 'agent-pay' }]);
       mockCreatePaymentRequiredResponse.mockResolvedValue(mockPaymentRequired);
 
-      const middleware = agenticPayMiddleware(baseConfig);
+      const middleware = agentPayMiddleware(baseConfig);
       const req = createMockReq({ path: '/api/premium', method: 'GET' });
       const res = createMockRes();
       const next = vi.fn();
@@ -224,11 +224,11 @@ describe('agenticPayMiddleware', () => {
       const paymentPayload = {
         x402Version: 2,
         payload: { paymentToken: 'tok', transactionId: 'awsmp-tx123' },
-        accepted: { scheme: 'aws:marketplace', network: 'aws:marketplace', amount: '0.15', asset: 'iso4217:USD', extra: {} },
+        accepted: { scheme: 'agent-pay', network: 'aws:base', amount: '0.15', asset: 'iso4217:USD', extra: {} },
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
-      const middleware = agenticPayMiddleware(baseConfig);
+      const middleware = agentPayMiddleware(baseConfig);
       const req = createMockReq({
         path: '/api/premium',
         method: 'GET',
@@ -243,10 +243,10 @@ describe('agenticPayMiddleware', () => {
         expect(next).toHaveBeenCalledOnce();
       });
 
-      expect((req as any).agenticPayPayment).toEqual({
+      expect((req as any).agentPayPayment).toEqual({
         payer: 'buyer-123',
         transactionId: 'awsmp-tx123',
-        network: 'aws:marketplace',
+        network: 'aws:base',
         amount: '0.15',
         asset: 'iso4217:USD',
       });
@@ -262,11 +262,11 @@ describe('agenticPayMiddleware', () => {
       const paymentPayload = {
         x402Version: 2,
         payload: { paymentToken: 'tok', transactionId: 'awsmp-tx123' },
-        accepted: { scheme: 'aws:marketplace', network: 'aws:marketplace', amount: '0.15', asset: 'iso4217:USD' },
+        accepted: { scheme: 'agent-pay', network: 'aws:base', amount: '0.15', asset: 'iso4217:USD' },
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
-      const middleware = agenticPayMiddleware(baseConfig);
+      const middleware = agentPayMiddleware(baseConfig);
       const req = createMockReq({
         path: '/api/premium',
         method: 'GET',
@@ -293,7 +293,7 @@ describe('agenticPayMiddleware', () => {
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
-      const middleware = agenticPayMiddleware(baseConfig);
+      const middleware = agentPayMiddleware(baseConfig);
       const req = createMockReq({
         path: '/api/premium',
         method: 'GET',
@@ -320,8 +320,8 @@ describe('agenticPayMiddleware', () => {
         x402Version: 2,
         payload: { paymentToken: 'tok', paymentId: 'awsmp-123', transactionId: 'awsmp-123' },
         accepted: {
-          scheme: 'aws:marketplace',
-          network: 'aws:marketplace',
+          scheme: 'agent-pay',
+          network: 'aws:base',
           amount: '0.15',
           asset: 'iso4217:USD',
           extra: { capture: 'auto' },
@@ -329,7 +329,7 @@ describe('agenticPayMiddleware', () => {
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
-      const middleware = agenticPayMiddleware(baseConfig);
+      const middleware = agentPayMiddleware(baseConfig);
       const req = createMockReq({
         path: '/api/premium',
         method: 'GET',
@@ -356,8 +356,8 @@ describe('agenticPayMiddleware', () => {
         x402Version: 2,
         payload: { paymentToken: 'tok', paymentId: 'awsmp-123', transactionId: 'awsmp-123' },
         accepted: {
-          scheme: 'aws:marketplace',
-          network: 'aws:marketplace',
+          scheme: 'agent-pay',
+          network: 'aws:base',
           amount: '0.15',
           asset: 'iso4217:USD',
           extra: { capture: 'auto' },
@@ -365,7 +365,7 @@ describe('agenticPayMiddleware', () => {
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
-      const middleware = agenticPayMiddleware({ ...baseConfig, onPaymentSettled });
+      const middleware = agentPayMiddleware({ ...baseConfig, onPaymentSettled });
       const req = createMockReq({
         path: '/api/premium',
         method: 'GET',
@@ -394,11 +394,11 @@ describe('agenticPayMiddleware', () => {
       const paymentPayload = {
         x402Version: 2,
         payload: { paymentToken: 'tok', transactionId: 'awsmp-tx123' },
-        accepted: { scheme: 'aws:marketplace', network: 'aws:marketplace', amount: '0.15', asset: 'iso4217:USD', extra: {} },
+        accepted: { scheme: 'agent-pay', network: 'aws:base', amount: '0.15', asset: 'iso4217:USD', extra: {} },
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
-      const middleware = agenticPayMiddleware({ ...baseConfig, onPaymentVerified });
+      const middleware = agentPayMiddleware({ ...baseConfig, onPaymentVerified });
       const req = createMockReq({
         path: '/api/premium',
         method: 'GET',
@@ -423,11 +423,11 @@ describe('agenticPayMiddleware', () => {
       const paymentPayload = {
         x402Version: 2,
         payload: { paymentToken: 'tok', transactionId: 'awsmp-tx123' },
-        accepted: { scheme: 'aws:marketplace', network: 'aws:marketplace', amount: '0.15', asset: 'iso4217:USD' },
+        accepted: { scheme: 'agent-pay', network: 'aws:base', amount: '0.15', asset: 'iso4217:USD' },
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
-      const middleware = agenticPayMiddleware({ ...baseConfig, onError });
+      const middleware = agentPayMiddleware({ ...baseConfig, onError });
       const req = createMockReq({
         path: '/api/premium',
         method: 'GET',

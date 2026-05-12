@@ -1,16 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  getAgenticPayBaseUrl,
+  getAgentPayBaseUrl,
   registerNetwork,
   unregisterNetwork,
   getRegisteredNetworks,
   clearNetworkRegistry,
-  discoverAgenticPayEndpoints,
-  fetchAgenticPayPublicKeys,
+  discoverAgentPayEndpoints,
+  fetchAgentPayPublicKeys,
   clearDiscoveryCache,
 } from '../../src/discovery';
 
-describe('Agentic Pay Discovery', () => {
+describe('Agent Pay Discovery', () => {
   beforeEach(() => {
     // Clear registry and caches before each test
     clearNetworkRegistry();
@@ -21,7 +21,7 @@ describe('Agentic Pay Discovery', () => {
   describe('Network Registry', () => {
     it('should register network', () => {
       registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
-      expect(getAgenticPayBaseUrl('fab:aws')).toBe('https://pay.aws.amazon.com');
+      expect(getAgentPayBaseUrl('fab:aws')).toBe('https://pay.aws.amazon.com');
     });
 
     it('should register multiple networks', () => {
@@ -29,21 +29,21 @@ describe('Agentic Pay Discovery', () => {
       registerNetwork('fab:google', 'https://pay.google.com');
       registerNetwork('custom:provider', 'https://custom-pay.example.com');
 
-      expect(getAgenticPayBaseUrl('fab:aws')).toBe('https://pay.aws.amazon.com');
-      expect(getAgenticPayBaseUrl('fab:google')).toBe('https://pay.google.com');
-      expect(getAgenticPayBaseUrl('custom:provider')).toBe('https://custom-pay.example.com');
+      expect(getAgentPayBaseUrl('fab:aws')).toBe('https://pay.aws.amazon.com');
+      expect(getAgentPayBaseUrl('fab:google')).toBe('https://pay.google.com');
+      expect(getAgentPayBaseUrl('custom:provider')).toBe('https://custom-pay.example.com');
     });
 
     it('should overwrite existing registration', () => {
       registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
       registerNetwork('fab:aws', 'https://new-pay.aws.com');
-      expect(getAgenticPayBaseUrl('fab:aws')).toBe('https://new-pay.aws.com');
+      expect(getAgentPayBaseUrl('fab:aws')).toBe('https://new-pay.aws.com');
     });
 
     it('should unregister network', () => {
       registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
       expect(unregisterNetwork('fab:aws')).toBe(true);
-      expect(() => getAgenticPayBaseUrl('fab:aws')).toThrow('Network not registered');
+      expect(() => getAgentPayBaseUrl('fab:aws')).toThrow('Network not registered');
     });
 
     it('should return false when unregistering non-existent network', () => {
@@ -67,7 +67,7 @@ describe('Agentic Pay Discovery', () => {
       clearNetworkRegistry();
 
       expect(getRegisteredNetworks().size).toBe(0);
-      expect(() => getAgenticPayBaseUrl('fab:aws')).toThrow('Network not registered');
+      expect(() => getAgentPayBaseUrl('fab:aws')).toThrow('Network not registered');
     });
 
     it('should throw error for invalid network format', () => {
@@ -78,9 +78,9 @@ describe('Agentic Pay Discovery', () => {
 
     it('should accept any scheme (not just fab:)', () => {
       // Network identifiers are no longer restricted to fab: prefix
-      // This supports aws:marketplace and other future schemes
+      // This supports aws:base and other future schemes
       registerNetwork('evm:aws', 'https://pay.example.com');
-      expect(getAgenticPayBaseUrl('evm:aws')).toBe('https://pay.example.com');
+      expect(getAgentPayBaseUrl('evm:aws')).toBe('https://pay.example.com');
     });
 
     it('should throw error for missing provider', () => {
@@ -94,29 +94,29 @@ describe('Agentic Pay Discovery', () => {
     });
   });
 
-  describe('getAgenticPayBaseUrl', () => {
+  describe('getAgentPayBaseUrl', () => {
     it('should throw error when network not registered', () => {
-      expect(() => getAgenticPayBaseUrl('fab:aws')).toThrow(
+      expect(() => getAgentPayBaseUrl('fab:aws')).toThrow(
         'Network not registered: fab:aws'
       );
     });
 
     it('should throw error for invalid network format', () => {
-      expect(() => getAgenticPayBaseUrl('invalid-format')).toThrow(
+      expect(() => getAgentPayBaseUrl('invalid-format')).toThrow(
         'Invalid network identifier format'
       );
     });
 
     it('should throw error for unregistered network (any scheme)', () => {
-      expect(() => getAgenticPayBaseUrl('evm:aws')).toThrow('Network not registered');
+      expect(() => getAgentPayBaseUrl('evm:aws')).toThrow('Network not registered');
     });
 
     it('should throw error for missing provider', () => {
-      expect(() => getAgenticPayBaseUrl('fab:')).toThrow('Missing provider');
+      expect(() => getAgentPayBaseUrl('fab:')).toThrow('Missing provider');
     });
   });
 
-  describe('discoverAgenticPayEndpoints', () => {
+  describe('discoverAgentPayEndpoints', () => {
     it('should fetch and parse discovery metadata', async () => {
       // Register network first
       registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
@@ -133,7 +133,7 @@ describe('Agentic Pay Discovery', () => {
         json: async () => mockMetadata,
       });
 
-      const metadata = await discoverAgenticPayEndpoints('fab:aws');
+      const metadata = await discoverAgentPayEndpoints('fab:aws');
 
       expect(metadata).toEqual(mockMetadata);
       expect(global.fetch).toHaveBeenCalledWith(
@@ -157,9 +157,9 @@ describe('Agentic Pay Discovery', () => {
       });
 
       // First call
-      await discoverAgenticPayEndpoints('fab:aws');
+      await discoverAgentPayEndpoints('fab:aws');
       // Second call (should use cache)
-      await discoverAgenticPayEndpoints('fab:aws');
+      await discoverAgentPayEndpoints('fab:aws');
 
       expect(global.fetch).toHaveBeenCalledTimes(1);
     });
@@ -172,8 +172,8 @@ describe('Agentic Pay Discovery', () => {
         status: 404,
       });
 
-      await expect(discoverAgenticPayEndpoints('fab:aws')).rejects.toThrow(
-        'Failed to discover Agentic Pay endpoints'
+      await expect(discoverAgentPayEndpoints('fab:aws')).rejects.toThrow(
+        'Failed to discover Agent Pay endpoints'
       );
     });
 
@@ -185,13 +185,13 @@ describe('Agentic Pay Discovery', () => {
         json: async () => ({ invalid: 'data' }),
       });
 
-      await expect(discoverAgenticPayEndpoints('fab:aws')).rejects.toThrow(
+      await expect(discoverAgentPayEndpoints('fab:aws')).rejects.toThrow(
         'Invalid discovery metadata'
       );
     });
   });
 
-  describe('fetchAgenticPayPublicKeys', () => {
+  describe('fetchAgentPayPublicKeys', () => {
     it('should fetch JWKS from discovered endpoint', async () => {
       registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
 
@@ -221,7 +221,7 @@ describe('Agentic Pay Discovery', () => {
           json: async () => mockJWKS,
         });
 
-      const jwks = await fetchAgenticPayPublicKeys('fab:aws');
+      const jwks = await fetchAgentPayPublicKeys('fab:aws');
 
       expect(jwks).toEqual(mockJWKS);
       expect(global.fetch).toHaveBeenCalledWith(
@@ -247,13 +247,13 @@ describe('Agentic Pay Discovery', () => {
       });
 
       // First call
-      await discoverAgenticPayEndpoints('fab:aws');
+      await discoverAgentPayEndpoints('fab:aws');
 
       // Clear cache
       clearDiscoveryCache('fab:aws');
 
       // Second call (should fetch again)
-      await discoverAgenticPayEndpoints('fab:aws');
+      await discoverAgentPayEndpoints('fab:aws');
 
       expect(global.fetch).toHaveBeenCalledTimes(2);
     });
@@ -275,15 +275,15 @@ describe('Agentic Pay Discovery', () => {
       });
 
       // Cache both
-      await discoverAgenticPayEndpoints('fab:aws');
-      await discoverAgenticPayEndpoints('fab:google');
+      await discoverAgentPayEndpoints('fab:aws');
+      await discoverAgentPayEndpoints('fab:google');
 
       // Clear all
       clearDiscoveryCache();
 
       // Fetch again (should not use cache)
-      await discoverAgenticPayEndpoints('fab:aws');
-      await discoverAgenticPayEndpoints('fab:google');
+      await discoverAgentPayEndpoints('fab:aws');
+      await discoverAgentPayEndpoints('fab:google');
 
       expect(global.fetch).toHaveBeenCalledTimes(4);
     });
@@ -292,22 +292,22 @@ describe('Agentic Pay Discovery', () => {
   describe('Network Registry - Additional Edge Cases', () => {
     it('should handle standard network identifiers', () => {
       registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
-      expect(getAgenticPayBaseUrl('fab:aws')).toBe('https://pay.aws.amazon.com');
+      expect(getAgentPayBaseUrl('fab:aws')).toBe('https://pay.aws.amazon.com');
     });
 
     it('should preserve trailing slashes in base URLs', () => {
       registerNetwork('fab:test', 'https://pay.test.com/');
-      expect(getAgenticPayBaseUrl('fab:test')).toBe('https://pay.test.com/');
+      expect(getAgentPayBaseUrl('fab:test')).toBe('https://pay.test.com/');
     });
 
     it('should handle URLs with ports', () => {
       registerNetwork('fab:local', 'http://localhost:3000');
-      expect(getAgenticPayBaseUrl('fab:local')).toBe('http://localhost:3000');
+      expect(getAgentPayBaseUrl('fab:local')).toBe('http://localhost:3000');
     });
 
     it('should handle URLs with paths', () => {
       registerNetwork('custom:provider', 'https://api.example.com/pay');
-      expect(getAgenticPayBaseUrl('custom:provider')).toBe('https://api.example.com/pay');
+      expect(getAgentPayBaseUrl('custom:provider')).toBe('https://api.example.com/pay');
     });
 
     it('should reject empty network identifier', () => {
@@ -326,8 +326,8 @@ describe('Agentic Pay Discovery', () => {
       registerNetwork('fab:http', 'http://pay.test.com');
       registerNetwork('fab:https', 'https://pay.test.com');
       
-      expect(getAgenticPayBaseUrl('fab:http')).toBe('http://pay.test.com');
-      expect(getAgenticPayBaseUrl('fab:https')).toBe('https://pay.test.com');
+      expect(getAgentPayBaseUrl('fab:http')).toBe('http://pay.test.com');
+      expect(getAgentPayBaseUrl('fab:https')).toBe('https://pay.test.com');
     });
   });
 
@@ -349,7 +349,7 @@ describe('Agentic Pay Discovery', () => {
       networks.set('fab:hacked', 'https://evil.com');
       
       // Original registry should be unchanged
-      expect(() => getAgenticPayBaseUrl('fab:hacked')).toThrow('Network not registered');
+      expect(() => getAgentPayBaseUrl('fab:hacked')).toThrow('Network not registered');
     });
   });
 

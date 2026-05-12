@@ -1,5 +1,5 @@
 /**
- * Security utilities for Agentic Pay
+ * Security utilities for Agent Pay
  * 
  * Provides constant-time comparison and algorithm allowlist enforcement.
  */

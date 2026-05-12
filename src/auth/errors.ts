@@ -2,12 +2,12 @@
  * Authentication error types
  */
 
-import { AgenticPayError } from '../types';
+import { AgentPayError } from '../types';
 
 /**
  * Base authentication error
  */
-export class AuthenticationError extends AgenticPayError {
+export class AuthenticationError extends AgentPayError {
   constructor(
     message: string,
     public readonly authMethod: string,

@@ -1,71 +1,71 @@
 /**
- * AWS-specific Agentic Pay scheme implementations
- * Pre-configured for AWS Agentic Pay with sensible defaults
+ * AWS-specific Agent Pay scheme implementations
+ * Pre-configured for AWS Agent Pay with sensible defaults
  */
 
-import { AgenticPayScheme as AgenticPayClientSchemeBase } from '../agentic-pay/client/scheme';
-import { AgenticPayScheme as AgenticPayServerSchemeBase } from '../agentic-pay/server/scheme';
-import { AgenticPayScheme as AgenticPayFacilitatorSchemeBase } from '../agentic-pay/facilitator/scheme';
+import { AgentPayScheme as AgentPayClientSchemeBase } from '../agent-pay/client/scheme';
+import { AgentPayScheme as AgentPayServerSchemeBase } from '../agent-pay/server/scheme';
+import { AgentPayScheme as AgentPayFacilitatorSchemeBase } from '../agent-pay/facilitator/scheme';
 import type { SigningKeysConfig } from '../config';
 
 /**
- * AWS Agentic Pay base URL
+ * AWS Agent Pay base URL
  */
-const AWS_AGENTIC_PAY_BASE_URL = 'https://pay.aws.amazon.com';
+const AWS_AGENT_PAY_BASE_URL = 'https://pay.aws.amazon.com';
 
 /**
- * AWS-specific Agentic Pay client scheme
- * Pre-configured for AWS Agentic Pay
+ * AWS-specific Agent Pay client scheme
+ * Pre-configured for AWS Agent Pay
  */
-export class AgenticPayAWSClientScheme extends AgenticPayClientSchemeBase {
+export class AgentPayAWSClientScheme extends AgentPayClientSchemeBase {
   /**
-   * Create a new AWS Agentic Pay client scheme
-   * @param config - Client configuration with Agentic Pay ID
+   * Create a new AWS Agent Pay client scheme
+   * @param config - Client configuration with Agent Pay ID
    */
-  constructor(config: { agenticPayId: string }) {
+  constructor(config: { agentPayId: string }) {
     super({
-      agenticPayId: config.agenticPayId,
-      agenticPay: {
-        baseUrl: AWS_AGENTIC_PAY_BASE_URL
+      agentPayId: config.agentPayId,
+      agentPay: {
+        baseUrl: AWS_AGENT_PAY_BASE_URL
       }
     });
   }
 }
 
 /**
- * AWS-specific Agentic Pay server scheme
- * Pre-configured for AWS Agentic Pay
+ * AWS-specific Agent Pay server scheme
+ * Pre-configured for AWS Agent Pay
  */
-export class AgenticPayAWSServerScheme extends AgenticPayServerSchemeBase {
+export class AgentPayAWSServerScheme extends AgentPayServerSchemeBase {
   /**
-   * Create a new AWS Agentic Pay server scheme
+   * Create a new AWS Agent Pay server scheme
    * @param config - Server configuration with signing keys
    */
   constructor(config: { signingKeys: SigningKeysConfig; serviceUrl: string }) {
     super({
       signingKeys: config.signingKeys,
       serviceUrl: config.serviceUrl,
-      agenticPay: {
-        baseUrl: AWS_AGENTIC_PAY_BASE_URL
+      agentPay: {
+        baseUrl: AWS_AGENT_PAY_BASE_URL
       }
     });
   }
 }
 
 /**
- * AWS-specific Agentic Pay facilitator scheme
- * Pre-configured for AWS Agentic Pay
+ * AWS-specific Agent Pay facilitator scheme
+ * Pre-configured for AWS Agent Pay
  */
-export class AgenticPayAWSFacilitatorScheme extends AgenticPayFacilitatorSchemeBase {
+export class AgentPayAWSFacilitatorScheme extends AgentPayFacilitatorSchemeBase {
   /**
-   * Create a new AWS Agentic Pay facilitator scheme
-   * @param agenticPayId - Agentic Pay ID to use (defaults to 'aws-agentic-pay')
+   * Create a new AWS Agent Pay facilitator scheme
+   * @param agentPayId - Agent Pay ID to use (defaults to 'aws-agent-pay')
    */
-  constructor(agenticPayId: string = 'aws-agentic-pay') {
+  constructor(agentPayId: string = 'aws-agent-pay') {
     super({
-      agenticPayId,
-      agenticPay: {
-        baseUrl: AWS_AGENTIC_PAY_BASE_URL
+      agentPayId,
+      agentPay: {
+        baseUrl: AWS_AGENT_PAY_BASE_URL
       }
     });
   }

@@ -1,46 +1,46 @@
 import { describe, it, expect } from 'vitest';
-import * as AgenticPay from '../../src/index';
+import * as AgentPay from '../../src/index';
 
-describe('Agentic Pay Package Exports', () => {
-  it('should export AgenticPayClientScheme', () => {
-    expect(AgenticPay.AgenticPayClientScheme).toBeDefined();
+describe('Agent Pay Package Exports', () => {
+  it('should export AgentPayClientScheme', () => {
+    expect(AgentPay.AgentPayClientScheme).toBeDefined();
   });
 
-  it('should export AgenticPayServerScheme', () => {
-    expect(AgenticPay.AgenticPayServerScheme).toBeDefined();
+  it('should export AgentPayServerScheme', () => {
+    expect(AgentPay.AgentPayServerScheme).toBeDefined();
   });
 
-  it('should export AgenticPayFacilitatorScheme', () => {
-    expect(AgenticPay.AgenticPayFacilitatorScheme).toBeDefined();
+  it('should export AgentPayFacilitatorScheme', () => {
+    expect(AgentPay.AgentPayFacilitatorScheme).toBeDefined();
   });
 
   it('should export signer functions', () => {
-    expect(AgenticPay.toServiceAgenticPaySigner).toBeDefined();
-    expect(AgenticPay.toAgenticPaySigner).toBeDefined();
+    expect(AgentPay.toServiceAgentPaySigner).toBeDefined();
+    expect(AgentPay.toAgentPaySigner).toBeDefined();
   });
 
   it('should export error classes', () => {
-    expect(AgenticPay.AgenticPayError).toBeDefined();
-    expect(AgenticPay.ValidationError).toBeDefined();
-    expect(AgenticPay.SignatureError).toBeDefined();
-    expect(AgenticPay.ExpiryError).toBeDefined();
-    expect(AgenticPay.MismatchError).toBeDefined();
-    expect(AgenticPay.DPoPError).toBeDefined();
+    expect(AgentPay.AgentPayError).toBeDefined();
+    expect(AgentPay.ValidationError).toBeDefined();
+    expect(AgentPay.SignatureError).toBeDefined();
+    expect(AgentPay.ExpiryError).toBeDefined();
+    expect(AgentPay.MismatchError).toBeDefined();
+    expect(AgentPay.DPoPError).toBeDefined();
   });
 
   it('should export constants', () => {
-    expect(AgenticPay.AGENTIC_PAY_SCHEME).toBe('aws:marketplace');
-    expect(AgenticPay.AGENTIC_PAY_CAIP_FAMILY).toBe('aws:*');
-    expect(AgenticPay.SETTLEMENT_METHODS).toBeDefined();
-    expect(AgenticPay.SETTLEMENT_CYCLES).toBeDefined();
+    expect(AgentPay.AGENT_PAY_SCHEME).toBe('agent-pay');
+    expect(AgentPay.AGENT_PAY_CAIP_FAMILY).toBe('aws:*');
+    expect(AgentPay.SETTLEMENT_METHODS).toBeDefined();
+    expect(AgentPay.SETTLEMENT_CYCLES).toBeDefined();
   });
 
   it('should export utility functions', () => {
-    expect(AgenticPay.decodeQuoteToken).toBeDefined();
-    expect(AgenticPay.verifyQuoteToken).toBeDefined();
-    expect(AgenticPay.verifyPaymentToken).toBeDefined();
-    expect(AgenticPay.extractQuoteFromPayment).toBeDefined();
-    expect(AgenticPay.generateTransactionId).toBeDefined();
-    expect(AgenticPay.parseMoneyToDecimal).toBeDefined();
+    expect(AgentPay.decodeQuoteToken).toBeDefined();
+    expect(AgentPay.verifyQuoteToken).toBeDefined();
+    expect(AgentPay.verifyPaymentToken).toBeDefined();
+    expect(AgentPay.extractQuoteFromPayment).toBeDefined();
+    expect(AgentPay.generateTransactionId).toBeDefined();
+    expect(AgentPay.parseMoneyToDecimal).toBeDefined();
   });
 });

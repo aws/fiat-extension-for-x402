@@ -1,24 +1,24 @@
 /**
- * Agentic Pay Builder exports
+ * Agent Pay Builder exports
  */
 
 // New two-phase API
-export { createAgenticPayResourceServer } from './resource-server-builder';
+export { createAgentPayResourceServer } from './resource-server-builder';
 export type {
-  AgenticPayResourceServerOptions,
-  AgenticPayResourceServer,
+  AgentPayResourceServerOptions,
+  AgentPayResourceServer,
   NetworkOptions,
   InitializeOptions,
 } from './resource-server-builder';
 
-export { createAgenticPayClient } from './client-builder';
-export type { AgenticPayClientOptions, AgenticPayClientBuilder } from './client-builder';
+export { createAgentPayClient } from './client-builder';
+export type { AgentPayClientOptions, AgentPayClientBuilder } from './client-builder';
 
 // Legacy convenience builders (still fully supported)
-export { buildAgenticPayResourceServer } from './resource-server-builder';
-export type { AgenticPayResourceServerConfig } from './resource-server-builder';
+export { buildAgentPayResourceServer } from './resource-server-builder';
+export type { AgentPayResourceServerConfig } from './resource-server-builder';
 
-export { buildAgenticPayClient } from './client-builder';
-export type { AgenticPayClientConfig } from './client-builder';
+export { buildAgentPayClient } from './client-builder';
+export type { AgentPayClientConfig } from './client-builder';
 
-export { registerAgenticPayNetworks } from './register';
+export { registerAgentPayNetworks } from './register';

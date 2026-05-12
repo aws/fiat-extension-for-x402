@@ -1,16 +1,16 @@
 sequenceDiagram
     participant Client as Client (API Consumer)
     participant Service as Service (API Provider)
-    participant AP as Agentic Pay (Agentic Pay)
+    participant AP as Agent Pay (Agent Pay)
 
-    Note over Client,AP: Agentic Pay Payment Flow
+    Note over Client,AP: Agent Pay Payment Flow
 
     Client->>Service: 1. GET /resource
     Service->>Service: 2. No payment — generate quote token (signed JWT)
     Service-->>Client: 3. 402 Payment Required<br/>WWW-Authenticate: x402<br/>{ quoteToken, price, network }
 
     Client->>Client: 4. Extract quoteToken from 402 response
-    Client->>AP: 5. POST /transactions<br/>{ quoteToken, network, amount, currency, agenticPayId }
+    Client->>AP: 5. POST /transactions<br/>{ quoteToken, network, amount, currency, agentPayId }
     AP->>AP: 6. Verify quote token signature<br/>Authorize transaction
     AP-->>Client: 7. { paymentToken (signed JWT), transactionId }
 
@@ -18,7 +18,7 @@ sequenceDiagram
 
     Service->>AP: 9. Fetch JWKS from /.well-known/jwks.json
     AP-->>Service: 10. { public keys }
-    Service->>Service: 11. Verify paymentToken signature (Agentic Pay key)<br/>Verify quoteToken inside paymentToken (own key)<br/>Match amounts
+    Service->>Service: 11. Verify paymentToken signature (Agent Pay key)<br/>Verify quoteToken inside paymentToken (own key)<br/>Match amounts
 
     alt Payment Valid
         Service-->>Client: 12. 200 OK — resource delivered

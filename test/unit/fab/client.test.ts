@@ -1,33 +1,33 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as jose from 'jose';
-import { AgenticPayScheme } from '../../../src/agentic-pay/client/scheme';
+import { AgentPayScheme } from '../../../src/agent-pay/client/scheme';
 import type { PaymentRequirements } from '@x402/core/types';
-import { AGENTIC_PAY_SCHEME } from '../../../src/constants';
-import { AGENTIC_PAY_SENTINEL_PAY_TO } from '../../../src/constants';
-import { createMockAgenticPayClient } from '../../helpers/mock-agentic-pay-client';
+import { AGENT_PAY_SCHEME } from '../../../src/constants';
+import { AGENT_PAY_SENTINEL_PAY_TO } from '../../../src/constants';
+import { createMockAgentPayClient } from '../../helpers/mock-agent-pay-client';
 
 /**
- * Agentic Pay Client Unit Tests
+ * Agent Pay Client Unit Tests
  * 
- * Tests the client scheme with mock Agentic Pay client.
+ * Tests the client scheme with mock Agent Pay client.
  * The client sends the quote token to the Agent Pay Service and receives
  * a signed payment JWT in return.
  */
 
-describe('Agentic Pay Client Scheme', () => {
+describe('Agent Pay Client Scheme', () => {
   let privateKey: jose.KeyLike;
   let publicKey: jose.KeyLike;
-  let scheme: AgenticPayScheme;
-  const agenticPayId = 'agentic-pay-test-456';
+  let scheme: AgentPayScheme;
+  const agentPayId = 'agent-pay-test-456';
 
   beforeEach(async () => {
-    const mock = await createMockAgenticPayClient(agenticPayId);
+    const mock = await createMockAgentPayClient(agentPayId);
     privateKey = mock.privateKey;
     publicKey = mock.publicKey;
 
-    scheme = new AgenticPayScheme({
-      agenticPayId,
-      agenticPayClient: mock.agenticPayClient
+    scheme = new AgentPayScheme({
+      agentPayId,
+      agentPayClient: mock.agentPayClient
     });
   });
 
@@ -48,7 +48,7 @@ describe('Agentic Pay Client Scheme', () => {
       .sign(privateKey);
 
     const requirements: PaymentRequirements = {
-      scheme: AGENTIC_PAY_SCHEME,
+      scheme: AGENT_PAY_SCHEME,
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
@@ -71,13 +71,13 @@ describe('Agentic Pay Client Scheme', () => {
     // Verify payment token structure (Agent Pay format)
     const decoded = jose.decodeJwt(result.payload.paymentToken as string);
     expect(decoded.iss).toBe('aws-marketplace');
-    expect(decoded.sub).toBe(agenticPayId);
+    expect(decoded.sub).toBe(agentPayId);
     expect(decoded.payment_id).toBeDefined();
   });
 
   it('should throw error when quote token is missing', async () => {
     const requirements: PaymentRequirements = {
-      scheme: AGENTIC_PAY_SCHEME,
+      scheme: AGENT_PAY_SCHEME,
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
@@ -108,7 +108,7 @@ describe('Agentic Pay Client Scheme', () => {
       .sign(privateKey);
 
     const requirements: PaymentRequirements = {
-      scheme: AGENTIC_PAY_SCHEME,
+      scheme: AGENT_PAY_SCHEME,
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
@@ -141,7 +141,7 @@ describe('Agentic Pay Client Scheme', () => {
       .sign(privateKey);
 
     const requirements: PaymentRequirements = {
-      scheme: AGENTIC_PAY_SCHEME,
+      scheme: AGENT_PAY_SCHEME,
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
@@ -156,7 +156,7 @@ describe('Agentic Pay Client Scheme', () => {
     // Verify token can be verified with Agent Pay's public key
     const verified = await jose.jwtVerify(paymentToken, publicKey);
     expect(verified.payload.iss).toBe('aws-marketplace');
-    expect(verified.payload.sub).toBe(agenticPayId);
+    expect(verified.payload.sub).toBe(agentPayId);
     expect(verified.payload.payment_context).toBeDefined();
     expect((verified.payload.payment_context as any).quote_token).toBe(quoteToken);
   });
@@ -180,11 +180,11 @@ describe('Agentic Pay Client Scheme', () => {
 
       // Use sentinel payTo — this is what the server scheme produces
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_PAY_SCHEME,
+        scheme: AGENT_PAY_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
-        payTo: AGENTIC_PAY_SENTINEL_PAY_TO,
+        payTo: AGENT_PAY_SENTINEL_PAY_TO,
         maxTimeoutSeconds: 300,
         extra: { quoteToken } as unknown as Record<string, unknown>
       };
@@ -200,7 +200,7 @@ describe('Agentic Pay Client Scheme', () => {
       expect(decoded.iss).toBe('aws-marketplace');
     });
 
-    it('should not pass sentinel value to Agentic Pay — only sends quoteToken', async () => {
+    it('should not pass sentinel value to Agent Pay — only sends quoteToken', async () => {
       const quotePayload = {
         iss: 'https://api.example.com',
         aud: 'fab:test',
@@ -217,11 +217,11 @@ describe('Agentic Pay Client Scheme', () => {
         .sign(privateKey);
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_PAY_SCHEME,
+        scheme: AGENT_PAY_SCHEME,
         network: 'fab:test',
         amount: '2.00',
         asset: 'iso4217:USD',
-        payTo: AGENTIC_PAY_SENTINEL_PAY_TO,
+        payTo: AGENT_PAY_SENTINEL_PAY_TO,
         maxTimeoutSeconds: 300,
         extra: { quoteToken } as unknown as Record<string, unknown>
       };

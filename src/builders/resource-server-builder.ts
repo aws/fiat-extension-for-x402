@@ -1,46 +1,46 @@
 /**
- * Agentic Pay Resource Server Builder
+ * Agent Pay Resource Server Builder
  *
  * Two-phase API: create a server, then register networks.
  * This separates construction from configuration and makes it easy
  * to extend later (e.g., register different networks with different options).
  *
  * Usage:
- *   const server = createAgenticPayResourceServer({ ... });
- *   server.registerNetwork('aws:marketplace');
+ *   const server = createAgentPayResourceServer({ ... });
+ *   server.registerNetwork('aws:base');
  *   server.registerNetwork('eip155:8453');
  *   await server.initialize();
  *
  * Or use the convenience builder that does it all in one call:
- *   const server = await buildAgenticPayResourceServer({ ... });
+ *   const server = await buildAgentPayResourceServer({ ... });
  */
 
 import { x402ResourceServer } from '@x402/core/server';
 import { HTTPFacilitatorClient } from '@x402/core/http';
 import type { Network } from '@x402/core/types';
-import { AgenticPayScheme as AgenticPayServerSchemeImpl } from '../agentic-pay/server/scheme';
-import { AgenticPayFacilitatorClient } from '../agentic-pay-facilitator-client';
-import type { AgenticPayFacilitatorAuthConfig } from '../agentic-pay-facilitator-client';
+import { AgentPayScheme as AgentPayServerSchemeImpl } from '../agent-pay/server/scheme';
+import { AgentPayFacilitatorClient } from '../agent-pay-facilitator-client';
+import type { AgentPayFacilitatorAuthConfig } from '../agent-pay-facilitator-client';
 import type { SigningKeysConfig } from '../config';
 import { ValidationError } from '../types';
 
 // ── Types ──────────────────────────────────────────────────────────
 
 /**
- * Base configuration for creating a Agentic Pay resource server.
+ * Base configuration for creating a Agent Pay resource server.
  * Only includes identity and signing config — no routing concerns.
  */
-export interface AgenticPayResourceServerOptions {
-  /** Agentic Pay base URL for the Agentic Pay facilitator */
-  agenticPayBaseUrl: string;
-  /** Agentic Pay ID for the Agentic Pay facilitator */
-  agenticPayId: string;
+export interface AgentPayResourceServerOptions {
+  /** Agent Pay base URL for the Agent Pay facilitator */
+  agentPayBaseUrl: string;
+  /** Agent Pay ID for the Agent Pay facilitator */
+  agentPayId: string;
   /** Service signing keys for quote tokens */
   signingKeys: SigningKeysConfig;
   /** Service URL (used as issuer in quote tokens) */
   serviceUrl: string;
-  /** Optional: Agentic Pay auth config for facilitator API calls */
-  agenticPayAuth?: AgenticPayFacilitatorAuthConfig;
+  /** Optional: Agent Pay auth config for facilitator API calls */
+  agentPayAuth?: AgentPayFacilitatorAuthConfig;
 }
 
 /**
@@ -62,12 +62,12 @@ export interface NetworkOptions {
 }
 
 /**
- * A Agentic Pay resource server with a fluent `registerNetwork` API.
+ * A Agent Pay resource server with a fluent `registerNetwork` API.
  * Call `initialize()` after registering all networks.
  */
-export interface AgenticPayResourceServer {
-  /** Register a network for Agentic Pay to handle. Returns `this` for chaining. */
-  registerNetwork(network: Network, options?: NetworkOptions): AgenticPayResourceServer;
+export interface AgentPayResourceServer {
+  /** Register a network for Agent Pay to handle. Returns `this` for chaining. */
+  registerNetwork(network: Network, options?: NetworkOptions): AgentPayResourceServer;
   /** Initialize the server (fetches supported kinds from facilitators). */
   initialize(options?: InitializeOptions): Promise<x402ResourceServer>;
   /** The underlying x402ResourceServer (available before initialize for advanced use). */
@@ -75,29 +75,29 @@ export interface AgenticPayResourceServer {
 }
 
 /**
- * Legacy config shape — kept for backward compatibility with `buildAgenticPayResourceServer`.
+ * Legacy config shape — kept for backward compatibility with `buildAgentPayResourceServer`.
  */
-export interface AgenticPayResourceServerConfig {
+export interface AgentPayResourceServerConfig {
   networks: Network[];
-  agenticPayBaseUrl: string;
-  agenticPayId: string;
+  agentPayBaseUrl: string;
+  agentPayId: string;
   signingKeys: SigningKeysConfig;
   serviceUrl: string;
-  agenticPayAuth?: AgenticPayFacilitatorAuthConfig;
+  agentPayAuth?: AgentPayFacilitatorAuthConfig;
   defaultFacilitatorUrl?: string;
   disableDefaultFallback?: boolean;
 }
 
 // ── Implementation ─────────────────────────────────────────────────
 
-function validateBaseConfig(config: AgenticPayResourceServerOptions): void {
-  if (!config.agenticPayBaseUrl) {
-    throw new ValidationError('agenticPayBaseUrl is required');
+function validateBaseConfig(config: AgentPayResourceServerOptions): void {
+  if (!config.agentPayBaseUrl) {
+    throw new ValidationError('agentPayBaseUrl is required');
   }
   try {
-    new URL(config.agenticPayBaseUrl);
+    new URL(config.agentPayBaseUrl);
   } catch {
-    throw new ValidationError(`Invalid agenticPayBaseUrl: ${config.agenticPayBaseUrl}`);
+    throw new ValidationError(`Invalid agentPayBaseUrl: ${config.agentPayBaseUrl}`);
   }
   if (!config.signingKeys) {
     throw new ValidationError('signingKeys is required');
@@ -108,7 +108,7 @@ function validateBaseConfig(config: AgenticPayResourceServerOptions): void {
 }
 
 /**
- * Create a Agentic Pay resource server. Networks are registered separately
+ * Create a Agent Pay resource server. Networks are registered separately
  * via `registerNetwork`, then `initialize()` wires up facilitator
  * routing and starts the server.
  *
@@ -117,49 +117,49 @@ function validateBaseConfig(config: AgenticPayResourceServerOptions): void {
  *
  * @example
  * ```typescript
- * const server = createAgenticPayResourceServer({
- *   agenticPayBaseUrl: 'https://pay.aws.amazon.com',
- *   agenticPayId: 'my-agentic-pay',
+ * const server = createAgentPayResourceServer({
+ *   agentPayBaseUrl: 'https://pay.aws.amazon.com',
+ *   agentPayId: 'my-agent-pay',
  *   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
  *   serviceUrl: 'https://api.example.com',
  * });
  *
- * server.registerNetwork('aws:marketplace');
+ * server.registerNetwork('aws:base');
  * server.registerNetwork('eip155:8453');
  *
  * const x402Server = await server.initialize();
  * ```
  */
-export function createAgenticPayResourceServer(
-  config: AgenticPayResourceServerOptions
-): AgenticPayResourceServer {
+export function createAgentPayResourceServer(
+  config: AgentPayResourceServerOptions
+): AgentPayResourceServer {
   validateBaseConfig(config);
 
   const registeredNetworks = new Set<Network>();
   const networkFilter = new Set<Network>();
 
-  // Shared Agentic Pay server scheme (stateless w.r.t. network)
-  const apServerScheme = new AgenticPayServerSchemeImpl({
+  // Shared Agent Pay server scheme (stateless w.r.t. network)
+  const apServerScheme = new AgentPayServerSchemeImpl({
     signingKeys: config.signingKeys,
     serviceUrl: config.serviceUrl,
   });
 
-  // Agentic Pay facilitator client — networkFilter is mutated by registerNetwork
-  const apFacilitatorClient = new AgenticPayFacilitatorClient(
-    config.agenticPayBaseUrl,
-    config.agenticPayAuth,
+  // Agent Pay facilitator client — networkFilter is mutated by registerNetwork
+  const apFacilitatorClient = new AgentPayFacilitatorClient(
+    config.agentPayBaseUrl,
+    config.agentPayAuth,
     networkFilter
   );
 
   let initialized = false;
 
-  const self: AgenticPayResourceServer = {
+  const self: AgentPayResourceServer = {
     // server is lazily built during initialize()
     get server() {
       return (self as any)._server;
     },
 
-    registerNetwork(network: Network, _options?: NetworkOptions): AgenticPayResourceServer {
+    registerNetwork(network: Network, _options?: NetworkOptions): AgentPayResourceServer {
       if (initialized) {
         throw new ValidationError('Cannot register networks after initialize()');
       }
@@ -178,7 +178,7 @@ export function createAgenticPayResourceServer(
         );
       }
 
-      // Build facilitator client array: Agentic Pay first (precedence), default second (fallback)
+      // Build facilitator client array: Agent Pay first (precedence), default second (fallback)
       const facilitatorClients: any[] = [apFacilitatorClient];
 
       if (!options?.disableDefaultFallback) {
@@ -190,7 +190,7 @@ export function createAgenticPayResourceServer(
 
       const server = new x402ResourceServer(facilitatorClients);
 
-      // Register Agentic Pay server scheme for each network
+      // Register Agent Pay server scheme for each network
       for (const network of registeredNetworks) {
         server.register(network, apServerScheme);
       }
@@ -212,22 +212,22 @@ export function createAgenticPayResourceServer(
  * Convenience builder that creates, registers networks, and initializes
  * in one call.
  *
- * @param config - Agentic Pay resource server configuration (includes networks)
+ * @param config - Agent Pay resource server configuration (includes networks)
  * @returns Initialized x402ResourceServer
  */
-export async function buildAgenticPayResourceServer(
-  config: AgenticPayResourceServerConfig
+export async function buildAgentPayResourceServer(
+  config: AgentPayResourceServerConfig
 ): Promise<x402ResourceServer> {
   if (!config.networks || config.networks.length === 0) {
     throw new ValidationError('networks must be a non-empty array');
   }
 
-  const s = createAgenticPayResourceServer({
-    agenticPayBaseUrl: config.agenticPayBaseUrl,
-    agenticPayId: config.agenticPayId,
+  const s = createAgentPayResourceServer({
+    agentPayBaseUrl: config.agentPayBaseUrl,
+    agentPayId: config.agentPayId,
     signingKeys: config.signingKeys,
     serviceUrl: config.serviceUrl,
-    agenticPayAuth: config.agenticPayAuth,
+    agentPayAuth: config.agentPayAuth,
   });
 
   for (const network of config.networks) {

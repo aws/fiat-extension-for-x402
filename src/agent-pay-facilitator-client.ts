@@ -1,12 +1,12 @@
 /**
- * Agentic Pay Facilitator Client
+ * Agent Pay Facilitator Client
  * 
  * Implements FacilitatorClient interface by verifying payment tokens cryptographically.
- * In Agentic Pay, the Agentic Pay provider IS the facilitator - no separate facilitator service needed.
+ * In Agent Pay, the Agent Pay provider IS the facilitator - no separate facilitator service needed.
  * 
  * This adapter translates x402 facilitator calls to cryptographic verification:
  * - verify() → verifies JWT signatures (payment token + quote token)
- * - settle() → calls Agentic Pay's /capture endpoint
+ * - settle() → calls Agent Pay's /capture endpoint
  * - getSupported() → fetches from /.well-known/x402-supported
  * 
  * Security is based on signatures, not transaction state lookups.
@@ -23,60 +23,60 @@ import type {
   SupportedResponse
 } from '@x402/core/types';
 import * as jose from 'jose';
-import { AgenticPayPayloadV2, AgenticPayPaymentExtra } from './types';
+import { AgentPayPayloadV2, AgentPayPaymentExtra } from './types';
 import { decodeQuoteToken } from './utils';
 
 /**
- * Optional authentication configuration for Agentic Pay API calls
+ * Optional authentication configuration for Agent Pay API calls
  */
-export interface AgenticPayFacilitatorAuthConfig {
+export interface AgentPayFacilitatorAuthConfig {
   /**
-   * Function to get authentication headers for Agentic Pay API calls
+   * Function to get authentication headers for Agent Pay API calls
    * @returns Headers to include in requests
    */
   getAuthHeaders?: () => Promise<Record<string, string>>;
 }
 
 /**
- * Agentic Pay Facilitator Client
+ * Agent Pay Facilitator Client
  * 
- * Calls Agentic Pay provider's API to verify and settle payments.
- * The Agentic Pay provider serves as the facilitator in Agentic Pay.
+ * Calls Agent Pay provider's API to verify and settle payments.
+ * The Agent Pay provider serves as the facilitator in Agent Pay.
  */
-export class AgenticPayFacilitatorClient implements FacilitatorClient {
+export class AgentPayFacilitatorClient implements FacilitatorClient {
   private jwksCache: Map<string, { jwks: jose.JSONWebKeySet; timestamp: number }> = new Map();
   private readonly JWKS_CACHE_TTL = 3600000; // 1 hour
-  private readonly authConfig?: AgenticPayFacilitatorAuthConfig;
+  private readonly authConfig?: AgentPayFacilitatorAuthConfig;
   private readonly networkFilter?: Set<Network>;
 
   /**
-   * Create a new Agentic Pay facilitator client
+   * Create a new Agent Pay facilitator client
    * 
-   * @param agenticPayBaseUrl - Base URL of the Agentic Pay provider (e.g., 'https://pay.aws.amazon.com')
+   * @param agentPayBaseUrl - Base URL of the Agent Pay provider (e.g., 'https://pay.aws.amazon.com')
    * @param authConfig - Optional authentication configuration
    * @param networkFilter - Optional set of networks to claim. When set, getSupported()
-   *   filters the Agentic Pay's response to only include kinds whose network is in this set.
-   *   This prevents the Agentic Pay facilitator from shadowing the default facilitator for
-   *   networks the integrator didn't intend to handle via Agentic Pay.
+   *   filters the Agent Pay's response to only include kinds whose network is in this set.
+   *   This prevents the Agent Pay facilitator from shadowing the default facilitator for
+   *   networks the integrator didn't intend to handle via Agent Pay.
    */
   constructor(
-    private readonly agenticPayBaseUrl: string,
-    authConfig?: AgenticPayFacilitatorAuthConfig,
+    private readonly agentPayBaseUrl: string,
+    authConfig?: AgentPayFacilitatorAuthConfig,
     networkFilter?: Set<Network>
   ) {
     // Remove trailing slash if present
-    this.agenticPayBaseUrl = agenticPayBaseUrl.replace(/\/$/, '');
+    this.agentPayBaseUrl = agentPayBaseUrl.replace(/\/$/, '');
     this.authConfig = authConfig;
     this.networkFilter = networkFilter;
   }
 
   /**
-   * Get supported payment kinds from Agentic Pay
+   * Get supported payment kinds from Agent Pay
    * 
    * @returns Supported payment kinds and extensions
    */
   async getSupported(): Promise<SupportedResponse> {
-    const response = await fetch(`${this.agenticPayBaseUrl}/.well-known/x402-supported`);
+    const response = await fetch(`${this.agentPayBaseUrl}/.well-known/x402-supported`);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch supported kinds: ${response.statusText}`);
@@ -85,7 +85,7 @@ export class AgenticPayFacilitatorClient implements FacilitatorClient {
     const supported = await response.json() as SupportedResponse;
 
     // If network filter is set, only include kinds for registered networks.
-    // This prevents the Agentic Pay facilitator from claiming networks the integrator
+    // This prevents the Agent Pay facilitator from claiming networks the integrator
     // didn't explicitly choose, which would shadow the default facilitator.
     if (this.networkFilter) {
       supported.kinds = supported.kinds.filter(
@@ -100,7 +100,7 @@ export class AgenticPayFacilitatorClient implements FacilitatorClient {
    * Verify a payment by checking JWT signatures
    * 
    * Security model:
-   * 1. Verify payment token signature (proves Agentic Pay authorized it)
+   * 1. Verify payment token signature (proves Agent Pay authorized it)
    * 2. Verify quote token signature (proves service issued it)
    * 3. Verify amounts match (prevents tampering)
    * 
@@ -116,16 +116,16 @@ export class AgenticPayFacilitatorClient implements FacilitatorClient {
     requirements: PaymentRequirements
   ): Promise<VerifyResponse> {
     try {
-      const apPayload = payload.payload as unknown as AgenticPayPayloadV2;
-      const extra = requirements.extra as unknown as AgenticPayPaymentExtra;
+      const apPayload = payload.payload as unknown as AgentPayPayloadV2;
+      const extra = requirements.extra as unknown as AgentPayPaymentExtra;
 
-      // 1. Fetch Agentic Pay's JWKS
-      const agenticPayJWKS = await this.fetchJWKS(this.agenticPayBaseUrl);
+      // 1. Fetch Agent Pay's JWKS
+      const agentPayJWKS = await this.fetchJWKS(this.agentPayBaseUrl);
 
       // 2. Verify payment token signature (algorithm allowlist enforced)
       const { payload: paymentTokenPayload } = await jose.jwtVerify(
         apPayload.paymentToken,
-        jose.createLocalJWKSet(agenticPayJWKS),
+        jose.createLocalJWKSet(agentPayJWKS),
         { algorithms: ALLOWED_ALGORITHMS }
       );
 
@@ -211,7 +211,7 @@ export class AgenticPayFacilitatorClient implements FacilitatorClient {
     payload: PaymentPayload,
     requirements: PaymentRequirements
   ): Promise<SettleResponse> {
-    const apPayload = payload.payload as unknown as AgenticPayPayloadV2;
+    const apPayload = payload.payload as unknown as AgentPayPayloadV2;
     const paymentId = apPayload.paymentId || apPayload.transactionId || '';
 
     // Agent Pay auto-captures — no HTTP call needed.

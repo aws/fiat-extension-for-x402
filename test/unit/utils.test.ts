@@ -48,13 +48,13 @@ describe('Utils', () => {
 
   describe('generateTransactionId', () => {
     it('should generate transaction ID with network prefix', () => {
-      const txId = generateTransactionId('fab:aws', 'agentic-pay-123');
+      const txId = generateTransactionId('fab:aws', 'agent-pay-123');
       expect(txId).toMatch(/^fab:aws:[a-f0-9]{16}$/);
     });
 
     it('should generate unique IDs', () => {
-      const txId1 = generateTransactionId('fab:aws', 'agentic-pay-123');
-      const txId2 = generateTransactionId('fab:aws', 'agentic-pay-123');
+      const txId1 = generateTransactionId('fab:aws', 'agent-pay-123');
+      const txId2 = generateTransactionId('fab:aws', 'agent-pay-123');
       expect(txId1).not.toBe(txId2);
     });
   });
@@ -94,8 +94,8 @@ describe('Utils', () => {
 
   describe('formatTransactionId', () => {
     it('should format transaction ID from components', () => {
-      const result = formatTransactionId('aws:marketplace', 'abc123def456');
-      expect(result).toBe('aws:marketplace:abc123def456');
+      const result = formatTransactionId('aws:base', 'abc123def456');
+      expect(result).toBe('aws:base:abc123def456');
     });
 
     it('should throw ValidationError if network has no colon (invalid format)', () => {
@@ -213,9 +213,9 @@ describe('Utils', () => {
 
   describe('generateTransactionId - edge cases', () => {
     it('should handle different network formats', () => {
-      const txId1 = generateTransactionId('fab:aws', 'agentic-pay-1');
-      const txId2 = generateTransactionId('fab:google', 'agentic-pay-2');
-      const txId3 = generateTransactionId('fab:custom:network', 'agentic-pay-3');
+      const txId1 = generateTransactionId('fab:aws', 'agent-pay-1');
+      const txId2 = generateTransactionId('fab:google', 'agent-pay-2');
+      const txId3 = generateTransactionId('fab:custom:network', 'agent-pay-3');
       
       expect(txId1).toMatch(/^fab:aws:[a-f0-9]{16}$/);
       expect(txId2).toMatch(/^fab:google:[a-f0-9]{16}$/);
@@ -223,7 +223,7 @@ describe('Utils', () => {
     });
 
     it('should generate IDs with exactly 16 hex characters', () => {
-      const txId = generateTransactionId('fab:test', 'agentic-pay');
+      const txId = generateTransactionId('fab:test', 'agent-pay');
       const parts = txId.split(':');
       const id = parts[parts.length - 1];
       

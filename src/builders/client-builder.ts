@@ -1,20 +1,20 @@
 /**
- * Agentic Pay Client Builder
+ * Agent Pay Client Builder
  *
  * Two-phase API: create a client, then register networks.
  *
  * Usage:
- *   const client = createAgenticPayClient({ ... });
- *   client.registerNetwork('aws:marketplace');
+ *   const client = createAgentPayClient({ ... });
+ *   client.registerNetwork('aws:base');
  *   client.registerNetwork('eip155:8453');
  *
  * Or use the convenience builder:
- *   const client = buildAgenticPayClient({ ... });
+ *   const client = buildAgentPayClient({ ... });
  */
 
 import { x402Client } from '@x402/core/client';
 import type { Network } from '@x402/core/types';
-import { AgenticPayScheme as AgenticPayClientSchemeImpl } from '../agentic-pay/client/scheme';
+import { AgentPayScheme as AgentPayClientSchemeImpl } from '../agent-pay/client/scheme';
 import type { AuthConfig } from '../auth/types';
 import type { DPoPKeyPair } from '../types';
 import { ValidationError } from '../types';
@@ -22,28 +22,28 @@ import { ValidationError } from '../types';
 // ── Types ──────────────────────────────────────────────────────────
 
 /**
- * Base configuration for creating a Agentic Pay client.
+ * Base configuration for creating a Agent Pay client.
  * Does not include networks — those are added via `registerNetwork`.
  */
-export interface AgenticPayClientOptions {
-  /** Agentic Pay base URL */
-  agenticPayBaseUrl: string;
-  /** Agentic Pay ID */
-  agenticPayId: string;
-  /** Optional: Agentic Pay auth config */
-  agenticPayAuth?: AuthConfig;
+export interface AgentPayClientOptions {
+  /** Agent Pay base URL */
+  agentPayBaseUrl: string;
+  /** Agent Pay ID */
+  agentPayId: string;
+  /** Optional: Agent Pay auth config */
+  agentPayAuth?: AuthConfig;
   /** Optional: DPoP configuration */
   dpop?: { keyPair: DPoPKeyPair; enabled: boolean };
-  /** Optional: existing x402Client to add Agentic Pay networks to */
+  /** Optional: existing x402Client to add Agent Pay networks to */
   existingClient?: x402Client;
 }
 
 /**
- * A Agentic Pay client with a fluent `registerNetwork` API.
+ * A Agent Pay client with a fluent `registerNetwork` API.
  */
-export interface AgenticPayClientBuilder {
-  /** Register a network for Agentic Pay to handle. Returns `this` for chaining. */
-  registerNetwork(network: Network): AgenticPayClientBuilder;
+export interface AgentPayClientBuilder {
+  /** Register a network for Agent Pay to handle. Returns `this` for chaining. */
+  registerNetwork(network: Network): AgentPayClientBuilder;
   /** The underlying x402Client. */
   readonly client: x402Client;
   /** Shortcut: delegates to client.createPaymentPayload */
@@ -51,69 +51,69 @@ export interface AgenticPayClientBuilder {
 }
 
 /**
- * Legacy config shape — kept for backward compatibility with `buildAgenticPayClient`.
+ * Legacy config shape — kept for backward compatibility with `buildAgentPayClient`.
  */
-export interface AgenticPayClientConfig {
+export interface AgentPayClientConfig {
   networks: Network[];
-  agenticPayBaseUrl: string;
-  agenticPayId: string;
-  agenticPayAuth?: AuthConfig;
+  agentPayBaseUrl: string;
+  agentPayId: string;
+  agentPayAuth?: AuthConfig;
   dpop?: { keyPair: DPoPKeyPair; enabled: boolean };
   existingClient?: x402Client;
 }
 
 // ── Implementation ─────────────────────────────────────────────────
 
-function validateClientConfig(config: AgenticPayClientOptions): void {
-  if (!config.agenticPayBaseUrl) {
-    throw new ValidationError('agenticPayBaseUrl is required');
+function validateClientConfig(config: AgentPayClientOptions): void {
+  if (!config.agentPayBaseUrl) {
+    throw new ValidationError('agentPayBaseUrl is required');
   }
   try {
-    new URL(config.agenticPayBaseUrl);
+    new URL(config.agentPayBaseUrl);
   } catch {
-    throw new ValidationError(`Invalid agenticPayBaseUrl: ${config.agenticPayBaseUrl}`);
+    throw new ValidationError(`Invalid agentPayBaseUrl: ${config.agentPayBaseUrl}`);
   }
 }
 
 /**
- * Create a Agentic Pay client. Networks are registered separately
+ * Create a Agent Pay client. Networks are registered separately
  * via `registerNetwork`.
  *
  * @example
  * ```typescript
- * const client = createAgenticPayClient({
- *   agenticPayBaseUrl: 'https://pay.aws.amazon.com',
- *   agenticPayId: 'my-agentic-pay',
- *   agenticPayAuth: { type: 'apiKey', apiKey: process.env.AGENTIC_PAY_API_KEY },
+ * const client = createAgentPayClient({
+ *   agentPayBaseUrl: 'https://pay.aws.amazon.com',
+ *   agentPayId: 'my-agent-pay',
+ *   agentPayAuth: { type: 'apiKey', apiKey: process.env.AGENT_PAY_API_KEY },
  * });
  *
- * client.registerNetwork('aws:marketplace');
+ * client.registerNetwork('aws:base');
  * client.registerNetwork('eip155:8453');
  *
  * const payload = await client.createPaymentPayload(paymentRequired);
  * ```
  */
-export function createAgenticPayClient(config: AgenticPayClientOptions): AgenticPayClientBuilder {
+export function createAgentPayClient(config: AgentPayClientOptions): AgentPayClientBuilder {
   validateClientConfig(config);
 
   const x402 = config.existingClient ?? new x402Client();
   const registeredNetworks = new Set<Network>();
 
   // Single reusable scheme instance (stateless w.r.t. network)
-  const apClientScheme = new AgenticPayClientSchemeImpl({
-    agenticPayId: config.agenticPayId,
-    agenticPay: {
-      baseUrl: config.agenticPayBaseUrl,
-      auth: config.agenticPayAuth,
+  const apClientScheme = new AgentPayClientSchemeImpl({
+    agentPayId: config.agentPayId,
+    agentPay: {
+      baseUrl: config.agentPayBaseUrl,
+      auth: config.agentPayAuth,
     },
   });
 
-  const self: AgenticPayClientBuilder = {
+  const self: AgentPayClientBuilder = {
     get client() {
       return x402;
     },
 
-    registerNetwork(network: Network): AgenticPayClientBuilder {
+    registerNetwork(network: Network): AgentPayClientBuilder {
       if (registeredNetworks.has(network)) {
         return self; // idempotent
       }
@@ -131,18 +131,18 @@ export function createAgenticPayClient(config: AgenticPayClientOptions): Agentic
 /**
  * Convenience builder that creates and registers networks in one call.
  *
- * @param config - Agentic Pay client configuration (includes networks)
+ * @param config - Agent Pay client configuration (includes networks)
  * @returns Configured x402Client
  */
-export function buildAgenticPayClient(config: AgenticPayClientConfig): x402Client {
+export function buildAgentPayClient(config: AgentPayClientConfig): x402Client {
   if (!config.networks || config.networks.length === 0) {
     throw new ValidationError('networks must be a non-empty array');
   }
 
-  const c = createAgenticPayClient({
-    agenticPayBaseUrl: config.agenticPayBaseUrl,
-    agenticPayId: config.agenticPayId,
-    agenticPayAuth: config.agenticPayAuth,
+  const c = createAgentPayClient({
+    agentPayBaseUrl: config.agentPayBaseUrl,
+    agentPayId: config.agentPayId,
+    agentPayAuth: config.agentPayAuth,
     dpop: config.dpop,
     existingClient: config.existingClient,
   });

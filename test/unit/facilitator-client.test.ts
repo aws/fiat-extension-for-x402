@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { InProcessFacilitatorClient } from '../../src/facilitator-client';
-import { AgenticPayScheme as AgenticPayFacilitatorSchemeImpl } from '../../src/agentic-pay/facilitator/scheme';
+import { AgentPayScheme as AgentPayFacilitatorSchemeImpl } from '../../src/agent-pay/facilitator/scheme';
 import * as jose from 'jose';
 
 describe('InProcessFacilitatorClient', () => {
@@ -10,10 +10,10 @@ describe('InProcessFacilitatorClient', () => {
       const jwk = await jose.exportJWK(publicKey);
       
       const schemes = new Map();
-      schemes.set('fab:test', new AgenticPayFacilitatorSchemeImpl({
+      schemes.set('fab:test', new AgentPayFacilitatorSchemeImpl({
         signingKeys: { privateKey, publicKey: jwk, alg: 'RS256' },
-        agenticPayId: 'test-agentic-pay',
-        agenticPay: {
+        agentPayId: 'test-agent-pay',
+        agentPay: {
           baseUrl: 'https://pay.test.com'
         }
       }));
@@ -34,15 +34,15 @@ describe('InProcessFacilitatorClient', () => {
       const jwk2 = await jose.exportJWK(pub2);
       
       const schemes = new Map();
-      schemes.set('fab:test1', new AgenticPayFacilitatorSchemeImpl({
+      schemes.set('fab:test1', new AgentPayFacilitatorSchemeImpl({
         signingKeys: { privateKey: pk1, publicKey: jwk1, alg: 'RS256' },
-        agenticPayId: 'agentic-pay-1',
-        agenticPay: { baseUrl: 'https://pay1.test.com' }
+        agentPayId: 'agent-pay-1',
+        agentPay: { baseUrl: 'https://pay1.test.com' }
       }));
-      schemes.set('fab:test2', new AgenticPayFacilitatorSchemeImpl({
+      schemes.set('fab:test2', new AgentPayFacilitatorSchemeImpl({
         signingKeys: { privateKey: pk2, publicKey: jwk2, alg: 'RS256' },
-        agenticPayId: 'agentic-pay-2',
-        agenticPay: { baseUrl: 'https://pay2.test.com' }
+        agentPayId: 'agent-pay-2',
+        agentPay: { baseUrl: 'https://pay2.test.com' }
       }));
       
       const client = new InProcessFacilitatorClient(schemes);
@@ -55,10 +55,10 @@ describe('InProcessFacilitatorClient', () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const jwk = await jose.exportJWK(publicKey);
       
-      const scheme = new AgenticPayFacilitatorSchemeImpl({
+      const scheme = new AgentPayFacilitatorSchemeImpl({
         signingKeys: { privateKey, publicKey: jwk, alg: 'RS256' },
-        agenticPayId: 'test-agentic-pay',
-        agenticPay: {
+        agentPayId: 'test-agent-pay',
+        agentPay: {
           baseUrl: 'https://pay.test.com'
         }
       });

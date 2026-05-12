@@ -1,12 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { createAgenticPayResourceServer } from '../../../src/builders/resource-server-builder';
+import { createAgentPayResourceServer } from '../../../src/builders/resource-server-builder';
 import { ValidationError } from '../../../src/types';
 import * as jose from 'jose';
 
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
-describe('createAgenticPayResourceServer', () => {
+describe('createAgentPayResourceServer', () => {
   let keys: { privateKey: jose.KeyLike; publicKey: jose.JWK; alg: 'RS256' };
 
   beforeEach(async () => {
@@ -21,7 +21,7 @@ describe('createAgenticPayResourceServer', () => {
         return {
           ok: true,
           json: async () => ({
-            kinds: networks.map(n => ({ x402Version: 2, scheme: 'aws:marketplace', network: n, extra: { agenticPayId: 'w' } })),
+            kinds: networks.map(n => ({ x402Version: 2, scheme: 'agent-pay', network: n, extra: { agentPayId: 'w' } })),
             extensions: [], signers: {},
           }),
         };
@@ -33,46 +33,46 @@ describe('createAgenticPayResourceServer', () => {
     });
   }
 
-  const base = { agenticPayBaseUrl: 'https://pay.example.com', agenticPayId: 'w', serviceUrl: 'https://api.example.com' };
+  const base = { agentPayBaseUrl: 'https://pay.example.com', agentPayId: 'w', serviceUrl: 'https://api.example.com' };
 
   it('should create server and register networks individually', async () => {
     mockSupported(['fab:aws', 'eip155:8453']);
-    const s = createAgenticPayResourceServer({ ...base, signingKeys: keys });
+    const s = createAgentPayResourceServer({ ...base, signingKeys: keys });
     s.registerNetwork('fab:aws');
     s.registerNetwork('eip155:8453');
     const server = await s.initialize({ disableDefaultFallback: true });
-    expect(server.hasRegisteredScheme('fab:aws', 'aws:marketplace')).toBe(true);
-    expect(server.hasRegisteredScheme('eip155:8453', 'aws:marketplace')).toBe(true);
+    expect(server.hasRegisteredScheme('fab:aws', 'agent-pay')).toBe(true);
+    expect(server.hasRegisteredScheme('eip155:8453', 'agent-pay')).toBe(true);
   });
 
   it('should support method chaining', async () => {
     mockSupported(['fab:aws', 'eip155:8453']);
-    const s = createAgenticPayResourceServer({ ...base, signingKeys: keys });
+    const s = createAgentPayResourceServer({ ...base, signingKeys: keys });
     const result = s.registerNetwork('fab:aws').registerNetwork('eip155:8453');
     expect(result).toBe(s);
     const server = await s.initialize({ disableDefaultFallback: true });
-    expect(server.hasRegisteredScheme('fab:aws', 'aws:marketplace')).toBe(true);
+    expect(server.hasRegisteredScheme('fab:aws', 'agent-pay')).toBe(true);
   });
 
   it('should be idempotent for duplicate registerNetwork calls', async () => {
     mockSupported(['fab:aws']);
-    const s = createAgenticPayResourceServer({ ...base, signingKeys: keys });
+    const s = createAgentPayResourceServer({ ...base, signingKeys: keys });
     s.registerNetwork('fab:aws');
     s.registerNetwork('fab:aws');
     const server = await s.initialize({ disableDefaultFallback: true });
-    expect(server.hasRegisteredScheme('fab:aws', 'aws:marketplace')).toBe(true);
+    expect(server.hasRegisteredScheme('fab:aws', 'agent-pay')).toBe(true);
   });
 
   it('should throw on initialize with no networks', async () => {
-    const s = createAgenticPayResourceServer({ ...base, signingKeys: keys });
+    const s = createAgentPayResourceServer({ ...base, signingKeys: keys });
     await expect(s.initialize()).rejects.toThrow(ValidationError);
   });
 
-  it('should throw on invalid agenticPayBaseUrl', () => {
-    expect(() => createAgenticPayResourceServer({ agenticPayBaseUrl: 'bad', agenticPayId: 'w', signingKeys: keys, serviceUrl: 'https://a.com' })).toThrow(ValidationError);
+  it('should throw on invalid agentPayBaseUrl', () => {
+    expect(() => createAgentPayResourceServer({ agentPayBaseUrl: 'bad', agentPayId: 'w', signingKeys: keys, serviceUrl: 'https://a.com' })).toThrow(ValidationError);
   });
 
   it('should throw on missing serviceUrl', () => {
-    expect(() => createAgenticPayResourceServer({ agenticPayBaseUrl: 'https://w.com', agenticPayId: 'w', signingKeys: keys, serviceUrl: '' })).toThrow(ValidationError);
+    expect(() => createAgentPayResourceServer({ agentPayBaseUrl: 'https://w.com', agentPayId: 'w', signingKeys: keys, serviceUrl: '' })).toThrow(ValidationError);
   });
 });

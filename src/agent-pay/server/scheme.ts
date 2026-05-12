@@ -1,7 +1,7 @@
 /**
- * Agentic Pay Server Scheme Implementation
+ * Agent Pay Server Scheme Implementation
  * 
- * In Agentic Pay, the "server" role is played by the resource service,
+ * In Agent Pay, the "server" role is played by the resource service,
  * which generates 402 responses with quote tokens.
  */
 
@@ -13,40 +13,40 @@ import {
   Price,
   SchemeNetworkServer
 } from '@x402/core/types';
-import type { AgenticPayServerSchemeConfig, SigningKeysConfig, ServiceAgenticPaySigner } from '../../config';
-import { toServiceAgenticPaySigner } from '../../signer';
-import { QuoteTokenPayload, AgenticPayPaymentExtra, ValidationError } from '../../types';
+import type { AgentPayServerSchemeConfig, SigningKeysConfig, ServiceAgentPaySigner } from '../../config';
+import { toServiceAgentPaySigner } from '../../signer';
+import { QuoteTokenPayload, AgentPayPaymentExtra, ValidationError } from '../../types';
 import { parseMoneyToDecimal } from '../../utils';
-import { DEFAULT_QUOTE_VALIDITY_SECONDS, AGENTIC_PAY_SCHEME, AGENTIC_PAY_SENTINEL_PAY_TO } from '../../constants';
+import { DEFAULT_QUOTE_VALIDITY_SECONDS, AGENT_PAY_SCHEME, AGENT_PAY_SENTINEL_PAY_TO } from '../../constants';
 
 // Use Node.js crypto for UUID generation
 const crypto = webcrypto;
 
 /**
- * Agentic Pay server implementation for resource services.
+ * Agent Pay server implementation for resource services.
  * Generates 402 responses with quote tokens.
  */
-export class AgenticPayScheme implements SchemeNetworkServer {
-  readonly scheme = AGENTIC_PAY_SCHEME;
-  private readonly signer: ServiceAgenticPaySigner;
+export class AgentPayScheme implements SchemeNetworkServer {
+  readonly scheme = AGENT_PAY_SCHEME;
+  private readonly signer: ServiceAgentPaySigner;
 
   /**
-   * Create a new Agentic Pay server scheme
+   * Create a new Agent Pay server scheme
    * @param config - Server configuration with signing keys or custom signer
    */
-  constructor(config: AgenticPayServerSchemeConfig) {
+  constructor(config: AgentPayServerSchemeConfig) {
     // Determine if we have a custom signer or need to create default
     if ('signer' in config) {
       this.signer = config.signer;
     } else if ('signingKeys' in config && 'serviceUrl' in config) {
       // Create default signer from config using adapter function
-      this.signer = toServiceAgenticPaySigner(
+      this.signer = toServiceAgentPaySigner(
         config.signingKeys.privateKey,
         config.signingKeys.publicKey,
         config.serviceUrl
       );
     } else {
-      throw new ValidationError('AgenticPayServerScheme requires either signer or signingKeys + serviceUrl');
+      throw new ValidationError('AgentPayServerScheme requires either signer or signingKeys + serviceUrl');
     }
   }
 
@@ -74,7 +74,7 @@ export class AgenticPayScheme implements SchemeNetworkServer {
   }
 
   /**
-   * Enhance payment requirements with Agentic Pay-specific data
+   * Enhance payment requirements with Agent Pay-specific data
    * 
    * @param paymentRequirements - Base payment requirements
    * @param supportedKind - Supported kind from facilitator
@@ -120,18 +120,18 @@ export class AgenticPayScheme implements SchemeNetworkServer {
     const quoteToken = await this.signer.signQuote(quotePayload);
 
     // Add quote token to extra
-    const extra: AgenticPayPaymentExtra = {
+    const extra: AgentPayPaymentExtra = {
       ...paymentRequirements.extra,
       quoteToken
     };
 
     // Return enhanced requirements with sentinel values for fields that are
-    // redundant in Agentic Pay. The signed quote token is the authoritative source for
+    // redundant in Agent Pay. The signed quote token is the authoritative source for
     // payment recipient (payTo) and validity window (exp - iat).
     // See spec §2.4 "Sentinel Value Convention for x402 Core Fields".
     return {
       ...paymentRequirements,
-      payTo: AGENTIC_PAY_SENTINEL_PAY_TO,
+      payTo: AGENT_PAY_SENTINEL_PAY_TO,
       maxTimeoutSeconds: quotePayload.exp - quotePayload.iat,
       extra: extra as unknown as Record<string, unknown>
     };

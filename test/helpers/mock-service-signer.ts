@@ -4,20 +4,20 @@
  */
 
 import * as jose from 'jose';
-import type { ServiceAgenticPaySigner } from '../../src/config';
+import type { ServiceAgentPaySigner } from '../../src/config';
 
 /**
  * Create a mock service signer for testing
  */
 export async function createMockServiceSigner(serviceUrl: string = 'https://api.example.com'): Promise<{
-  signer: ServiceAgenticPaySigner;
+  signer: ServiceAgentPaySigner;
   privateKey: jose.KeyLike;
   publicKey: jose.KeyLike;
 }> {
   // Generate test key pair
   const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
   
-  const signer: ServiceAgenticPaySigner = {
+  const signer: ServiceAgentPaySigner = {
     signQuote: async (payload) => {
       return await new jose.SignJWT(payload as any)
         .setProtectedHeader({ alg: 'RS256' })

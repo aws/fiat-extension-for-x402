@@ -1,7 +1,7 @@
 /**
- * Agentic Pay Client Scheme Implementation
+ * Agent Pay Client Scheme Implementation
  * 
- * In Agentic Pay, the "client" role is played by the AI agent (buyer),
+ * In Agent Pay, the "client" role is played by the AI agent (buyer),
  * which sends the quote token to the Agent Pay Service and receives
  * a signed payment JWT in return.
  */
@@ -12,53 +12,53 @@ import {
   PaymentPayloadResult
 } from '@x402/core/types';
 import type {
-  AgenticPayClientSchemeConfig,
-  AgenticPayClientForClient,
+  AgentPayClientSchemeConfig,
+  AgentPayClientForClient,
   DpopJwk
 } from '../../config';
-import { DefaultAgenticPayClient } from '../../agentic-pay-client';
+import { DefaultAgentPayClient } from '../../agent-pay-client';
 import {
-  AgenticPayPaymentExtra,
-  AgenticPayPayloadV2,
+  AgentPayPaymentExtra,
+  AgentPayPayloadV2,
   ValidationError
 } from '../../types';
-import { AGENTIC_PAY_SCHEME } from '../../constants';
+import { AGENT_PAY_SCHEME } from '../../constants';
 
 /**
- * Agentic Pay client implementation.
+ * Agent Pay client implementation.
  * Sends quote tokens to the Agent Pay Service and wraps the response
  * into an x402 PaymentPayload.
  */
-export class AgenticPayScheme implements SchemeNetworkClient {
-  readonly scheme = AGENTIC_PAY_SCHEME;
-  private readonly agenticPayId: string;
-  private readonly agenticPayClient: AgenticPayClientForClient;
+export class AgentPayScheme implements SchemeNetworkClient {
+  readonly scheme = AGENT_PAY_SCHEME;
+  private readonly agentPayId: string;
+  private readonly agentPayClient: AgentPayClientForClient;
   private readonly dpopJwk?: DpopJwk;
   private readonly clientTokenGenerator?: () => string;
 
   /**
-   * Create a new Agentic Pay client scheme
-   * @param config - Client configuration with Agentic Pay ID and client or config
+   * Create a new Agent Pay client scheme
+   * @param config - Client configuration with Agent Pay ID and client or config
    */
-  constructor(config: AgenticPayClientSchemeConfig & {
+  constructor(config: AgentPayClientSchemeConfig & {
     dpopJwk?: DpopJwk;
     clientTokenGenerator?: () => string;
   }) {
-    this.agenticPayId = config.agenticPayId;
+    this.agentPayId = config.agentPayId;
     this.dpopJwk = config.dpopJwk;
     this.clientTokenGenerator = config.clientTokenGenerator;
     
-    if ('agenticPayClient' in config) {
-      this.agenticPayClient = config.agenticPayClient;
-    } else if ('agenticPay' in config) {
-      this.agenticPayClient = new DefaultAgenticPayClient(config.agenticPay);
+    if ('agentPayClient' in config) {
+      this.agentPayClient = config.agentPayClient;
+    } else if ('agentPay' in config) {
+      this.agentPayClient = new DefaultAgentPayClient(config.agentPay);
     } else {
-      throw new ValidationError('AgenticPayClientScheme requires either agenticPayClient or Agentic Pay configuration');
+      throw new ValidationError('AgentPayClientScheme requires either agentPayClient or Agent Pay configuration');
     }
   }
 
   /**
-   * Create a payment payload for Agentic Pay scheme
+   * Create a payment payload for Agent Pay scheme
    * 
    * Sends the quote token to the Agent Pay Service which verifies the quote,
    * captures the payment, and returns a signed Payment JWT. The Agent Pay
@@ -73,8 +73,8 @@ export class AgenticPayScheme implements SchemeNetworkClient {
     x402Version: number,
     paymentRequirements: PaymentRequirements
   ): Promise<PaymentPayloadResult> {
-    // Extract Agentic Pay extra data
-    const extra = paymentRequirements.extra as unknown as AgenticPayPaymentExtra;
+    // Extract Agent Pay extra data
+    const extra = paymentRequirements.extra as unknown as AgentPayPaymentExtra;
     if (!extra?.quoteToken) {
       throw new ValidationError('Missing quoteToken in payment requirements');
     }
@@ -85,14 +85,14 @@ export class AgenticPayScheme implements SchemeNetworkClient {
       : crypto.randomUUID();
 
     // Call Agent Pay Service — it extracts everything from the quote token
-    const result = await this.agenticPayClient.createPayment({
+    const result = await this.agentPayClient.createPayment({
       quoteToken: extra.quoteToken,
       clientToken,
       dpopJwk: this.dpopJwk,
     });
 
-    // Create Agentic Pay payload with payment token from Agent Pay
-    const payload: AgenticPayPayloadV2 = {
+    // Create Agent Pay payload with payment token from Agent Pay
+    const payload: AgentPayPayloadV2 = {
       paymentToken: result.paymentToken,
       paymentId: result.paymentId,
       // Backward compat: also set transactionId

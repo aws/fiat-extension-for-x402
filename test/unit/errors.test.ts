@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  AgenticPayError,
+  AgentPayError,
   ValidationError,
   SignatureError,
   ExpiryError,
@@ -9,18 +9,18 @@ import {
 } from '../../src/types';
 
 describe('Error Types', () => {
-  describe('AgenticPayError', () => {
+  describe('AgentPayError', () => {
     it('should create error with message, code, and details', () => {
-      const error = new AgenticPayError('Test error', 'TEST_ERROR', { field: 'value' });
+      const error = new AgentPayError('Test error', 'TEST_ERROR', { field: 'value' });
       expect(error.message).toBe('Test error');
       expect(error.code).toBe('TEST_ERROR');
       expect(error.details).toEqual({ field: 'value' });
-      expect(error.name).toBe('AgenticPayError');
+      expect(error.name).toBe('AgentPayError');
       expect(error instanceof Error).toBe(true);
     });
 
     it('should create error without details', () => {
-      const error = new AgenticPayError('Test error', 'TEST_ERROR');
+      const error = new AgentPayError('Test error', 'TEST_ERROR');
       expect(error.message).toBe('Test error');
       expect(error.code).toBe('TEST_ERROR');
       expect(error.details).toBeUndefined();
@@ -34,7 +34,7 @@ describe('Error Types', () => {
       expect(error.code).toBe('VALIDATION_ERROR');
       expect(error.details).toEqual({ field: 'amount', value: 'abc' });
       expect(error.name).toBe('ValidationError');
-      expect(error instanceof AgenticPayError).toBe(true);
+      expect(error instanceof AgentPayError).toBe(true);
     });
 
     it('should create validation error without details', () => {
@@ -53,7 +53,7 @@ describe('Error Types', () => {
       expect(error.tokenType).toBe('quote');
       expect(error.details).toEqual({ tokenType: 'quote' });
       expect(error.name).toBe('SignatureError');
-      expect(error instanceof AgenticPayError).toBe(true);
+      expect(error instanceof AgentPayError).toBe(true);
     });
 
     it('should create signature error for payment token', () => {
@@ -75,7 +75,7 @@ describe('Error Types', () => {
       expect(error.currentTime).toBe(currentTime);
       expect(error.details).toEqual({ expiry, currentTime });
       expect(error.name).toBe('ExpiryError');
-      expect(error instanceof AgenticPayError).toBe(true);
+      expect(error instanceof AgentPayError).toBe(true);
     });
   });
 
@@ -90,7 +90,7 @@ describe('Error Types', () => {
       expect(error.actual).toBe(actual);
       expect(error.details).toEqual({ expected, actual });
       expect(error.name).toBe('MismatchError');
-      expect(error instanceof AgenticPayError).toBe(true);
+      expect(error instanceof AgentPayError).toBe(true);
     });
 
     it('should handle complex objects in expected and actual', () => {
@@ -109,7 +109,7 @@ describe('Error Types', () => {
       expect(error.code).toBe('DPOP_ERROR');
       expect(error.details).toEqual({ reason: 'stale' });
       expect(error.name).toBe('DPoPError');
-      expect(error instanceof AgenticPayError).toBe(true);
+      expect(error instanceof AgentPayError).toBe(true);
     });
 
     it('should create DPoP error without details', () => {
@@ -121,7 +121,7 @@ describe('Error Types', () => {
   });
 
   describe('Error inheritance', () => {
-    it('should allow catching all Agentic Pay errors', () => {
+    it('should allow catching all Agent Pay errors', () => {
       const errors = [
         new ValidationError('test'),
         new SignatureError('test', 'quote'),
@@ -131,7 +131,7 @@ describe('Error Types', () => {
       ];
 
       errors.forEach((error) => {
-        expect(error instanceof AgenticPayError).toBe(true);
+        expect(error instanceof AgentPayError).toBe(true);
         expect(error instanceof Error).toBe(true);
       });
     });
@@ -139,7 +139,7 @@ describe('Error Types', () => {
     it('should allow catching specific error types', () => {
       const error = new ValidationError('test');
       expect(error instanceof ValidationError).toBe(true);
-      expect(error instanceof AgenticPayError).toBe(true);
+      expect(error instanceof AgentPayError).toBe(true);
       expect(error instanceof SignatureError).toBe(false);
     });
   });

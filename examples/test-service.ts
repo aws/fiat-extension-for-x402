@@ -1,18 +1,18 @@
 /**
- * Test Service with Agentic Pay Payment Protection
+ * Test Service with Agent Pay Payment Protection
  * 
- * A simple Express server with a protected endpoint that requires Agentic Pay payment.
- * Demonstrates how to integrate Agentic Pay into a service using x402ResourceServer.
+ * A simple Express server with a protected endpoint that requires Agent Pay payment.
+ * Demonstrates how to integrate Agent Pay into a service using x402ResourceServer.
  * 
  * Run with: npx tsx examples/test-service.ts
  * 
- * Prerequisites: Mock Agentic Pay server must be running on port 3001
+ * Prerequisites: Mock Agent Pay server must be running on port 3001
  */
 
 import express from 'express';
 import * as jose from 'jose';
 import { x402ResourceServer } from '@x402/core/server';
-import { createAgenticPayResourceServer } from '../src/index';
+import { createAgentPayResourceServer } from '../src/index';
 import {
   logFlow,
   logFlowStep,
@@ -24,7 +24,7 @@ const app = express();
 app.use(express.json());
 
 const SERVICE_URL = 'http://localhost:3002';
-const AGENTIC_PAY_BASE_URL = 'http://localhost:3001';
+const AGENT_PAY_BASE_URL = 'http://localhost:3001';
 const PORT = 3002;
 
 // Generate service signing keys
@@ -58,16 +58,16 @@ async function initializeServer() {
 
   // Use the two-phase API to create a resource server, then register networks.
   // This separates construction from configuration and makes it easy to extend.
-  const apServer = createAgenticPayResourceServer({
-    agenticPayBaseUrl: AGENTIC_PAY_BASE_URL,
-    agenticPayId: 'mock-agentic-pay-provider',
+  const apServer = createAgentPayResourceServer({
+    agentPayBaseUrl: AGENT_PAY_BASE_URL,
+    agentPayId: 'mock-agent-pay-provider',
     signingKeys: {
       privateKey: serviceKeys.privateKey,
       publicKey: publicJWK,
       alg: 'RS256'
     },
     serviceUrl: SERVICE_URL,
-    agenticPayAuth: {
+    agentPayAuth: {
       getAuthHeaders: async () => ({
         'Authorization': 'AWS4-HMAC-SHA256 Credential=EXAMPLE/20260303/us-east-1/execute-api/aws4_request'
       })
@@ -75,7 +75,7 @@ async function initializeServer() {
   });
 
   // Register networks individually
-  apServer.registerNetwork('aws:marketplace');
+  apServer.registerNetwork('aws:base');
   apServer.registerNetwork('eip155:8453');
 
   // Initialize — routing decisions (like disabling the default fallback) go here.
@@ -85,12 +85,12 @@ async function initializeServer() {
   server = await apServer.initialize({ disableDefaultFallback: true });
 
   console.log('✓ x402 Resource Server initialized');
-  console.log('  Agentic Pay networks: aws:marketplace, eip155:8453');
+  console.log('  Agent Pay networks: aws:base, eip155:8453');
   console.log('  Default fallback: disabled (local demo)');
 }
 
 /**
- * GET /foo - Protected endpoint requiring Agentic Pay payment
+ * GET /foo - Protected endpoint requiring Agent Pay payment
  * 
  * Returns 402 Payment Required if no valid payment
  * Returns 200 with data if payment is valid
@@ -110,8 +110,8 @@ app.get('/foo', async (req, res) => {
       
       const paymentRequired = await server.createPaymentRequiredResponse(
         await server.buildPaymentRequirements({
-          scheme: 'aws:marketplace',  // Agentic Pay scheme
-          network: 'aws:marketplace',
+          scheme: 'aws:base',  // Agent Pay scheme
+          network: 'aws:base',
           payTo: 'service-pay-789',
           price: 0.15,
         }),
@@ -230,8 +230,8 @@ app.get('/bar', async (req, res) => {
       
       const paymentRequired = await server.createPaymentRequiredResponse(
         await server.buildPaymentRequirements({
-          scheme: 'aws:marketplace',
-          network: 'aws:marketplace',
+          scheme: 'aws:base',
+          network: 'aws:base',
           payTo: 'service-pay-789',
           price: 1.00,
         }),
@@ -335,13 +335,13 @@ app.get('/bar', async (req, res) => {
 /**
  * GET /baz - Protected endpoint on an EVM network (eip155:8453 = Base mainnet)
  * 
- * Demonstrates that Agentic Pay can delegate payments on pre-existing networks
- * like EVM (eip155:*), Solana (solana:*), etc. Agentic Pay handles the
- * actual settlement; Agentic Pay just wraps the quote/payment token flow.
+ * Demonstrates that Agent Pay can delegate payments on pre-existing networks
+ * like EVM (eip155:*), Solana (solana:*), etc. Agent Pay handles the
+ * actual settlement; Agent Pay just wraps the quote/payment token flow.
  */
 app.get('/baz', async (req, res) => {
   try {
-    logFlowStep('SERVICE', 4, 'Request to /baz (eip155:8453 — Base mainnet via Agentic Pay)');
+    logFlowStep('SERVICE', 4, 'Request to /baz (eip155:8453 — Base mainnet via Agent Pay)');
     logFlowObject('SERVICE', 'Request Headers', req.headers);
     
     const authHeader = req.headers.authorization;
@@ -352,14 +352,14 @@ app.get('/baz', async (req, res) => {
       
       const paymentRequired = await server.createPaymentRequiredResponse(
         await server.buildPaymentRequirements({
-          scheme: 'aws:marketplace',
+          scheme: 'aws:base',
           network: 'eip155:8453',
           payTo: 'merchant-pay-on-base',
           price: 2.00,
         }),
         {
           url: `${SERVICE_URL}/baz`,
-          description: 'Access to /baz endpoint (EVM Base mainnet via Agentic Pay)',
+          description: 'Access to /baz endpoint (EVM Base mainnet via Agent Pay)',
           mimeType: 'application/json'
         }
       );
@@ -380,7 +380,7 @@ app.get('/baz', async (req, res) => {
         .set('WWW-Authenticate', wwwAuth)
         .json({
           error: 'Payment Required',
-          message: 'This endpoint requires payment via Agentic Pay on EVM Base',
+          message: 'This endpoint requires payment via Agent Pay on EVM Base',
           price: '$2.00'
         });
     }
@@ -390,7 +390,7 @@ app.get('/baz', async (req, res) => {
 
     logFlowObject('SERVICE', 'Received Payment Payload (eip155:8453)', paymentPayload);
     
-    console.log('💳 Payment received for /baz (EVM Base via Agentic Pay)');
+    console.log('💳 Payment received for /baz (EVM Base via Agent Pay)');
     console.log(`   Transaction: ${paymentPayload.payload.transactionId}`);
 
     const accepted = paymentPayload.accepted;
@@ -415,13 +415,13 @@ app.get('/baz', async (req, res) => {
       });
     }
 
-    console.log('✅ Payment verified on eip155:8453 (Base mainnet via Agentic Pay)');
+    console.log('✅ Payment verified on eip155:8453 (Base mainnet via Agent Pay)');
     console.log(`   Payer: ${verifyResult.payer}`);
 
     const responseData = {
       message: 'Hello from /baz!',
       data: {
-        secret: 'This content was paid via Agentic Pay on EVM Base mainnet (eip155:8453)',
+        secret: 'This content was paid via Agent Pay on EVM Base mainnet (eip155:8453)',
         network: 'eip155:8453',
         timestamp: new Date().toISOString(),
         paidBy: verifyResult.payer
@@ -448,7 +448,7 @@ app.get('/health', (_req, res) => {
   res.json({
     status: 'healthy',
     service: 'test-service',
-    paymentScheme: 'aws:marketplace'
+    paymentScheme: 'aws:base'
   });
 });
 
@@ -481,21 +481,21 @@ async function start() {
   
   app.listen(PORT, () => {
     console.log('');
-    console.log('🔒 Test Service with Agentic Pay Payment Protection');
+    console.log('🔒 Test Service with Agent Pay Payment Protection');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(`Service URL: ${SERVICE_URL}`);
-    console.log(`Agentic Pay URL:  ${AGENTIC_PAY_BASE_URL}`);
+    console.log(`Agent Pay URL:  ${AGENT_PAY_BASE_URL}`);
     console.log('');
     console.log('Endpoints:');
-    console.log(`  GET    /foo                   - Protected (requires $0.15, aws:marketplace)`);
-    console.log(`  GET    /bar                   - Protected (requires $1.00, aws:marketplace)`);
-    console.log(`  GET    /baz                   - Protected (requires $2.00, eip155:8453 EVM Base via Agentic Pay)`);
+    console.log(`  GET    /foo                   - Protected (requires $0.15, aws:base)`);
+    console.log(`  GET    /bar                   - Protected (requires $1.00, aws:base)`);
+    console.log(`  GET    /baz                   - Protected (requires $2.00, eip155:8453 EVM Base via Agent Pay)`);
     console.log(`  GET    /health                - Public`);
     console.log(`  GET    /.well-known/jwks.json - Public keys`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('');
-    console.log('⚠️  Make sure mock Agentic Pay server is running:');
-    console.log('   npm run example:agentic-pay');
+    console.log('⚠️  Make sure mock Agent Pay server is running:');
+    console.log('   npm run example:agent-pay');
     console.log('');
   });
 }

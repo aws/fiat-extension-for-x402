@@ -13,14 +13,14 @@
 
 import { describe, it, expect } from 'vitest';
 import * as jose from 'jose';
-import { createMockAgenticPayClient } from '../helpers/mock-agentic-pay-client';
-import { AgenticPayScheme as AgenticPayClientSchemeImpl } from '../../src/agentic-pay/client/scheme';
-import { AgenticPayScheme as AgenticPayServerSchemeImpl } from '../../src/agentic-pay/server/scheme';
-import { settlePayment } from '../../src/agentic-pay/facilitator/settle';
+import { createMockAgentPayClient } from '../helpers/mock-agent-pay-client';
+import { AgentPayScheme as AgentPayClientSchemeImpl } from '../../src/agent-pay/client/scheme';
+import { AgentPayScheme as AgentPayServerSchemeImpl } from '../../src/agent-pay/server/scheme';
+import { settlePayment } from '../../src/agent-pay/facilitator/settle';
 import { generateDPoPKeyPair, toDpopJwk } from '../../src/dpop';
 import {
   DEFAULT_NETWORK,
-  AGENTIC_PAY_SCHEME,
+  AGENT_PAY_SCHEME,
   DEFAULT_QUOTE_VALIDITY_SECONDS,
 } from '../../src/constants';
 import { IdempotencyConflictError, ValidationError } from '../../src/types';
@@ -29,15 +29,15 @@ import type { PaymentRequirements } from '@x402/core/types';
 describe('Agent Pay API Integration', () => {
   describe('Task 32: CreateAgentPayment API shape', () => {
     it('client sends only quoteToken, clientToken, dpopJwk to Agent Pay', async () => {
-      const mock = await createMockAgenticPayClient('test-pay');
-      const scheme = new AgenticPayClientSchemeImpl({
-        agenticPayId: 'test-pay',
-        agenticPayClient: mock.agenticPayClient,
+      const mock = await createMockAgentPayClient('test-pay');
+      const scheme = new AgentPayClientSchemeImpl({
+        agentPayId: 'test-pay',
+        agentPayClient: mock.agentPayClient,
       });
 
       const quoteToken = await new jose.SignJWT({
         iss: 'https://api.example.com',
-        aud: 'aws:marketplace',
+        aud: 'aws:base',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'q1',
@@ -48,11 +48,11 @@ describe('Agent Pay API Integration', () => {
       } as any).setProtectedHeader({ alg: 'RS256' }).sign(mock.privateKey);
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_PAY_SCHEME,
-        network: 'aws:marketplace',
+        scheme: AGENT_PAY_SCHEME,
+        network: 'aws:base',
         amount: '0.01',
         asset: 'iso4217:USD',
-        payTo: 'urn:x402:agentic-pay:see-quote',
+        payTo: 'urn:x402:agent-pay:see-quote',
         maxTimeoutSeconds: 300,
         extra: { quoteToken } as unknown as Record<string, unknown>,
       };
@@ -70,8 +70,8 @@ describe('Agent Pay API Integration', () => {
     });
 
     it('response includes createdAt timestamp', async () => {
-      const mock = await createMockAgenticPayClient('test-pay');
-      const result = await mock.agenticPayClient.createPayment({
+      const mock = await createMockAgentPayClient('test-pay');
+      const result = await mock.agentPayClient.createPayment({
         quoteToken: 'eyJ...',
       });
       expect(result.createdAt).toBeDefined();
@@ -118,11 +118,11 @@ describe('Agent Pay API Integration', () => {
     });
 
     it('payment token includes cnf.jkt when dpopJwk is provided', async () => {
-      const mock = await createMockAgenticPayClient('test-pay');
+      const mock = await createMockAgentPayClient('test-pay');
       const keyPair = await generateDPoPKeyPair('ES256');
       const dpopJwk = toDpopJwk(keyPair);
 
-      const result = await mock.agenticPayClient.createPayment({
+      const result = await mock.agentPayClient.createPayment({
         quoteToken: 'eyJ...',
         dpopJwk,
       });
@@ -134,9 +134,9 @@ describe('Agent Pay API Integration', () => {
     });
 
     it('payment token does NOT include cnf when dpopJwk is omitted', async () => {
-      const mock = await createMockAgenticPayClient('test-pay');
+      const mock = await createMockAgentPayClient('test-pay');
 
-      const result = await mock.agenticPayClient.createPayment({
+      const result = await mock.agentPayClient.createPayment({
         quoteToken: 'eyJ...',
       });
 
@@ -147,13 +147,13 @@ describe('Agent Pay API Integration', () => {
 
   describe('Task 34: Client token (idempotency)', () => {
     it('same clientToken returns same response (idempotency)', async () => {
-      const mock = await createMockAgenticPayClient('test-pay');
+      const mock = await createMockAgentPayClient('test-pay');
 
-      const result1 = await mock.agenticPayClient.createPayment({
+      const result1 = await mock.agentPayClient.createPayment({
         quoteToken: 'eyJ...',
         clientToken: 'idem-123',
       });
-      const result2 = await mock.agenticPayClient.createPayment({
+      const result2 = await mock.agentPayClient.createPayment({
         quoteToken: 'eyJ...',
         clientToken: 'idem-123',
       });
@@ -163,13 +163,13 @@ describe('Agent Pay API Integration', () => {
     });
 
     it('different clientTokens produce different payments', async () => {
-      const mock = await createMockAgenticPayClient('test-pay');
+      const mock = await createMockAgentPayClient('test-pay');
 
-      const result1 = await mock.agenticPayClient.createPayment({
+      const result1 = await mock.agentPayClient.createPayment({
         quoteToken: 'eyJ...',
         clientToken: 'token-a',
       });
-      const result2 = await mock.agenticPayClient.createPayment({
+      const result2 = await mock.agentPayClient.createPayment({
         quoteToken: 'eyJ...',
         clientToken: 'token-b',
       });
@@ -192,23 +192,23 @@ describe('Agent Pay API Integration', () => {
     });
 
     it('client scheme auto-generates clientToken', async () => {
-      const mock = await createMockAgenticPayClient('test-pay');
-      const scheme = new AgenticPayClientSchemeImpl({
-        agenticPayId: 'test-pay',
-        agenticPayClient: mock.agenticPayClient,
+      const mock = await createMockAgentPayClient('test-pay');
+      const scheme = new AgentPayClientSchemeImpl({
+        agentPayId: 'test-pay',
+        agentPayClient: mock.agentPayClient,
       });
 
       const quoteToken = await new jose.SignJWT({
-        iss: 'https://api.example.com', aud: 'aws:marketplace',
+        iss: 'https://api.example.com', aud: 'aws:base',
         iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'q1', price: { amount: '0.01', currency: 'USD' },
         payTo: 'seller', capture: 'auto', reference: 'TEST',
       } as any).setProtectedHeader({ alg: 'RS256' }).sign(mock.privateKey);
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_PAY_SCHEME, network: 'aws:marketplace',
+        scheme: AGENT_PAY_SCHEME, network: 'aws:base',
         amount: '0.01', asset: 'iso4217:USD',
-        payTo: 'urn:x402:agentic-pay:see-quote', maxTimeoutSeconds: 300,
+        payTo: 'urn:x402:agent-pay:see-quote', maxTimeoutSeconds: 300,
         extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
@@ -220,25 +220,25 @@ describe('Agent Pay API Integration', () => {
   });
 
   describe('Task 35: DEFAULT_NETWORK constant', () => {
-    it('DEFAULT_NETWORK is aws:marketplace', () => {
-      expect(DEFAULT_NETWORK).toBe('aws:marketplace');
+    it('DEFAULT_NETWORK is aws:base', () => {
+      expect(DEFAULT_NETWORK).toBe('aws:base');
     });
 
     it('is exported from the package', async () => {
       const pkg = await import('../../src/index');
-      expect(pkg.DEFAULT_NETWORK).toBe('aws:marketplace');
+      expect(pkg.DEFAULT_NETWORK).toBe('aws:base');
     });
   });
 
   describe('Task 36: Auto-capture (no settle call)', () => {
     it('settlePayment returns success immediately without HTTP call', async () => {
-      const mock = await createMockAgenticPayClient('test-pay');
+      const mock = await createMockAgentPayClient('test-pay');
 
       const result = await settlePayment(
-        mock.agenticPayClient,
+        mock.agentPayClient,
         { x402Version: 2, payload: {} as any },
         {
-          scheme: 'aws:marketplace', network: 'aws:marketplace',
+          scheme: 'agent-pay', network: 'aws:base',
           amount: '1.00', asset: 'iso4217:USD',
           payTo: 'seller', maxTimeoutSeconds: 300, extra: {},
         },
@@ -247,7 +247,7 @@ describe('Agent Pay API Integration', () => {
 
       expect(result.success).toBe(true);
       expect(result.transaction).toBe('awsmp-123');
-      expect(result.network).toBe('aws:marketplace');
+      expect(result.network).toBe('aws:base');
     });
   });
 
@@ -258,14 +258,14 @@ describe('Agent Pay API Integration', () => {
         (await jose.generateKeyPair('RS256')).publicKey
       );
 
-      const serverScheme = new AgenticPayServerSchemeImpl({
+      const serverScheme = new AgentPayServerSchemeImpl({
         signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
         serviceUrl: 'https://api.example.com',
       });
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_PAY_SCHEME,
-        network: 'aws:marketplace',
+        scheme: AGENT_PAY_SCHEME,
+        network: 'aws:base',
         amount: '0.50',
         asset: 'iso4217:USD',
         payTo: 'seller-123',
@@ -278,7 +278,7 @@ describe('Agent Pay API Integration', () => {
 
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
-        { x402Version: 2, scheme: 'aws:marketplace', network: 'aws:marketplace' as any },
+        { x402Version: 2, scheme: 'agent-pay', network: 'aws:base' as any },
         [],
       );
 
@@ -295,14 +295,14 @@ describe('Agent Pay API Integration', () => {
         (await jose.generateKeyPair('RS256')).publicKey
       );
 
-      const serverScheme = new AgenticPayServerSchemeImpl({
+      const serverScheme = new AgentPayServerSchemeImpl({
         signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
         serviceUrl: 'https://api.example.com',
       });
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_PAY_SCHEME,
-        network: 'aws:marketplace',
+        scheme: AGENT_PAY_SCHEME,
+        network: 'aws:base',
         amount: '0.50',
         asset: 'iso4217:USD',
         payTo: 'seller-123',
@@ -312,7 +312,7 @@ describe('Agent Pay API Integration', () => {
 
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
-        { x402Version: 2, scheme: 'aws:marketplace', network: 'aws:marketplace' as any },
+        { x402Version: 2, scheme: 'agent-pay', network: 'aws:base' as any },
         [],
       );
 
@@ -328,15 +328,15 @@ describe('Agent Pay API Integration', () => {
         (await jose.generateKeyPair('RS256')).publicKey
       );
 
-      const serverScheme = new AgenticPayServerSchemeImpl({
+      const serverScheme = new AgentPayServerSchemeImpl({
         signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
         serviceUrl: 'https://api.example.com',
       });
 
       const dimensions = { tokens: 1500, model: 'claude-4', region: 'us-east-1' };
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_PAY_SCHEME,
-        network: 'aws:marketplace',
+        scheme: AGENT_PAY_SCHEME,
+        network: 'aws:base',
         amount: '0.02',
         asset: 'iso4217:USD',
         payTo: 'seller-123',
@@ -346,7 +346,7 @@ describe('Agent Pay API Integration', () => {
 
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
-        { x402Version: 2, scheme: 'aws:marketplace', network: 'aws:marketplace' as any },
+        { x402Version: 2, scheme: 'agent-pay', network: 'aws:base' as any },
         [],
       );
 

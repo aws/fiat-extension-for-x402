@@ -1,59 +1,59 @@
 import { describe, expect, it } from 'vitest';
-import { buildAgenticPayClient, createAgenticPayClient } from '../../../src/builders/client-builder';
+import { buildAgentPayClient, createAgentPayClient } from '../../../src/builders/client-builder';
 import { ValidationError } from '../../../src/types';
 import { x402Client } from '@x402/core/client';
 
-describe('buildAgenticPayClient (legacy convenience builder)', () => {
-  it('should register Agentic Pay client scheme for all specified networks', () => {
-    const client = buildAgenticPayClient({
+describe('buildAgentPayClient (legacy convenience builder)', () => {
+  it('should register Agent Pay client scheme for all specified networks', () => {
+    const client = buildAgentPayClient({
       networks: ['fab:aws', 'eip155:8453'],
-      agenticPayBaseUrl: 'https://pay.example.com',
-      agenticPayId: 'test-agentic-pay',
+      agentPayBaseUrl: 'https://pay.example.com',
+      agentPayId: 'test-agent-pay',
     });
     expect(client).toBeInstanceOf(x402Client);
   });
 
-  it('should add Agentic Pay networks to an existing client', () => {
+  it('should add Agent Pay networks to an existing client', () => {
     const existing = new x402Client();
-    const client = buildAgenticPayClient({
+    const client = buildAgentPayClient({
       networks: ['fab:aws'],
-      agenticPayBaseUrl: 'https://pay.example.com',
-      agenticPayId: 'test-agentic-pay',
+      agentPayBaseUrl: 'https://pay.example.com',
+      agentPayId: 'test-agent-pay',
       existingClient: existing,
     });
     expect(client).toBe(existing);
   });
 
   it('should throw on empty networks', () => {
-    expect(() => buildAgenticPayClient({
+    expect(() => buildAgentPayClient({
       networks: [],
-      agenticPayBaseUrl: 'https://pay.example.com',
-      agenticPayId: 'test-agentic-pay',
+      agentPayBaseUrl: 'https://pay.example.com',
+      agentPayId: 'test-agent-pay',
     })).toThrow(ValidationError);
   });
 
-  it('should throw on invalid agenticPayBaseUrl', () => {
-    expect(() => buildAgenticPayClient({
+  it('should throw on invalid agentPayBaseUrl', () => {
+    expect(() => buildAgentPayClient({
       networks: ['fab:aws'],
-      agenticPayBaseUrl: 'not-a-url',
-      agenticPayId: 'test-agentic-pay',
+      agentPayBaseUrl: 'not-a-url',
+      agentPayId: 'test-agent-pay',
     })).toThrow(ValidationError);
   });
 
-  it('should throw on missing agenticPayBaseUrl', () => {
-    expect(() => buildAgenticPayClient({
+  it('should throw on missing agentPayBaseUrl', () => {
+    expect(() => buildAgentPayClient({
       networks: ['fab:aws'],
-      agenticPayBaseUrl: '',
-      agenticPayId: 'test-agentic-pay',
+      agentPayBaseUrl: '',
+      agentPayId: 'test-agent-pay',
     })).toThrow(ValidationError);
   });
 });
 
-describe('createAgenticPayClient (two-phase API)', () => {
+describe('createAgentPayClient (two-phase API)', () => {
   it('should create client and register networks individually', () => {
-    const apClient = createAgenticPayClient({
-      agenticPayBaseUrl: 'https://pay.example.com',
-      agenticPayId: 'test-agentic-pay',
+    const apClient = createAgentPayClient({
+      agentPayBaseUrl: 'https://pay.example.com',
+      agentPayId: 'test-agent-pay',
     });
     apClient.registerNetwork('fab:aws');
     apClient.registerNetwork('eip155:8453');
@@ -61,9 +61,9 @@ describe('createAgenticPayClient (two-phase API)', () => {
   });
 
   it('should support method chaining on registerNetwork', () => {
-    const apClient = createAgenticPayClient({
-      agenticPayBaseUrl: 'https://pay.example.com',
-      agenticPayId: 'test-agentic-pay',
+    const apClient = createAgentPayClient({
+      agentPayBaseUrl: 'https://pay.example.com',
+      agentPayId: 'test-agent-pay',
     });
     const result = apClient
       .registerNetwork('fab:aws')
@@ -72,9 +72,9 @@ describe('createAgenticPayClient (two-phase API)', () => {
   });
 
   it('should be idempotent — registering same network twice is fine', () => {
-    const apClient = createAgenticPayClient({
-      agenticPayBaseUrl: 'https://pay.example.com',
-      agenticPayId: 'test-agentic-pay',
+    const apClient = createAgentPayClient({
+      agentPayBaseUrl: 'https://pay.example.com',
+      agentPayId: 'test-agent-pay',
     });
     apClient.registerNetwork('fab:aws');
     apClient.registerNetwork('fab:aws');
@@ -82,35 +82,35 @@ describe('createAgenticPayClient (two-phase API)', () => {
   });
 
   it('should expose createPaymentPayload from the underlying client', () => {
-    const apClient = createAgenticPayClient({
-      agenticPayBaseUrl: 'https://pay.example.com',
-      agenticPayId: 'test-agentic-pay',
+    const apClient = createAgentPayClient({
+      agentPayBaseUrl: 'https://pay.example.com',
+      agentPayId: 'test-agent-pay',
     });
     expect(typeof apClient.createPaymentPayload).toBe('function');
   });
 
   it('should add networks to an existing x402Client', () => {
     const existing = new x402Client();
-    const apClient = createAgenticPayClient({
-      agenticPayBaseUrl: 'https://pay.example.com',
-      agenticPayId: 'test-agentic-pay',
+    const apClient = createAgentPayClient({
+      agentPayBaseUrl: 'https://pay.example.com',
+      agentPayId: 'test-agent-pay',
       existingClient: existing,
     });
     apClient.registerNetwork('fab:aws');
     expect(apClient.client).toBe(existing);
   });
 
-  it('should throw on invalid agenticPayBaseUrl', () => {
-    expect(() => createAgenticPayClient({
-      agenticPayBaseUrl: 'not-a-url',
-      agenticPayId: 'test-agentic-pay',
+  it('should throw on invalid agentPayBaseUrl', () => {
+    expect(() => createAgentPayClient({
+      agentPayBaseUrl: 'not-a-url',
+      agentPayId: 'test-agent-pay',
     })).toThrow(ValidationError);
   });
 
-  it('should throw on missing agenticPayBaseUrl', () => {
-    expect(() => createAgenticPayClient({
-      agenticPayBaseUrl: '',
-      agenticPayId: 'test-agentic-pay',
+  it('should throw on missing agentPayBaseUrl', () => {
+    expect(() => createAgentPayClient({
+      agentPayBaseUrl: '',
+      agentPayId: 'test-agent-pay',
     })).toThrow(ValidationError);
   });
 });

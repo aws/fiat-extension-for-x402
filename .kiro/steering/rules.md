@@ -26,12 +26,12 @@ inclusion: always
 
 ## Naming & Terminology
 
-- The product is "Agentic Pay" (or "AWS Marketplace Agent Pay" in full).
+- The product is "Agent Pay" (or "AWS Marketplace Agent Pay" in full).
 - Never use "FAB", "Federated Application Billing", or "wallet" in new code or documentation.
-- The x402 scheme identifier is `aws:marketplace`.
-- The network identifier is `aws:marketplace` — use the `DEFAULT_NETWORK` constant, never a magic literal.
+- The x402 scheme identifier is `aws:base`.
+- The network identifier is `aws:base` — use the `DEFAULT_NETWORK` constant, never a magic literal.
 - Keep the `DEFAULT_NETWORK` constant as the single source of truth for the network string.
-- The package is `@x402/aws-agentic-pay`.
+- The package is `aws-agent-pay-x402`.
 - Use inclusive terms: "allowlist" not "whitelist", "blocklist" not "blacklist", etc.
 
 ## API Contract
@@ -48,5 +48,5 @@ inclusion: always
 
 - All new functionality must have unit tests.
 - Integration tests must mock the service JWKS endpoint (quote token verification is mandatory).
-- Use `createMockAgenticPayClient()` from test helpers for unit tests.
+- Use `createMockAgentPayClient()` from test helpers for unit tests.
 - Target: 90%+ coverage across all metrics.

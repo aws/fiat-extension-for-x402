@@ -1,45 +1,45 @@
-# Agentic Pay x402 Extension
+# Agent Pay x402 Extension
 
-TypeScript extension for the x402 protocol that adds support for Agentic Pay - fiat payments through trusted Agentic Pay providers.
+TypeScript extension for the x402 protocol that adds support for Agent Pay - fiat payments through trusted Agent Pay providers.
 
-## What is Agentic Pay?
+## What is Agent Pay?
 
-Agentic Pay enables HTTP APIs to accept fiat payments (USD, EUR, etc.) using the x402 protocol. Instead of cryptocurrency, Agentic Pay uses trusted Agentic Pay providers (like AWS Agentic Pay) that handle the actual money movement, while your API just verifies signed payment tokens.
+Agent Pay enables HTTP APIs to accept fiat payments (USD, EUR, etc.) using the x402 protocol. Instead of cryptocurrency, Agent Pay uses trusted Agent Pay providers (like AWS Agent Pay) that handle the actual money movement, while your API just verifies signed payment tokens.
 
 ## Requirements
 
 - **Node.js**: 18.0.0 or higher (for `crypto.webcrypto` support)
 - **TypeScript**: 5.0+ (optional, for development)
 
-**Note**: This SDK is designed for Node.js environments (servers, backend services, AI agents). For browser-based clients, use the Agentic Pay provider's JavaScript SDK instead.
+**Note**: This SDK is designed for Node.js environments (servers, backend services, AI agents). For browser-based clients, use the Agent Pay provider's JavaScript SDK instead.
 
 ## Installation
 
-Agentic Pay is an extension for the x402 protocol. You need to install both packages:
+Agent Pay is an extension for the x402 protocol. You need to install both packages:
 
 ```bash
-npm install @x402/core @x402/aws-agentic-pay
+npm install @x402/core aws-agent-pay-x402
 ```
 
-The `@x402/core` package provides the base protocol implementation (`x402Client`, `x402ResourceServer`, `x402Facilitator`), while `@x402/aws-agentic-pay` adds Agentic Pay payment schemes.
+The `@x402/core` package provides the base protocol implementation (`x402Client`, `x402ResourceServer`, `x402Facilitator`), while `aws-agent-pay-x402` adds Agent Pay payment schemes.
 
 ## Quick Start
 
 ### For API Providers (Accepting Payments)
 
-Protect your endpoints with Agentic Pay payment requirements:
+Protect your endpoints with Agent Pay payment requirements:
 
 ```typescript
-import { createAgenticPayResourceServer } from '@x402/aws-agentic-pay';
+import { createAgentPayResourceServer } from 'aws-agent-pay-x402';
 import * as jose from 'jose';
 
 // Generate signing keys for quote tokens
 const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
 
 // Create server with base config
-const apServer = createAgenticPayResourceServer({
-  agenticPayBaseUrl: 'https://pay.aws.amazon.com',
-  agenticPayId: 'your-agentic-pay-id',
+const apServer = createAgentPayResourceServer({
+  agentPayBaseUrl: 'https://pay.aws.amazon.com',
+  agentPayId: 'your-agent-pay-id',
   signingKeys: {
     privateKey,
     publicKey: await jose.exportJWK(publicKey),
@@ -49,7 +49,7 @@ const apServer = createAgenticPayResourceServer({
 });
 
 // Register networks individually — easy to extend later
-apServer.registerNetwork('aws:marketplace');
+apServer.registerNetwork('aws:base');
 apServer.registerNetwork('eip155:8453');
 
 // Initialize (fetches supported kinds from facilitators)
@@ -59,9 +59,9 @@ const server = await apServer.initialize();
 
 // In your API endpoint
 const requirements = await server.buildPaymentRequirements({
-  scheme: 'aws:marketplace',
-  network: 'aws:marketplace',
-  payTo: 'your-agentic-pay-id',
+  scheme: 'aws:base',
+  network: 'aws:base',
+  payTo: 'your-agent-pay-id',
   price: 0.15,
 });
 
@@ -80,23 +80,23 @@ if (result.isValid) {
 
 ### For API Consumers (Making Payments)
 
-Pay for protected endpoints using your Agentic Pay:
+Pay for protected endpoints using your Agent Pay:
 
 ```typescript
-import { createAgenticPayClient } from '@x402/aws-agentic-pay';
+import { createAgentPayClient } from 'aws-agent-pay-x402';
 
 // Create client with base config
-const apClient = createAgenticPayClient({
-  agenticPayBaseUrl: 'https://pay.aws.amazon.com',
-  agenticPayId: 'your-agentic-pay-id',
-  agenticPayAuth: {
+const apClient = createAgentPayClient({
+  agentPayBaseUrl: 'https://pay.aws.amazon.com',
+  agentPayId: 'your-agent-pay-id',
+  agentPayAuth: {
     type: 'apiKey',
-    apiKey: process.env.AGENTIC_PAY_API_KEY
+    apiKey: process.env.AGENT_PAY_API_KEY
   }
 });
 
 // Register networks
-apClient.registerNetwork('aws:marketplace');
+apClient.registerNetwork('aws:base');
 apClient.registerNetwork('eip155:8453');
 
 // When you receive a 402 response
@@ -112,20 +112,20 @@ const response = await fetch(resourceUrl, {
 
 ## Multi-Facilitator Routing
 
-Agentic Pay supports network-aware facilitator routing. You register which networks Agentic Pay should handle, and everything else falls back to the default x402 facilitator automatically.
+Agent Pay supports network-aware facilitator routing. You register which networks Agent Pay should handle, and everything else falls back to the default x402 facilitator automatically.
 
 ```typescript
-import { createAgenticPayResourceServer } from '@x402/aws-agentic-pay';
+import { createAgentPayResourceServer } from 'aws-agent-pay-x402';
 
-const apServer = createAgenticPayResourceServer({
-  agenticPayBaseUrl: 'https://pay.aws.amazon.com',
-  agenticPayId: 'my-agentic-pay',
+const apServer = createAgentPayResourceServer({
+  agentPayBaseUrl: 'https://pay.aws.amazon.com',
+  agentPayId: 'my-agent-pay',
   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
   serviceUrl: 'https://api.example.com',
 });
 
-// Agentic Pay handles these networks via your Agentic Pay provider
-apServer.registerNetwork('aws:marketplace');
+// Agent Pay handles these networks via your Agent Pay provider
+apServer.registerNetwork('aws:base');
 apServer.registerNetwork('eip155:8453');
 
 // Networks not registered (e.g., solana:mainnet) automatically
@@ -133,19 +133,19 @@ apServer.registerNetwork('eip155:8453');
 const server = await apServer.initialize();
 ```
 
-The precedence model works because `x402ResourceServer` accepts multiple facilitator clients. During `initialize()`, the Agentic Pay facilitator claims its networks first, and the default facilitator fills in the rest. A `networkFilter` on `AgenticPayFacilitatorClient` ensures Agentic Pay only claims the networks you explicitly registered.
+The precedence model works because `x402ResourceServer` accepts multiple facilitator clients. During `initialize()`, the Agent Pay facilitator claims its networks first, and the default facilitator fills in the rest. A `networkFilter` on `AgentPayFacilitatorClient` ensures Agent Pay only claims the networks you explicitly registered.
 
 ### One-Liner (Convenience Builder)
 
-If you prefer a single call, the legacy `buildAgenticPayResourceServer` still works:
+If you prefer a single call, the legacy `buildAgentPayResourceServer` still works:
 
 ```typescript
-import { buildAgenticPayResourceServer } from '@x402/aws-agentic-pay';
+import { buildAgentPayResourceServer } from 'aws-agent-pay-x402';
 
-const server = await buildAgenticPayResourceServer({
-  networks: ['aws:marketplace', 'eip155:8453'],
-  agenticPayBaseUrl: 'https://pay.aws.amazon.com',
-  agenticPayId: 'my-agentic-pay',
+const server = await buildAgentPayResourceServer({
+  networks: ['aws:base', 'eip155:8453'],
+  agentPayBaseUrl: 'https://pay.aws.amazon.com',
+  agentPayId: 'my-agent-pay',
   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
   serviceUrl: 'https://api.example.com',
 });
@@ -157,13 +157,13 @@ If you need more control, you can still register schemes manually:
 
 ```typescript
 import { x402ResourceServer } from '@x402/core/server';
-import { AgenticPayServerScheme, AgenticPayFacilitatorClient, registerAgenticPayNetworks } from '@x402/aws-agentic-pay';
+import { AgentPayServerScheme, AgentPayFacilitatorClient, registerAgentPayNetworks } from 'aws-agent-pay-x402';
 
-const facilitatorClient = new AgenticPayFacilitatorClient('https://pay.aws.amazon.com');
+const facilitatorClient = new AgentPayFacilitatorClient('https://pay.aws.amazon.com');
 const server = new x402ResourceServer(facilitatorClient);
 
-// Helper to register Agentic Pay for multiple networks in one call
-registerAgenticPayNetworks(server, ['aws:marketplace', 'eip155:8453'], {
+// Helper to register Agent Pay for multiple networks in one call
+registerAgentPayNetworks(server, ['aws:base', 'eip155:8453'], {
   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
   serviceUrl: 'https://api.example.com',
 });
@@ -173,16 +173,16 @@ await server.initialize();
 
 ## Authentication
 
-Agentic Pay supports multiple authentication methods for Agentic Pay communication:
+Agent Pay supports multiple authentication methods for Agent Pay communication:
 
 ### API Key (Simplest)
 
 ```typescript
-Agentic Pay: {
+Agent Pay: {
   baseUrl: 'https://pay.example.com',
   auth: {
     type: 'apiKey',
-    apiKey: process.env.AGENTIC_PAY_API_KEY
+    apiKey: process.env.AGENT_PAY_API_KEY
   }
 }
 ```
@@ -190,7 +190,7 @@ Agentic Pay: {
 ### OAuth2 (With Token Refresh)
 
 ```typescript
-Agentic Pay: {
+Agent Pay: {
   baseUrl: 'https://pay.example.com',
   auth: {
     type: 'oauth2',
@@ -207,7 +207,7 @@ Agentic Pay: {
 ### AWS SigV4 (For AWS Services)
 
 ```typescript
-Agentic Pay: {
+Agent Pay: {
   baseUrl: 'https://pay.aws.amazon.com',
   auth: {
     type: 'awsSigV4',
@@ -223,7 +223,7 @@ Agentic Pay: {
 ### Custom Authentication
 
 ```typescript
-Agentic Pay: {
+Agent Pay: {
   baseUrl: 'https://pay.example.com',
   auth: {
     type: 'custom',
@@ -242,7 +242,7 @@ All authentication methods are documented in the [spec.md](./docs/spec.md#310-au
 DPoP binds payment tokens to client keys, preventing token theft:
 
 ```typescript
-import { generateDPoPKeyPair, createDPoPProof, verifyDPoPProof } from '@x402/aws-agentic-pay';
+import { generateDPoPKeyPair, createDPoPProof, verifyDPoPProof } from 'aws-agent-pay-x402';
 
 // Generate ephemeral key pair
 const dpopKeyPair = await generateDPoPKeyPair('ES256');
@@ -274,7 +274,7 @@ DPoP implementation details are in the [spec.md](./docs/spec.md#311-dpop-demonst
 For most use cases, provide signing keys directly:
 
 ```typescript
-new AgenticPayServerScheme({
+new AgentPayServerScheme({
   signingKeys: {
     privateKey,
     publicKey: publicJWK,
@@ -289,9 +289,9 @@ new AgenticPayServerScheme({
 For external key management (AWS KMS, HSM, etc.):
 
 ```typescript
-import { ServiceAgenticPaySigner } from '@x402/aws-agentic-pay';
+import { ServiceAgentPaySigner } from 'aws-agent-pay-x402';
 
-const customSigner: ServiceAgenticPaySigner = {
+const customSigner: ServiceAgentPaySigner = {
   signQuote: async (payload) => {
     // Sign with KMS, HSM, etc.
     return signedJWT;
@@ -300,19 +300,19 @@ const customSigner: ServiceAgenticPaySigner = {
   getServiceUrl: () => 'https://api.example.com'
 };
 
-new AgenticPayServerScheme({ signer: customSigner })
+new AgentPayServerScheme({ signer: customSigner })
 ```
 
 ### Preconfigured Networks
 
-For known Agentic Pay providers:
+For known Agent Pay providers:
 
 ```typescript
-import { AgenticPayAWSClientScheme, AgenticPayAWSServerScheme } from '@x402/aws-agentic-pay';
+import { AgentPayAWSClientScheme, AgentPayAWSServerScheme } from 'aws-agent-pay-x402';
 
-// AWS Agentic Pay preconfigured
-const client = new AgenticPayAWSClientScheme({ agenticPayId: 'your-agentic-pay-id' });
-const server = new AgenticPayAWSServerScheme({ signingKeys, serviceUrl });
+// AWS Agent Pay preconfigured
+const client = new AgentPayAWSClientScheme({ agentPayId: 'your-agent-pay-id' });
+const server = new AgentPayAWSServerScheme({ signingKeys, serviceUrl });
 ```
 
 ## Payment Flow
@@ -329,7 +329,7 @@ Agent Pay auto-captures on creation — there is no separate settlement step.
 
 ## Agent Pay Integration
 
-Agentic Pay integrates with the AWS Marketplace Agent Pay Service. The SDK communicates with the following API:
+Agent Pay integrates with the AWS Marketplace Agent Pay Service. The SDK communicates with the following API:
 
 ### Agent Pay API Endpoints
 
@@ -347,7 +347,7 @@ Agentic Pay integrates with the AWS Marketplace Agent Pay Service. The SDK commu
 
 ### Security Model
 
-Agentic Pay's security is based on cryptographic signatures:
+Agent Pay's security is based on cryptographic signatures:
 
 1. **Payment token signature** - Proves Agent Pay authorized the transaction (ES384, KMS-backed)
 2. **Quote token signature** - Proves the service issued the quote (RS256 or ES256)
@@ -358,10 +358,10 @@ The signed payment token IS the proof of payment. Agent Pay auto-captures on cre
 
 ### Authentication Flexibility
 
-The facilitator client accepts any authentication mechanism via `AgenticPayFacilitatorAuthConfig`:
+The facilitator client accepts any authentication mechanism via `AgentPayFacilitatorAuthConfig`:
 
 ```typescript
-const facilitatorClient = new AgenticPayFacilitatorClient(
+const facilitatorClient = new AgentPayFacilitatorClient(
   'https://pay.example.com',
   {
     getAuthHeaders: async () => ({
@@ -373,13 +373,13 @@ const facilitatorClient = new AgenticPayFacilitatorClient(
 ```
 
 This means you can integrate with:
-- AWS Agentic Pay (using SigV4)
+- AWS Agent Pay (using SigV4)
 - Stripe (using API keys)
 - PayPal (using OAuth2)
-- Custom Agentic Pay implementations
+- Custom Agent Pay implementations
 - Any provider that exposes the standard REST API
 
-The SDK doesn't care about the Agentic Pay provider's internal implementation - only that it exposes the required HTTP interface and issues JWT tokens signed with published keys.
+The SDK doesn't care about the Agent Pay provider's internal implementation - only that it exposes the required HTTP interface and issues JWT tokens signed with published keys.
 
 ## Express Middleware
 
@@ -387,29 +387,29 @@ For the simplest server-side integration, use the Express middleware:
 
 ```typescript
 import express from 'express';
-import { agenticPayMiddleware } from '@x402/aws-agentic-pay';
+import { agentPayMiddleware } from 'aws-agent-pay-x402';
 
 const app = express();
 app.use(express.json());
 
-app.use(agenticPayMiddleware({
-  agenticPayBaseUrl: 'https://pay.aws.amazon.com',
-  agenticPayId: 'my-agentic-pay',
+app.use(agentPayMiddleware({
+  agentPayBaseUrl: 'https://pay.aws.amazon.com',
+  agentPayId: 'my-agent-pay',
   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
   serviceUrl: 'https://api.example.com',
-  networks: ['aws:marketplace'],
+  networks: ['aws:base'],
   routes: {
     'GET /api/premium': {
       price: 0.15,
-      network: 'aws:marketplace',
-      payTo: 'seller-agentic-pay-id',
+      network: 'aws:base',
+      payTo: 'seller-agent-pay-id',
     },
   },
 }));
 
-// Route handler — req.agenticPayPayment is set after successful verification
+// Route handler — req.agentPayPayment is set after successful verification
 app.get('/api/premium', (req, res) => {
-  res.json({ data: 'premium content', paidBy: req.agenticPayPayment?.payer });
+  res.json({ data: 'premium content', paidBy: req.agentPayPayment?.payer });
 });
 ```
 
@@ -420,8 +420,8 @@ The middleware handles 402 generation, payment verification, and auto-capture se
 Working examples in `examples/` directory:
 
 ```bash
-# Terminal 1: Start mock Agentic Pay server
-npm run example:Agentic Pay
+# Terminal 1: Start mock Agent Pay server
+npm run example:Agent Pay
 
 # Terminal 2: Start test service
 npm run example:service
@@ -442,22 +442,22 @@ See [examples/README.md](./examples/README.md) for details.
 ### Client Configuration
 
 ```typescript
-interface AgenticPayClientSchemeConfig {
-  agenticPayId: string;                    // Your Agentic Pay identifier
-  // Option A: Provide Agentic Pay config (DefaultAgenticPayClient created automatically)
-  Agentic Pay: {
-    baseUrl: string;                   // Agentic Pay provider URL
+interface AgentPayClientSchemeConfig {
+  agentPayId: string;                    // Your Agent Pay identifier
+  // Option A: Provide Agent Pay config (DefaultAgentPayClient created automatically)
+  Agent Pay: {
+    baseUrl: string;                   // Agent Pay provider URL
     auth?: AuthConfig;                 // Authentication config
   };
-  // Option B: Provide a custom Agentic Pay client
-  agenticPayClient: AgenticPayClientForClient; // Custom Agentic Pay client implementation
+  // Option B: Provide a custom Agent Pay client
+  agentPayClient: AgentPayClientForClient; // Custom Agent Pay client implementation
 }
 ```
 
 ### Server Configuration
 
 ```typescript
-type AgenticPayServerSchemeConfig =
+type AgentPayServerSchemeConfig =
   // Option A: Provide signing keys (signer created automatically)
   | {
       signingKeys: {
@@ -466,16 +466,16 @@ type AgenticPayServerSchemeConfig =
         alg: 'RS256' | 'ES256';
       };
       serviceUrl: string;
-      Agentic Pay?: { baseUrl: string };
+      Agent Pay?: { baseUrl: string };
     }
   // Option B: Provide a custom signer
-  | { signer: ServiceAgenticPaySigner };
+  | { signer: ServiceAgentPaySigner };
 ```
 
 ### Payment Requirements Extra
 
 ```typescript
-interface AgenticPayPaymentExtra {
+interface AgentPayPaymentExtra {
   quoteToken: string;                  // Signed JWT from service (auto-generated)
   capture?: 'manual' | 'auto';        // Capture mode (default: 'manual')
   reference?: string;                  // Payment reference
@@ -497,7 +497,7 @@ interface AgenticPayPaymentExtra {
 ## Error Handling
 
 ```typescript
-import { ValidationError, SignatureError, ExpiryError } from '@x402/aws-agentic-pay';
+import { ValidationError, SignatureError, ExpiryError } from 'aws-agent-pay-x402';
 
 try {
   await server.verifyPayment(paymentPayload, accepted);
@@ -546,7 +546,7 @@ Core implementation complete (v0.2.0):
 - Client token idempotency support
 - DPoP proof-of-possession (EC keys: P-256, P-384, P-521)
 - Authentication (API Key, OAuth2, AWS SigV4, Custom)
-- Express middleware (`agenticPayMiddleware`)
+- Express middleware (`agentPayMiddleware`)
 - Network-aware facilitator routing with default fallback
 - Quote token extensions (description, dimensions)
 - Sentinel values for redundant x402 core fields
@@ -555,7 +555,7 @@ Core implementation complete (v0.2.0):
 
 Known limitations:
 - AWS SigV4 auth is a simplified placeholder (production use needs `@aws-sdk/signature-v4`)
-- Network identifier is `aws:marketplace` (configurable via `DEFAULT_NETWORK` constant)
+- Network identifier is `aws:base` (configurable via `DEFAULT_NETWORK` constant)
 
 See [tasks.md](./docs/tasks.md) for full status and roadmap.
 

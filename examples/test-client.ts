@@ -1,22 +1,22 @@
 /**
- * Test Client with Agentic Pay Payment
+ * Test Client with Agent Pay Payment
  * 
- * Demonstrates how to use x402Client with Agentic Pay to access protected endpoints.
+ * Demonstrates how to use x402Client with Agent Pay to access protected endpoints.
  * Shows the complete flow:
  * 1. Try to access protected endpoint
  * 2. Receive 402 Payment Required
- * 3. Create payment using Agentic Pay
+ * 3. Create payment using Agent Pay
  * 4. Retry with payment
  * 5. Access granted
  * 
  * Run with: npx tsx examples/test-client.ts
  * 
  * Prerequisites:
- * - Mock Agentic Pay server running on port 3001
+ * - Mock Agent Pay server running on port 3001
  * - Test service running on port 3002
  */
 
-import { createAgenticPayClient } from '../src/index';
+import { createAgentPayClient } from '../src/index';
 import { generateDPoPKeyPair } from '../src/dpop';
 import {
   initFlowLog,
@@ -26,9 +26,9 @@ import {
 } from './shared-logger';
 
 const SERVICE_URL = 'http://localhost:3002';
-const AGENTIC_PAY_BASE_URL = 'http://localhost:3001';
-const AGENTIC_PAY_ID = 'user-agentic-pay-123';
-const API_KEY = 'test-api-key-123'; // For Agentic Pay authentication
+const AGENT_PAY_BASE_URL = 'http://localhost:3001';
+const AGENT_PAY_ID = 'user-agent-pay-123';
+const API_KEY = 'test-api-key-123'; // For Agent Pay authentication
 
 async function main() {
   // Initialize the flow log (clear previous run)
@@ -36,11 +36,11 @@ async function main() {
   
   logFlowStep('CLIENT', 1, 'Client Initialization');
   logFlow('CLIENT', `Service URL: ${SERVICE_URL}`);
-  logFlow('CLIENT', `Agentic Pay URL: ${AGENTIC_PAY_BASE_URL}`);
-  logFlow('CLIENT', `Agentic Pay ID: ${AGENTIC_PAY_ID}`);
+  logFlow('CLIENT', `Agent Pay URL: ${AGENT_PAY_BASE_URL}`);
+  logFlow('CLIENT', `Agent Pay ID: ${AGENT_PAY_ID}`);
   
   console.log('');
-  console.log('🧪 Testing Agentic Pay Payment Flow with Authentication & DPoP');
+  console.log('🧪 Testing Agent Pay Payment Flow with Authentication & DPoP');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('');
 
@@ -52,30 +52,30 @@ async function main() {
     console.log('   ✓ DPoP keys generated (ES256)');
     console.log('');
 
-    // Step 2: Create x402 client with Agentic Pay using the two-phase API
+    // Step 2: Create x402 client with Agent Pay using the two-phase API
     // Create the client, then register networks individually.
-    console.log('2️⃣  Setting up x402 client with Agentic Pay...');
-    logFlow('CLIENT', 'Setting up x402 client with Agentic Pay scheme, auth, and DPoP');
+    console.log('2️⃣  Setting up x402 client with Agent Pay...');
+    logFlow('CLIENT', 'Setting up x402 client with Agent Pay scheme, auth, and DPoP');
     
-    const apClient = createAgenticPayClient({
-      agenticPayBaseUrl: AGENTIC_PAY_BASE_URL,
-      agenticPayId: AGENTIC_PAY_ID,
-      agenticPayAuth: {
+    const apClient = createAgentPayClient({
+      agentPayBaseUrl: AGENT_PAY_BASE_URL,
+      agentPayId: AGENT_PAY_ID,
+      agentPayAuth: {
         type: 'apiKey',
         apiKey: API_KEY,
       },
     });
 
     // Register networks individually
-    apClient.registerNetwork('aws:marketplace');
+    apClient.registerNetwork('aws:base');
     apClient.registerNetwork('eip155:8453');
 
     // The underlying x402Client handles payment creation
     const paymentClient = apClient.client;
 
     console.log('   ✓ Client configured');
-    console.log(`   Agentic Pay: ${AGENTIC_PAY_BASE_URL}`);
-    console.log(`   Agentic Pay ID: ${AGENTIC_PAY_ID}`);
+    console.log(`   Agent Pay: ${AGENT_PAY_BASE_URL}`);
+    console.log(`   Agent Pay ID: ${AGENT_PAY_ID}`);
     console.log(`   Auth: API Key`);
     console.log(`   DPoP: Enabled`);
     console.log('');
@@ -131,7 +131,7 @@ async function main() {
     console.log(`   Network: ${paymentRequired.accepts[0].network}`);
     console.log(`   Amount: ${paymentRequired.accepts[0].amount}`);
     
-    // Create payment using Agentic Pay
+    // Create payment using Agent Pay
     const paymentPayload = await paymentClient.createPaymentPayload(paymentRequired);
     
     logFlowObject('CLIENT', 'Created Payment Payload', paymentPayload);
@@ -219,7 +219,7 @@ async function main() {
     
     console.log('   ✓ Received payment requirements for /bar');
     console.log(`   Amount: ${paymentRequired2.accepts[0].amount}`);
-    console.log(`   Network: aws:marketplace'
+    console.log(`   Network: aws:base'
     
     // Create payment for /bar
     const paymentPayload2 = await paymentClient.createPaymentPayload(paymentRequired2);
@@ -257,9 +257,9 @@ async function main() {
     console.log(`   Transaction: ${data3.data.transaction}`);
     console.log('');
 
-    // Step 8: Test /baz endpoint on EVM Base mainnet (eip155:8453) via Agentic Pay
-    console.log('8️⃣  Testing /baz endpoint on eip155:8453 (EVM Base via Agentic Pay)...');
-    logFlowStep('CLIENT', 7, 'Test /baz on eip155:8453 (EVM Base mainnet delegated to Agentic Pay via Agentic Pay)');
+    // Step 8: Test /baz endpoint on EVM Base mainnet (eip155:8453) via Agent Pay
+    console.log('8️⃣  Testing /baz endpoint on eip155:8453 (EVM Base via Agent Pay)...');
+    logFlowStep('CLIENT', 7, 'Test /baz on eip155:8453 (EVM Base mainnet delegated to Agent Pay via Agent Pay)');
     
     // Get 402 response for /baz
     const response7 = await fetch(`${SERVICE_URL}/baz`);
@@ -283,7 +283,7 @@ async function main() {
     console.log(`   Network: ${paymentRequired3.accepts[0].network}`);
     console.log(`   Amount: ${paymentRequired3.accepts[0].amount}`);
     
-    // Create payment for /baz — Agentic Pay handles eip155:8453 via Agentic Pay
+    // Create payment for /baz — Agent Pay handles eip155:8453 via Agent Pay
     const paymentPayload3 = await paymentClient.createPaymentPayload(paymentRequired3);
     
     logFlowObject('CLIENT', 'Created Payment Payload for /baz (eip155:8453)', paymentPayload3);
@@ -311,7 +311,7 @@ async function main() {
     const data4 = await response8.json();
     logFlowObject('CLIENT', 'Success Response for /baz (eip155:8453)', data4);
     
-    console.log('   ✓ Payment successful on eip155:8453 (EVM Base) via Agentic Pay!');
+    console.log('   ✓ Payment successful on eip155:8453 (EVM Base) via Agent Pay!');
     console.log(`   Message: ${data4.message}`);
     console.log(`   Network: ${data4.data.network}`);
     console.log(`   Paid by: ${data4.data.paidBy}`);
@@ -322,15 +322,15 @@ async function main() {
     console.log('');
     console.log('Summary:');
     console.log('  • Client generates DPoP key pair for token binding');
-    console.log('  • Client authenticates to Agentic Pay using API Key');
+    console.log('  • Client authenticates to Agent Pay using API Key');
     console.log('  • Client receives 402 Payment Required');
     console.log('  • Parses payment requirements from WWW-Authenticate header');
-    console.log('  • Creates payment using Agentic Pay scheme (calls Agentic Pay with auth)');
+    console.log('  • Creates payment using Agent Pay scheme (calls Agent Pay with auth)');
     console.log('  • Payment token is bound to DPoP key (cnf claim)');
     console.log('  • Retries request with x402 Authorization header');
     console.log('  • Payment can be reused for subsequent requests');
     console.log('  • Agent Pay auto-captures during payment creation');
-    console.log('  • EVM network (eip155:8453) payments delegated through same Agentic Pay');
+    console.log('  • EVM network (eip155:8453) payments delegated through same Agent Pay');
     console.log('');
     console.log(`📝 Complete flow log: logs/payment-flow.log`);
     console.log('');
@@ -346,7 +346,7 @@ async function main() {
     logFlow('CLIENT', `ERROR: ${error instanceof Error ? error.stack : String(error)}`);
     console.error('');
     console.error('Make sure both servers are running:');
-    console.error('  Terminal 1: npm run example:agentic-pay');
+    console.error('  Terminal 1: npm run example:agent-pay');
     console.error('  Terminal 2: npm run example:service');
     console.error('');
     console.error(`📝 Complete flow log: logs/payment-flow.log`);

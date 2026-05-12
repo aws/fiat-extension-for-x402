@@ -1,4 +1,4 @@
-# Implementation Plan: Agentic Pay x402 TypeScript Extension
+# Implementation Plan: Agent Pay x402 TypeScript Extension
 
 **Last Updated:** March 3, 2026  
 **Version:** 0.1.0  
@@ -10,7 +10,7 @@
 
 ### Quick Summary
 
-The Agentic Pay x402 extension is fully implemented with authentication and DPoP support, tested, and building successfully. All core functionality is in place with working examples and unified logging for complete payment flow visibility.
+The Agent Pay x402 extension is fully implemented with authentication and DPoP support, tested, and building successfully. All core functionality is in place with working examples and unified logging for complete payment flow visibility.
 
 ### Build & Test Status
 
@@ -32,7 +32,7 @@ Tests:       306 passed | 1 skipped | 1 todo (308)
 
 Breakdown by Module:
 - Core Types & Utils:     62 tests ✅
-- Agentic Pay Schemes:            23 tests ✅
+- Agent Pay Schemes:            23 tests ✅
 - Authentication:         28 tests ✅
 - DPoP:                   33 tests ✅
 - Discovery:              22 tests ✅
@@ -46,10 +46,10 @@ Breakdown by Module:
 
 **Core Implementation:**
 - Project setup and configuration
-- Type definitions (all Agentic Pay types)
+- Type definitions (all Agent Pay types)
 - Scheme implementations (Client, Server, Facilitator)
 - InProcessFacilitatorClient for demos/testing
-- AgenticPayFacilitatorClient for production
+- AgentPayFacilitatorClient for production
 - JWT utilities (decode, verify, extract)
 - Transaction ID utilities
 - Money parsing utilities
@@ -66,7 +66,7 @@ Breakdown by Module:
 - Custom authentication
 - Authentication factory pattern
 - Authentication error types
-- Integration with AgenticPayClient
+- Integration with AgentPayClient
 - 28 unit tests
 
 **DPoP Implementation (Task 15):**
@@ -82,13 +82,13 @@ Breakdown by Module:
 - Core documentation (design, requirements, tasks)
 - Authentication guide
 - DPoP guide
-- Agentic Pay discovery guide
+- Agent Pay discovery guide
 - SDK explanation
 - Working examples with unified logging
 
 **Examples:**
-- Mock Agentic Pay server
-- Test service with Agentic Pay protection
+- Mock Agent Pay server
+- Test service with Agent Pay protection
 - Test client with payment flow
 - Authentication examples
 - DPoP examples
@@ -116,8 +116,8 @@ Currently no tasks in progress.
 ### Known Limitations
 
 1. **AWS SigV4**: Simplified placeholder - production should use @aws-sdk/signature-v4
-2. **Quote Token Verification (In-Process)**: The in-process facilitator's quote signature check is best-effort (silently swallows failures). `AgenticPayFacilitatorClient` verifies fully. Task 27 tracks making it mandatory.
-3. **Settlement (In-Process)**: The in-process facilitator returns a placeholder. `AgenticPayFacilitatorClient` calls `POST /capture` correctly.
+2. **Quote Token Verification (In-Process)**: The in-process facilitator's quote signature check is best-effort (silently swallows failures). `AgentPayFacilitatorClient` verifies fully. Task 27 tracks making it mandatory.
+3. **Settlement (In-Process)**: The in-process facilitator returns a placeholder. `AgentPayFacilitatorClient` calls `POST /capture` correctly.
 4. **Zod Schemas**: Types exist but Zod schemas not fully implemented
 
 ### Dependencies
@@ -151,7 +151,7 @@ Currently no tasks in progress.
 
 ## Overview
 
-This document outlines the implementation tasks for building the Agentic Pay x402 TypeScript extension. The implementation follows Specification-Driven Development (SDD) with Test-Driven Development (TDD), meaning we write tests first based on the specification, then implement the code to make those tests pass.
+This document outlines the implementation tasks for building the Agent Pay x402 TypeScript extension. The implementation follows Specification-Driven Development (SDD) with Test-Driven Development (TDD), meaning we write tests first based on the specification, then implement the code to make those tests pass.
 
 ## Task Completion Legend
 
@@ -183,7 +183,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Export from types/settlement.ts
     - _Requirements: 1.8_
 
-  - [ ] 2.3 Define AgenticPayPaymentExtra interface
+  - [ ] 2.3 Define AgentPayPaymentExtra interface
     - Include all required and optional fields
     - Export from types/payment.ts
     - _Requirements: 1.1_
@@ -214,7 +214,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Export from types/transaction-id.ts
     - _Requirements: 6.8_
 
-  - [ ] 2.9 Define error types (AgenticPayError, ValidationError, SignatureError, ExpiryError, MismatchError)
+  - [ ] 2.9 Define error types (AgentPayError, ValidationError, SignatureError, ExpiryError, MismatchError)
     - Create error class hierarchy
     - Include error codes and details
     - Export from types/errors.ts
@@ -232,13 +232,13 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - **Property 1: Schema Validation Round-Trip**
     - **Validates: Requirements 2.1, 2.2, 2.3**
 
-  - [ ] 3.3 Create AgenticPayPaymentExtra validation schema
+  - [ ] 3.3 Create AgentPayPaymentExtra validation schema
     - Require quoteToken as non-empty string
     - Validate optional fields (capture, reference, settlement, support, terms)
     - Export from schemas/payment.ts
     - _Requirements: 2.2, 2.3_
 
-  - [ ]* 3.4 Write property tests for AgenticPayPaymentExtra schema
+  - [ ]* 3.4 Write property tests for AgentPayPaymentExtra schema
     - **Property 1: Schema Validation Round-Trip**
     - **Validates: Requirements 2.1, 2.2, 2.3**
 
@@ -248,7 +248,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Export from schemas/payment.ts
     - _Requirements: 2.7, 2.8_
 
-  - [ ]* 3.6 Write property tests for Agentic PayPaymentRequirements schema
+  - [ ]* 3.6 Write property tests for Agent PayPaymentRequirements schema
     - **Property 1: Schema Validation Round-Trip**
     - **Validates: Requirements 2.1, 2.2, 2.3**
 
@@ -264,7 +264,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
 - [x] 4. Helper Functions - Extraction
   - [ ] 4.1 Implement extractFABExtra function
     - Check scheme is "fab"
-    - Return null for non-Agentic-Pay schemes
+    - Return null for non-Agent-Pay schemes
     - Cast and return extra field
     - Export from utils/extraction.ts
     - _Requirements: 3.1, 3.2_
@@ -279,19 +279,19 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - _Requirements: 3.7_
 
   - [ ]* 4.4 Write property tests for isFABScheme
-    - **Property 6: Agentic Pay Scheme Detection**
+    - **Property 6: Agent Pay Scheme Detection**
     - **Validates: Requirements 3.7**
 
   - [ ] 4.5 Implement findFABRequirements function
-    - Find first Agentic Pay entry in accepts array
+    - Find first Agent Pay entry in accepts array
     - Return null if not found
     - Export from utils/extraction.ts
     - _Requirements: 3.8_
 
   - [ ]* 4.6 Write unit tests for findFABRequirements
     - Test with empty array
-    - Test with no Agentic Pay entries
-    - Test with multiple Agentic Pay entries (returns first)
+    - Test with no Agent Pay entries
+    - Test with multiple Agent Pay entries (returns first)
 
 - [x] 5. Helper Functions - Validation
   - [ ] 5.1 Implement validateFABRequirements function
@@ -416,7 +416,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
 
 - [x] 10. JWT Operations - Combined Verification
   - [ ] 10.1 Implement verifyPaymentAndQuote function
-    - Verify payment token with Agentic Pay key
+    - Verify payment token with Agent Pay key
     - Extract and verify quote token with service key
     - Check quote token consistency between accepted and payment JWT
     - Throw MismatchError on inconsistency
@@ -433,15 +433,15 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Test signature failures
     - Test expiry handling
 
-- [x] 11. Agentic Pay Client Implementation
-  - [ ] 11.1 Implement AgenticPayClient class constructor
+- [x] 11. Agent Pay Client Implementation
+  - [ ] 11.1 Implement AgentPayClient class constructor
     - Accept baseUrl and authentication configuration
     - Support multiple auth methods (API key, AWS SigV4, OAuth2, custom)
     - Store configuration
-    - Export from client/agentic-pay-client.ts
+    - Export from client/agent-pay-client.ts
     - _Requirements: 8.2_
 
-  - [ ] 11.2 Implement Agentic Pay authentication mechanisms
+  - [ ] 11.2 Implement Agent Pay authentication mechanisms
     - [ ] 11.2.1 Implement API key authentication
       - Add API key to request headers
       - Support custom header names
@@ -475,14 +475,14 @@ This document outlines the implementation tasks for building the Agentic Pay x40
   - [ ]* 11.5 Write unit tests for createTransaction (mocked HTTP)
     - Test successful transaction creation
     - Test validation errors
-    - Test Agentic Pay error responses
+    - Test Agent Pay error responses
     - Test network errors
     - Test with different auth methods
 
   - [x] 11.6 ~~Implement getTransactionStatus method~~ (NOT NEEDED)
     - Payment token signature is sufficient proof
     - Services track processed transaction IDs for idempotency
-    - Agentic Pay state lookup is unnecessary
+    - Agent Pay state lookup is unnecessary
 
   - [x]* 11.7 ~~Write unit tests for getTransactionStatus~~ (NOT NEEDED)
     - Test not found errors
@@ -498,7 +498,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - TransactionRequest
     - TransactionResponse
     - TransactionStatus
-    - Export from client/agentic-pay-client.ts and client/auth.ts
+    - Export from client/agent-pay-client.ts and client/auth.ts
     - _Requirements: 8.7, 8.8_
 
 - [x] 12. Service Implementation
@@ -509,15 +509,15 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - _Requirements: 9.2_
 
   - [ ] 12.2 Implement generate402Response method
-    - Generate quote token for each accepted Agentic Pay
+    - Generate quote token for each accepted Agent Pay
     - Build FABPaymentRequired structure
     - Include all FAB-specific fields in extra
     - Return complete 402 response
     - _Requirements: 9.3, 9.4, 9.5_
 
   - [ ]* 12.3 Write unit tests for generate402Response
-    - Test single Agentic Pay scenario
-    - Test multiple Agentic Pay scenario
+    - Test single Agent Pay scenario
+    - Test multiple Agent Pay scenario
     - Test with all optional fields
     - Test with minimal fields
 
@@ -647,7 +647,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Export from types/dpop.ts
     - _Requirements: 15.10, 15.11, 15.12_
 
-  - [ ] 15.11 Update AgenticPayClient to support DPoP
+  - [ ] 15.11 Update AgentPayClient to support DPoP
     - Add optional dpop_jwk parameter to createTransaction
     - Document DPoP usage in JSDoc
     - _Requirements: 15.13_
@@ -691,7 +691,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
 
   - [ ] 16.4 Create client-side example
     - Show 402 parsing
-    - Show Agentic Pay interaction
+    - Show Agent Pay interaction
     - Show DPoP key generation and proof creation
     - Show payment submission with DPoP
     - Include error handling
@@ -710,9 +710,9 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Show DPoP types
     - _Requirements: 10.7_
 
-  - [ ] 16.7 Add reference to Agentic Pay protocol spec
+  - [ ] 16.7 Add reference to Agent Pay protocol spec
     - Link to fab-x402-payment-structure-proposal.md
-    - Link to Agentic Pay-spec.md (Appendix A.3 for DPoP)
+    - Link to Agent Pay-spec.md (Appendix A.3 for DPoP)
     - Link to fab.md
     - _Requirements: 10.8_
 
@@ -826,7 +826,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
 - [ ] 20. Final Integration Testing
   - [ ]* 20.1 Write end-to-end integration tests
     - Complete service-to-client flow
-    - Multiple Agentic Pay providers
+    - Multiple Agent Pay providers
     - Error scenarios
     - Recovery scenarios
 
@@ -864,33 +864,33 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Verify installation works
     - _Requirements: 12.8_
 
-- [x]* 22. Implement AgenticPayFacilitatorClient (Replaces InProcessFacilitatorClient)
+- [x]* 22. Implement AgentPayFacilitatorClient (Replaces InProcessFacilitatorClient)
 
-  **Status (implemented):** Core `AgenticPayFacilitatorClient` class implemented in `src/agentic-pay-facilitator-client.ts`. Implements `FacilitatorClient` interface with full `verify()` (JWT signature verification against Agentic Pay JWKS + service JWKS, amount matching), `settle()` (calls `POST /capture`), and `getSupported()` (fetches `/.well-known/x402-supported` with optional network filter). JWKS caching with 1-hour TTL. Remaining subtasks (22.5 unit tests, 22.7 integration tests, 22.8 example updates, 22.9 deprecation, 22.10 docs) are deferred.
+  **Status (implemented):** Core `AgentPayFacilitatorClient` class implemented in `src/agent-pay-facilitator-client.ts`. Implements `FacilitatorClient` interface with full `verify()` (JWT signature verification against Agent Pay JWKS + service JWKS, amount matching), `settle()` (calls `POST /capture`), and `getSupported()` (fetches `/.well-known/x402-supported` with optional network filter). JWKS caching with 1-hour TTL. Remaining subtasks (22.5 unit tests, 22.7 integration tests, 22.8 example updates, 22.9 deprecation, 22.10 docs) are deferred.
 
-  - [x] 22.1 Create AgenticPayFacilitatorClient class
+  - [x] 22.1 Create AgentPayFacilitatorClient class
     - Implement FacilitatorClient interface from @x402/core/http
-    - Accept agenticPayBaseUrl in constructor
+    - Accept agentPayBaseUrl in constructor
     - Store base URL for API calls
-    - Export from src/agentic-pay-facilitator-client.ts
-    - _Purpose: Adapter that translates x402 FacilitatorClient interface to Agentic Pay provider's API_
+    - Export from src/agent-pay-facilitator-client.ts
+    - _Purpose: Adapter that translates x402 FacilitatorClient interface to Agent Pay provider's API_
 
   - [x] 22.2 Implement getSupported() method
-    - Fetch from `${agenticPayBaseUrl}/.well-known/x402-supported`
+    - Fetch from `${agentPayBaseUrl}/.well-known/x402-supported`
     - Parse and return SupportedResponse
     - Handle network errors gracefully
     - Cache response with TTL (optional optimization)
-    - _Returns: List of supported payment kinds (schemes/networks) that Agentic Pay can facilitate_
+    - _Returns: List of supported payment kinds (schemes/networks) that Agent Pay can facilitate_
 
   - [x] 22.3 Implement verify() method
     - Extract payment token from PaymentPayload
-    - Fetch Agentic Pay's JWKS from `${agenticPayBaseUrl}/.well-known/jwks.json`
-    - Verify payment token JWT signature using Agentic Pay's public key
+    - Fetch Agent Pay's JWKS from `${agentPayBaseUrl}/.well-known/jwks.json`
+    - Verify payment token JWT signature using Agent Pay's public key
     - Extract quote token from payment token's payment_context
     - Fetch service's JWKS (from quote token's iss field + /.well-known/jwks.json)
     - Verify quote token JWT signature using service's public key
     - Validate quote token matches requirements.extra.quoteToken
-    - Check transaction exists via `GET ${agenticPayBaseUrl}/transactions/${transactionId}`
+    - Check transaction exists via `GET ${agentPayBaseUrl}/transactions/${transactionId}`
     - Validate amounts and currencies match between quote, requirements, and transaction
     - Return VerifyResponse with valid: true/false and details
     - _Purpose: Verifies payment token and quote token signatures, checks transaction validity_
@@ -899,13 +899,13 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Call this.verify() first to ensure payment is valid
     - If verification fails, return SettleResponse with settled: false
     - Extract transactionId and amount/currency from payload
-    - Call `POST ${agenticPayBaseUrl}/capture` with transaction details
+    - Call `POST ${agentPayBaseUrl}/capture` with transaction details
     - Parse capture response
     - Return SettleResponse with settled: true/false and settlement details
-    - _Purpose: Captures/settles the payment by calling Agentic Pay's capture endpoint_
+    - _Purpose: Captures/settles the payment by calling Agent Pay's capture endpoint_
 
-  - [ ]* 22.5 Write unit tests for AgenticPayFacilitatorClient
-    - Mock fetch calls to Agentic Pay endpoints
+  - [ ]* 22.5 Write unit tests for AgentPayFacilitatorClient
+    - Mock fetch calls to Agent Pay endpoints
     - Test getSupported() with valid response
     - Test getSupported() with network error
     - Test verify() with valid payment
@@ -917,11 +917,11 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Test settle() with failed verification
     - Test settle() with capture failure
 
-  - [ ] 22.6 Add Agentic Pay endpoint: GET /.well-known/x402-supported
-    - Add to mock-agentic-pay-server.ts
+  - [ ] 22.6 Add Agent Pay endpoint: GET /.well-known/x402-supported
+    - Add to mock-agent-pay-server.ts
     - Return SupportedResponse with x402Version: 2
     - Include supported kinds array with fab:test entry
-    - Include agenticPayId in extra field
+    - Include agentPayId in extra field
     - _Example response:_
       ```json
       {
@@ -930,47 +930,47 @@ This document outlines the implementation tasks for building the Agentic Pay x40
           "x402Version": 2,
           "scheme": "fab",
           "network": "fab:test",
-          "extra": { "agenticPayId": "test-agentic-pay-provider" }
+          "extra": { "agentPayId": "test-agent-pay-provider" }
         }]
       }
       ```
 
   - [ ]* 22.7 Write integration tests for complete flow
-    - Start mock Agentic Pay server
-    - Create AgenticPayFacilitatorClient pointing to mock Agentic Pay
+    - Start mock Agent Pay server
+    - Create AgentPayFacilitatorClient pointing to mock Agent Pay
     - Test getSupported() returns fab:test
     - Create valid payment payload
     - Test verify() succeeds
     - Test settle() succeeds
     - Test end-to-end flow with x402ResourceServer
 
-  - [ ] 22.8 Update examples to use AgenticPayFacilitatorClient
+  - [ ] 22.8 Update examples to use AgentPayFacilitatorClient
     - Replace InProcessFacilitatorClient usage in test-service.ts
-    - Update to: `const facilitatorClient = new AgenticPayFacilitatorClient('http://localhost:3001')`
-    - Remove x402Facilitator and AgenticPayFacilitatorScheme imports
+    - Update to: `const facilitatorClient = new AgentPayFacilitatorClient('http://localhost:3001')`
+    - Remove x402Facilitator and AgentPayFacilitatorScheme imports
     - Simplify example code significantly
-    - Update comments to explain agentic-pay-as-facilitator pattern
+    - Update comments to explain agent-pay-as-facilitator pattern
 
   - [ ] 22.9 Deprecate InProcessFacilitatorClient
     - Add @deprecated JSDoc comment
-    - Update documentation to recommend AgenticPayFacilitatorClient
+    - Update documentation to recommend AgentPayFacilitatorClient
     - Keep for backward compatibility but mark as legacy
     - Add deprecation notice in README
 
   - [ ] 22.10 Update architecture documentation
-    - Update design.md to explain agentic-pay-as-facilitator pattern
+    - Update design.md to explain agent-pay-as-facilitator pattern
     - Remove separate facilitator service from architecture diagrams
-    - Update flow diagrams to show direct Agentic Pay communication
-    - Explain why Agentic Pay doesn't need separate facilitator (unlike crypto schemes)
-    - Document that Agentic Pay provider IS the facilitator in FAB
+    - Update flow diagrams to show direct Agent Pay communication
+    - Explain why Agent Pay doesn't need separate facilitator (unlike crypto schemes)
+    - Document that Agent Pay provider IS the facilitator in FAB
 
-- [x] 23. Client to Agentic Pay Authentication
+- [x] 23. Client to Agent Pay Authentication
   - [x] 23.1 Design authentication architecture
-    - Define authentication flow between client application and Agentic Pay provider
+    - Define authentication flow between client application and Agent Pay provider
     - Support multiple authentication methods (API key, AWS SigV4, OAuth2, custom)
     - Design credential management and storage patterns
     - Document security considerations for each auth method
-    - _Purpose: Enable secure client-to-Agentic Pay communication for payment authorization_
+    - _Purpose: Enable secure client-to-Agent Pay communication for payment authorization_
 
   - [x] 23.2 Define authentication interfaces and types
     - [ ] 23.2.1 Create base AuthConfig type (union of all auth methods)
@@ -1118,7 +1118,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       - Test with each auth config type
     - Export from src/auth/factory.ts
 
-  - [ ] 23.8 Update AgenticPayClient to use authentication
+  - [ ] 23.8 Update AgentPayClient to use authentication
     - [ ] 23.8.1 Add auth parameter to constructor
       - Accept optional AuthConfig
       - Create authenticator using factory
@@ -1126,7 +1126,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - [ ] 23.8.2 Apply authentication to all requests
       - Update createTransaction to authenticate requests
       - Update getTransactionStatus to authenticate requests
-      - Update any other Agentic Pay API calls
+      - Update any other Agent Pay API calls
     - [ ] 23.8.3 Handle authentication errors
       - Catch authentication failures
       - Throw typed AuthenticationError
@@ -1138,33 +1138,33 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       - Test createTransaction with custom auth
       - Test authentication error handling
 
-  - [ ] 23.9 Update AgenticPayClientScheme to support authentication
+  - [ ] 23.9 Update AgentPayClientScheme to support authentication
     - [ ] 23.9.1 Add auth parameter to constructor
       - Accept optional AuthConfig
-      - Pass to AgenticPayClient constructor
+      - Pass to AgentPayClient constructor
     - [ ] 23.9.2 Update createPaymentPayload method
-      - Ensure Agentic Pay client uses authentication
+      - Ensure Agent Pay client uses authentication
       - Handle authentication errors gracefully
     - [ ]* 23.9.3 Write integration tests
-      - Test payment creation with authenticated Agentic Pay client
+      - Test payment creation with authenticated Agent Pay client
       - Test with different auth methods
 
   - [ ] 23.10 Add authentication examples
     - [ ] 23.10.1 Create API key example
       ```typescript
-      const client = new AgenticPayClientScheme({
-        agenticPayId: 'my-agentic-pay',
+      const client = new AgentPayClientScheme({
+        agentPayId: 'my-agent-pay',
         auth: {
           type: 'apiKey',
-          apiKey: process.env.AGENTIC_PAY_API_KEY,
-          headerName: 'X-AgenticPay-API-Key'
+          apiKey: process.env.AGENT_PAY_API_KEY,
+          headerName: 'X-AgentPay-API-Key'
         }
       });
       ```
     - [ ] 23.10.2 Create AWS SigV4 example
       ```typescript
-      const client = new AgenticPayClientScheme({
-        agenticPayId: 'aws-agentic-pay',
+      const client = new AgentPayClientScheme({
+        agentPayId: 'aws-agent-pay',
         auth: {
           type: 'awsSigV4',
           credentials: {
@@ -1178,8 +1178,8 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       ```
     - [ ] 23.10.3 Create OAuth2 example
       ```typescript
-      const client = new AgenticPayClientScheme({
-        agenticPayId: 'oauth-agentic-pay',
+      const client = new AgentPayClientScheme({
+        agentPayId: 'oauth-agent-pay',
         auth: {
           type: 'oauth2',
           accessToken: 'current-access-token',
@@ -1194,8 +1194,8 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       ```
     - [ ] 23.10.4 Create custom auth example
       ```typescript
-      const client = new AgenticPayClientScheme({
-        agenticPayId: 'custom-agentic-pay',
+      const client = new AgentPayClientScheme({
+        agentPayId: 'custom-agent-pay',
         auth: {
           type: 'custom',
           authenticate: async (request) => {
@@ -1221,8 +1221,8 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       - Rotate API keys regularly
       - Use IAM roles when running on AWS
       - Implement token refresh for OAuth2
-      - Use HTTPS for all Agentic Pay communication
-      - Validate Agentic Pay certificates
+      - Use HTTPS for all Agent Pay communication
+      - Validate Agent Pay certificates
       - Handle credential expiration gracefully
     - [ ] 23.11.2 Document credential storage patterns
       - Environment variables
@@ -1247,7 +1247,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       - Show authentication configuration
       - Use environment variables for credentials
 
-  - [ ] 23.13 Update mock Agentic Pay server for testing
+  - [ ] 23.13 Update mock Agent Pay server for testing
     - [ ] 23.13.1 Add authentication middleware
       - Support API key validation
       - Support mock AWS SigV4 validation
@@ -1265,7 +1265,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
 
   - [ ] 23.14 Add authentication error types
     - [ ] 23.14.1 Create AuthenticationError class
-      - Extend AgenticPayError
+      - Extend AgentPayError
       - Include auth method type
       - Include original error
       - Include retry information
@@ -1282,7 +1282,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Test complete payment flow with OAuth2 auth
     - Test authentication failure scenarios
     - Test credential refresh scenarios
-    - Test with real mock Agentic Pay server
+    - Test with real mock Agent Pay server
 
 ## Notes
 
@@ -1294,12 +1294,12 @@ This document outlines the implementation tasks for building the Agentic Pay x40
 - The implementation follows TDD: write tests first, then implement to make them pass
 
 
-- [x] 24. Express Middleware for Agentic Pay Server
+- [x] 24. Express Middleware for Agent Pay Server
 
-  Implement a plug-and-play Express middleware that simplifies Agentic Pay server-side integration for service providers.
+  Implement a plug-and-play Express middleware that simplifies Agent Pay server-side integration for service providers.
   _Requirements: APAY-MWR-001 through APAY-MWR-014_
 
-  **Status (2026-04-14):** Initial implementation complete. Core middleware (`agenticPayMiddleware`) implemented in `src/middleware/express.ts` with 15 unit tests. Covers route matching, 402 generation, payment verification, auto-capture settlement, lifecycle hooks, and error handling. Remaining subtasks (storage abstraction, logging/observability, advanced examples) are deferred.
+  **Status (2026-04-14):** Initial implementation complete. Core middleware (`agentPayMiddleware`) implemented in `src/middleware/express.ts` with 15 unit tests. Covers route matching, 402 generation, payment verification, auto-capture settlement, lifecycle hooks, and error handling. Remaining subtasks (storage abstraction, logging/observability, advanced examples) are deferred.
 
   **Files created:**
   - `src/middleware/express.ts` — middleware factory and route matching
@@ -1309,7 +1309,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
   - [ ] 24.1 Design middleware architecture
     - [ ] 24.1.1 Define middleware configuration interface
       - signingKey: CryptoKey (for JWT verification)
-      - acceptedProviders: AgenticPayConfig[] (list of trusted Agentic Pays)
+      - acceptedProviders: AgentPayConfig[] (list of trusted Agent Pays)
       - quoteTokenTTL?: number (default: 300 seconds)
       - paymentTokenTTL?: number (default: 3600 seconds)
       - onAuthorize?: (req, payment) => Promise<void> (custom authorization logic)
@@ -1322,8 +1322,8 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       - GET /fab/.well-known/payment-method-manifest.json - Serve payment method manifest
     - [ ] 24.1.3 Design request/response flow
       - Parse X402 payment requests from request body
-      - Extract Agentic Pay payment requirements
-      - Validate Agentic Pay credentials
+      - Extract Agent Pay payment requirements
+      - Validate Agent Pay credentials
       - Generate quote tokens
       - Verify payment tokens
       - Execute capture logic
@@ -1340,13 +1340,13 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       ```
     - [ ] 24.2.2 Implement authorization endpoint
       - Parse X402PaymentRequest from req.body
-      - Validate Agentic Pay payment requirements
+      - Validate Agent Pay payment requirements
       - Call onAuthorize hook if provided
       - Generate quote token
       - Return X402PaymentResponse with quote token
     - [ ] 24.2.3 Implement capture endpoint
       - Parse payment token from request
-      - Verify payment token with Agentic Pay public key
+      - Verify payment token with Agent Pay public key
       - Verify quote token
       - Call onCapture hook if provided
       - Return capture confirmation
@@ -1357,7 +1357,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - [ ] 24.2.5 Implement manifest endpoint
       - Serve static payment method manifest
       - Include supported payment methods
-      - Include Agentic Pay discovery information
+      - Include Agent Pay discovery information
 
   - [ ] 24.3 Add request validation
     - [ ] 24.3.1 Validate content-type headers
@@ -1373,7 +1373,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
   - [ ] 24.4 Add error handling
     - [ ] 24.4.1 Create middleware error handler
       - Catch all errors from route handlers
-      - Map AgenticPayError types to HTTP status codes
+      - Map AgentPayError types to HTTP status codes
       - Return standardized error responses
       - Log errors for debugging
     - [ ] 24.4.2 Handle specific error types
@@ -1412,7 +1412,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - [ ] 24.7.1 Basic Express server example
       ```typescript
       import express from 'express';
-      import { fabMiddleware } from '@x402/aws-agentic-pay-extension';
+      import { fabMiddleware } from 'aws-agent-pay-x402-extension';
       
       const app = express();
       app.use(express.json());
@@ -1420,7 +1420,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       app.use('/payments', fabMiddleware({
         signingKey: await loadSigningKey(),
         acceptedProviders: [
-          { id: 'aws-agentic-pay', publicKey: await loadAgenticPayKey() }
+          { id: 'aws-agent-pay', publicKey: await loadAgentPayKey() }
         ],
         onAuthorize: async (req, payment) => {
           // Custom authorization logic
@@ -1477,19 +1477,19 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       - Link to detailed guide
       - Show quick example
 
-  - _Requirements: Simplify Agentic Pay server-side integration, provide production-ready middleware_
+  - _Requirements: Simplify Agent Pay server-side integration, provide production-ready middleware_
 
-- [ ] 25. MCP Server Tool for Agentic Pay Client
+- [ ] 25. MCP Server Tool for Agent Pay Client
 
-  Implement a Model Context Protocol (MCP) server that exposes Agentic Pay client functionality as tools for AI agents and automation.
+  Implement a Model Context Protocol (MCP) server that exposes Agent Pay client functionality as tools for AI agents and automation.
 
   - [ ] 25.1 Design MCP server architecture
     - [ ] 25.1.1 Define MCP tools
-      - fab_create_payment: Create a new Agentic Pay payment request
+      - fab_create_payment: Create a new Agent Pay payment request
       - fab_verify_payment: Verify a payment token
       - fab_capture_payment: Capture an authorized payment
       - fab_get_payment_status: Get payment status
-      - fab_discover_Agentic Pay: Discover Agentic Pay endpoints
+      - fab_discover_Agent Pay: Discover Agent Pay endpoints
     - [ ] 25.1.2 Define tool input schemas
       - Use JSON Schema for tool parameters
       - Validate all inputs
@@ -1505,44 +1505,44 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       - Configure server metadata
       - Register tool handlers
     - [ ] 25.2.2 Implement fab_create_payment tool
-      - Accept payment parameters (amount, currency, agenticPayId, etc.)
-      - Create AgenticPayClientScheme instance
+      - Accept payment parameters (amount, currency, agentPayId, etc.)
+      - Create AgentPayClientScheme instance
       - Generate payment request
       - Return payment request and quote token
     - [ ] 25.2.3 Implement fab_verify_payment tool
-      - Accept payment token and Agentic Pay public key
+      - Accept payment token and Agent Pay public key
       - Verify token signature
       - Verify token expiration
       - Return verification result and payment details
     - [ ] 25.2.4 Implement fab_capture_payment tool
       - Accept payment token and quote token
       - Verify both tokens
-      - Call Agentic Pay capture endpoint
+      - Call Agent Pay capture endpoint
       - Return capture confirmation
     - [ ] 25.2.5 Implement fab_get_payment_status tool
-      - Accept transaction ID and Agentic Pay URL
-      - Query Agentic Pay status endpoint
+      - Accept transaction ID and Agent Pay URL
+      - Query Agent Pay status endpoint
       - Return payment status
-    - [ ] 25.2.6 Implement fab_discover_Agentic Pay tool
-      - Accept Agentic Pay identifier or URL
-      - Perform Agentic Pay discovery
-      - Return Agentic Pay endpoints and capabilities
+    - [ ] 25.2.6 Implement fab_discover_Agent Pay tool
+      - Accept Agent Pay identifier or URL
+      - Perform Agent Pay discovery
+      - Return Agent Pay endpoints and capabilities
 
   - [ ] 25.3 Add configuration management
     - [ ] 25.3.1 Support environment-based configuration
-      - Read Agentic Pay configurations from environment variables
+      - Read Agent Pay configurations from environment variables
       - Read signing keys from secure storage
-      - Support multiple Agentic Pay profiles
+      - Support multiple Agent Pay profiles
     - [ ] 25.3.2 Support configuration file
       - JSON or YAML configuration file
-      - Define Agentic Pay profiles
+      - Define Agent Pay profiles
       - Define default settings
     - [ ] 25.3.3 Support runtime configuration
       - Allow tools to accept configuration overrides
       - Validate configuration at runtime
 
   - [ ] 25.4 Add authentication support
-    - [ ] 25.4.1 Support Agentic Pay authentication in tools
+    - [ ] 25.4.1 Support Agent Pay authentication in tools
       - Accept auth config in tool parameters
       - Use authentication system from Task 23
       - Support all auth methods (API key, AWS SigV4, OAuth2, custom)
@@ -1553,7 +1553,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
 
   - [ ] 25.5 Add error handling and logging
     - [ ] 25.5.1 Implement comprehensive error handling
-      - Catch all errors from Agentic Pay operations
+      - Catch all errors from Agent Pay operations
       - Return structured error responses
       - Include error codes and messages
     - [ ] 25.5.2 Add structured logging
@@ -1566,14 +1566,14 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - [ ] 25.6.1 Basic MCP server setup
       ```typescript
       import { MCPServer } from '@modelcontextprotocol/sdk';
-      import { createFABMCPServer } from '@x402/aws-agentic-pay-extension/mcp';
+      import { createFABMCPServer } from 'aws-agent-pay-x402-extension/mcp';
       
       const server = createFABMCPServer({
-        Agentic Pays: [
+        Agent Pays: [
           {
-            id: 'aws-agentic-pay',
+            id: 'aws-agent-pay',
             url: 'https://pay.aws.example.com',
-            publicKey: await loadAgenticPayKey()
+            publicKey: await loadAgentPayKey()
           }
         ],
         signingKey: await loadSigningKey()
@@ -1602,7 +1602,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       - Test error responses
     - [ ]* 25.7.3 End-to-end tests
       - Test complete payment flow via MCP tools
-      - Test with mock Agentic Pay server
+      - Test with mock Agent Pay server
       - Test error scenarios
 
   - [ ] 25.8 Document MCP server
@@ -1623,17 +1623,17 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       - Show example conversations
       - Show automation examples
 
-  - _Requirements: Enable AI agents and automation to use Agentic Pay payments, provide MCP-compliant interface_
+  - _Requirements: Enable AI agents and automation to use Agent Pay payments, provide MCP-compliant interface_
 
 - [ ] 26. Facilitator Extensibility Analysis
 
-  Explore and justify the facilitator as a translation layer between X402 and Agentic Pay from an extensibility and scalability perspective.
+  Explore and justify the facilitator as a translation layer between X402 and Agent Pay from an extensibility and scalability perspective.
 
   - [ ] 26.1 Document current facilitator architecture
-    - [ ] 26.1.1 Analyze AgenticPayFacilitatorClient implementation
+    - [ ] 26.1.1 Analyze AgentPayFacilitatorClient implementation
       - Review current responsibilities
       - Identify coupling points with X402
-      - Identify coupling points with Agentic Pay
+      - Identify coupling points with Agent Pay
       - Document data flow
     - [ ] 26.1.2 Document facilitator interface
       - FacilitatorClient interface from @x402/core/http
@@ -1641,35 +1641,35 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       - Input/output types
       - Error handling
     - [ ] 26.1.3 Identify translation responsibilities
-      - X402 PaymentRequest → Agentic Pay authorization request
-      - Agentic Pay authorization response → X402 PaymentResponse
-      - X402 capture request → Agentic Pay capture request
-      - Agentic Pay capture response → X402 capture response
-      - Error mapping between X402 and Agentic Pay
+      - X402 PaymentRequest → Agent Pay authorization request
+      - Agent Pay authorization response → X402 PaymentResponse
+      - X402 capture request → Agent Pay capture request
+      - Agent Pay capture response → X402 capture response
+      - Error mapping between X402 and Agent Pay
 
   - [ ] 26.2 Analyze extensibility requirements
     - [ ] 26.2.1 Identify extension points
-      - Supporting new Agentic Pay types (beyond AWS Agentic Pay)
+      - Supporting new Agent Pay types (beyond AWS Agent Pay)
       - Supporting new payment methods (beyond FAB)
       - Supporting new authentication methods
       - Supporting new settlement methods
       - Supporting custom payment flows
     - [ ] 26.2.2 Analyze current extensibility limitations
-      - Hard-coded Agentic Pay API assumptions
+      - Hard-coded Agent Pay API assumptions
       - Limited error mapping
       - Fixed data transformation logic
       - Lack of plugin architecture
     - [ ] 26.2.3 Define extensibility goals
-      - Support multiple Agentic Pay implementations without code changes
+      - Support multiple Agent Pay implementations without code changes
       - Support custom payment flows via configuration
-      - Support Agentic Pay-specific features
+      - Support Agent Pay-specific features
       - Support versioning and backward compatibility
 
   - [ ] 26.3 Analyze scalability requirements
     - [ ] 26.3.1 Identify scalability concerns
       - Request volume handling
       - Concurrent payment processing
-      - Agentic Pay API rate limiting
+      - Agent Pay API rate limiting
       - Token caching and validation
       - State management
     - [ ] 26.3.2 Analyze current scalability limitations
@@ -1680,14 +1680,14 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       - No circuit breaker pattern
     - [ ] 26.3.3 Define scalability goals
       - Support high request volumes
-      - Minimize Agentic Pay API calls
-      - Handle Agentic Pay API failures gracefully
+      - Minimize Agent Pay API calls
+      - Handle Agent Pay API failures gracefully
       - Support horizontal scaling
       - Support distributed deployments
 
   - [ ] 26.4 Propose facilitator architecture improvements
     - [ ] 26.4.1 Design plugin architecture
-      - Define Agentic PayAdapter interface
+      - Define Agent PayAdapter interface
         - authorize(request): Promise<response>
         - capture(request): Promise<response>
         - getStatus(transactionId): Promise<status>
@@ -1697,29 +1697,29 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       - Support adapter versioning
     - [ ] 26.4.2 Design middleware pipeline
       - Pre-processing middleware (validation, logging)
-      - Translation middleware (X402 ↔ Agentic Pay)
+      - Translation middleware (X402 ↔ Agent Pay)
       - Post-processing middleware (error mapping, response formatting)
       - Support custom middleware injection
     - [ ] 26.4.3 Design caching layer
-      - Cache Agentic Pay public keys
-      - Cache Agentic Pay discovery results
+      - Cache Agent Pay public keys
+      - Cache Agent Pay discovery results
       - Cache token validation results
       - Support cache invalidation
       - Support distributed caching (Redis)
     - [ ] 26.4.4 Design retry and circuit breaker
       - Implement exponential backoff retry
-      - Implement circuit breaker for Agentic Pay APIs
+      - Implement circuit breaker for Agent Pay APIs
       - Support configurable retry policies
       - Support fallback strategies
 
   - [ ] 26.5 Create proof-of-concept implementations
-    - [ ] 26.5.1 Implement Agentic PayAdapter interface
+    - [ ] 26.5.1 Implement Agent PayAdapter interface
       - Create base adapter class
-      - Implement AWS Agentic Pay adapter
-      - Implement mock Agentic Pay adapter for testing
+      - Implement AWS Agent Pay adapter
+      - Implement mock Agent Pay adapter for testing
     - [ ] 26.5.2 Implement adapter registry
-      - Register adapters by Agentic Pay type
-      - Select adapter based on Agentic Pay identifier
+      - Register adapters by Agent Pay type
+      - Select adapter based on Agent Pay identifier
       - Support adapter fallback
     - [ ] 26.5.3 Implement middleware pipeline
       - Create middleware interface
@@ -1739,14 +1739,14 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       - Measure cache hit rates
       - Compare with current implementation
     - [ ] 26.6.2 Create extensibility tests
-      - Test adding new Agentic Pay adapter
+      - Test adding new Agent Pay adapter
       - Test adding custom middleware
       - Test adapter versioning
       - Test backward compatibility
     - [ ] 26.6.3 Create scalability tests
       - Test with high request volumes
       - Test with concurrent requests
-      - Test with Agentic Pay API failures
+      - Test with Agent Pay API failures
       - Test horizontal scaling
 
   - [ ] 26.7 Document findings and recommendations
@@ -1788,7 +1788,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       - Show adapter examples
       - Show middleware examples
 
-  - _Requirements: Justify facilitator architecture, ensure extensibility for multiple Agentic Pays, ensure scalability for production use_
+  - _Requirements: Justify facilitator architecture, ensure extensibility for multiple Agent Pays, ensure scalability for production use_
 
 - [x] 27. OIDC Discovery and Quote Token Signature Verification
 
@@ -1801,13 +1801,13 @@ This document outlines the implementation tasks for building the Agentic Pay x40
   **Context:**
   - `fetchServicePublicKey()` in `src/utils.ts` is deprecated — replaced by `fetchServiceJWKS()` which is fully implemented with 1-hour TTL caching and `clearServiceJWKSCache()` for invalidation.
   - The in-process facilitator (`src/fab/facilitator/verify.ts`) already calls `fetchServiceJWKS` and `jose.jwtVerify` on the quote token, but wraps it in a try/catch that silently swallows failures. This makes quote signature verification best-effort rather than mandatory.
-  - The `AgenticPayFacilitatorClient` (`src/agentic-pay-facilitator-client.ts`) independently fetches service JWKS and verifies the quote token signature — that path is complete.
+  - The `AgentPayFacilitatorClient` (`src/agent-pay-facilitator-client.ts`) independently fetches service JWKS and verifies the quote token signature — that path is complete.
   - `test/unit/service-jwks.test.ts` has 7 tests covering `fetchServiceJWKS` and `clearServiceJWKSCache`.
   - `test/unit/fab/quote-verification.test.ts` exists as a placeholder with a single `.todo` test.
 
   **What's done (subtasks 27.1, 27.3):**
   - `fetchServiceJWKS()` is implemented with caching and cache clearing (subtask 27.1 ✅)
-  - Decision documented: quote verification stays in facilitator verify logic, not in `AgenticPayClientForFacilitator` (subtask 27.3 ✅)
+  - Decision documented: quote verification stays in facilitator verify logic, not in `AgentPayClientForFacilitator` (subtask 27.3 ✅)
 
   **What remains:**
 
@@ -1820,7 +1820,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
       - If expired, return `{ isValid: false, invalidReason: 'quote_expired', invalidMessage: 'Quote token expired' }`
     - _Spec: APAY-FAC-003a, APAY-FAC-003b_
 
-  - [ ] 27.4 Add optional `serviceJWKSUrl` override to `AgenticPayFacilitatorSchemeConfig`
+  - [ ] 27.4 Add optional `serviceJWKSUrl` override to `AgentPayFacilitatorSchemeConfig`
     - Allow callers to provide a custom JWKS URL for the service (useful when the service URL in the quote token doesn't match the JWKS endpoint, e.g., behind a proxy)
     - Default behavior: derive from `quote.iss` + `/.well-known/jwks.json`
     - _Spec: may need new requirement APAY-FAC-013_
@@ -1837,7 +1837,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - _Validates: APAY-FAC-003a, APAY-FAC-003b_
 
   - [ ] 27.6 Update integration test
-    - Update `test/integrations/fab-test.test.ts` to set up a service JWKS endpoint (the mock Agentic Pay server already serves `/.well-known/jwks.json` for Agentic Pay; the test service needs to serve its own JWKS)
+    - Update `test/integrations/fab-test.test.ts` to set up a service JWKS endpoint (the mock Agent Pay server already serves `/.well-known/jwks.json` for Agent Pay; the test service needs to serve its own JWKS)
     - Verify the full flow now includes quote token signature verification
     - Target: 1-2 additional assertions in existing test(s)
 
@@ -1866,7 +1866,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
 
   **Estimated test count:** 6 new unit tests + 1-2 integration assertions
   **Dependencies:** None (fetchServiceJWKS is already implemented)
-  **Risk:** Low-medium — making quote verification mandatory could break integration tests that don't serve a service JWKS endpoint. The mock Agentic Pay server in examples already serves JWKS, but the test harness may need a mock service JWKS endpoint added.
+  **Risk:** Low-medium — making quote verification mandatory could break integration tests that don't serve a service JWKS endpoint. The mock Agent Pay server in examples already serves JWKS, but the test harness may need a mock service JWKS endpoint added.
 
   **Estimated test count:** 13-18 new tests
   **Files modified:** `src/utils.ts`, `src/fab/facilitator/verify.ts`, `src/config.ts` (optional), `test/unit/utils.test.ts`, `test/unit/fab/facilitator.test.ts`, `test/integrations/fab-test.test.ts`, `docs/spec.md`, `README.md`
@@ -1875,30 +1875,30 @@ This document outlines the implementation tasks for building the Agentic Pay x40
 
 - [x] 28. Sentinel Values for x402 Core Protocol Fields (`payTo`, `maxTimeoutSeconds`)
 
-  Replace the redundant `payTo` and `maxTimeoutSeconds` fields in the x402 `PaymentRequirements` with well-defined sentinel values. In Agentic Pay, the signed quote token is the authoritative source for payment details (recipient, pricing, expiry). The outer `PaymentRequirements` fields `payTo` and `maxTimeoutSeconds` are required by the `@x402/core` type contract but are semantically redundant for Agentic Pay — Agentic Pay and facilitator already use the quote token. This task makes that explicit by using sentinel values and documenting the convention.
+  Replace the redundant `payTo` and `maxTimeoutSeconds` fields in the x402 `PaymentRequirements` with well-defined sentinel values. In Agent Pay, the signed quote token is the authoritative source for payment details (recipient, pricing, expiry). The outer `PaymentRequirements` fields `payTo` and `maxTimeoutSeconds` are required by the `@x402/core` type contract but are semantically redundant for Agent Pay — Agent Pay and facilitator already use the quote token. This task makes that explicit by using sentinel values and documenting the convention.
 
-  **Status (implemented):** `AGENTIC_PAY_SENTINEL_PAY_TO` constant defined in `src/constants.ts`. `enhancePaymentRequirements` in `src/fab/server/scheme.ts` sets `payTo` to the sentinel and `maxTimeoutSeconds` to `exp - iat`. Spec updated with APAY-CON-007, APAY-SRV-016, APAY-SRV-017.
+  **Status (implemented):** `AGENT_PAY_SENTINEL_PAY_TO` constant defined in `src/constants.ts`. `enhancePaymentRequirements` in `src/fab/server/scheme.ts` sets `payTo` to the sentinel and `maxTimeoutSeconds` to `exp - iat`. Spec updated with APAY-CON-007, APAY-SRV-016, APAY-SRV-017.
 
   **Motivation:**
   - `payTo` in `PaymentRequirements` duplicates `payTo` inside the signed quote token. The quote token is the source of truth because it's signed by the service; the outer field is unsigned and could be tampered with.
-  - `maxTimeoutSeconds` has no direct Agentic Pay equivalent — Agentic Pay uses `exp - iat` in the quote token to express validity. The outer field is a leftover from the EVM/SVM `exact` scheme where it controls `validBefore` in on-chain authorization.
-  - Clients and facilitators in Agentic Pay already ignore these outer fields in favor of the quote token. Making them sentinels formalizes what's already true.
+  - `maxTimeoutSeconds` has no direct Agent Pay equivalent — Agent Pay uses `exp - iat` in the quote token to express validity. The outer field is a leftover from the EVM/SVM `exact` scheme where it controls `validBefore` in on-chain authorization.
+  - Clients and facilitators in Agent Pay already ignore these outer fields in favor of the quote token. Making them sentinels formalizes what's already true.
 
   **Design decisions:**
-  - `payTo` sentinel: `"urn:x402:agentic-pay:see-quote"` — a URN that is clearly not a real address, signals "look at the quote token", and won't collide with any Agentic Pay ID or blockchain address.
+  - `payTo` sentinel: `"urn:x402:agent-pay:see-quote"` — a URN that is clearly not a real address, signals "look at the quote token", and won't collide with any Agent Pay ID or blockchain address.
   - `maxTimeoutSeconds` sentinel: derived from the quote token's `exp - iat` (i.e., the quote validity window). This keeps the field numerically meaningful for any x402 middleware that might inspect it, while still being derived from the quote rather than independently configured.
-  - Both sentinels are set in `enhancePaymentRequirements` (server scheme), which is the last touch before the 402 response is sent. The base requirements from `x402ResourceServer.buildPaymentRequirements` still set `payTo` from `resourceConfig.payTo` and `maxTimeoutSeconds` from config, but the Agentic Pay server scheme overrides them.
+  - Both sentinels are set in `enhancePaymentRequirements` (server scheme), which is the last touch before the 402 response is sent. The base requirements from `x402ResourceServer.buildPaymentRequirements` still set `payTo` from `resourceConfig.payTo` and `maxTimeoutSeconds` from config, but the Agent Pay server scheme overrides them.
 
   **Scope:**
 
   - [ ] 28.1 Add sentinel constants to `src/constants.ts`
-    - Add `AGENTIC_PAY_SENTINEL_PAY_TO = 'urn:x402:agentic-pay:see-quote'`
+    - Add `AGENT_PAY_SENTINEL_PAY_TO = 'urn:x402:agent-pay:see-quote'`
     - Add JSDoc explaining the sentinel convention and why it exists
     - _New requirement: APAY-CON-007_
 
   - [ ] 28.2 Update `enhancePaymentRequirements` in `src/fab/server/scheme.ts`
     - After building the quote token and signing it, override the returned `PaymentRequirements`:
-      - Set `payTo` to `AGENTIC_PAY_SENTINEL_PAY_TO`
+      - Set `payTo` to `AGENT_PAY_SENTINEL_PAY_TO`
       - Set `maxTimeoutSeconds` to `quotePayload.exp - quotePayload.iat` (the quote validity window, currently 300s by default)
     - The quote token itself still contains the real `payTo` from the original `paymentRequirements.payTo` — that doesn't change
     - _Updates: APAY-SRV-012 (enhance return value now also normalizes payTo and maxTimeoutSeconds)_
@@ -1906,7 +1906,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
 
   - [ ] 28.3 Update client scheme `createPaymentPayload` in `src/fab/client/scheme.ts`
     - Currently the client reads `payTo` from `quote.iss` (the service URL from the quote token), not from `paymentRequirements.payTo`. Verify this is still correct — it should be, since the client already ignores the outer `payTo`.
-    - Add a defensive comment explaining that `paymentRequirements.payTo` is a sentinel in Agentic Pay and the real recipient comes from the quote token.
+    - Add a defensive comment explaining that `paymentRequirements.payTo` is a sentinel in Agent Pay and the real recipient comes from the quote token.
     - No functional change expected; this subtask is verification + documentation.
     - _Validates: APAY-CLI-003 (client uses quote token, not outer fields)_
 
@@ -1922,21 +1922,21 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - No functional change expected.
 
   - [ ] 28.6 Export sentinel constant from `src/index.ts`
-    - Add `AGENTIC_PAY_SENTINEL_PAY_TO` to the constants export block.
+    - Add `AGENT_PAY_SENTINEL_PAY_TO` to the constants export block.
 
   - [ ] 28.7 Update `src/networks/aws.ts`
     - No changes needed — the AWS pre-configured schemes delegate to the base schemes, which will pick up the sentinel behavior from `enhancePaymentRequirements`. Verify and document.
 
   - [ ] 28.8 Write unit tests in `test/unit/fab/server.test.ts`
-    - Test: `enhancePaymentRequirements` sets `payTo` to `AGENTIC_PAY_SENTINEL_PAY_TO`
+    - Test: `enhancePaymentRequirements` sets `payTo` to `AGENT_PAY_SENTINEL_PAY_TO`
     - Test: `enhancePaymentRequirements` sets `maxTimeoutSeconds` to `DEFAULT_QUOTE_VALIDITY_SECONDS` (300)
     - Test: the quote token inside `extra.quoteToken` still contains the original real `payTo` value (not the sentinel)
     - Test: when a custom quote validity is used (if/when supported), `maxTimeoutSeconds` matches `exp - iat`
     - Target: 4 new tests
 
   - [ ] 28.9 Write unit tests in `test/unit/fab/client.test.ts`
-    - Test: `createPaymentPayload` works correctly when `paymentRequirements.payTo` is the sentinel value `'urn:x402:agentic-pay:see-quote'` — it should still extract `payTo` from the quote token's `iss` field
-    - Test: `createPaymentPayload` does not pass the sentinel value to `agenticPayClient.authorize()` — it passes `quote.iss` instead
+    - Test: `createPaymentPayload` works correctly when `paymentRequirements.payTo` is the sentinel value `'urn:x402:agent-pay:see-quote'` — it should still extract `payTo` from the quote token's `iss` field
+    - Test: `createPaymentPayload` does not pass the sentinel value to `agentPayClient.authorize()` — it passes `quote.iss` instead
     - Target: 2 new tests
 
   - [ ] 28.10 Write unit tests in `test/unit/fab/facilitator.test.ts`
@@ -1949,11 +1949,11 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Target: 2 new assertions in existing test(s)
 
   - [ ] 28.12 Update `docs/spec.md`
-    - Add APAY-CON-007: `The system shall define a sentinel constant AGENTIC_PAY_SENTINEL_PAY_TO with value "urn:x402:agentic-pay:see-quote" to indicate that the payTo field in PaymentRequirements is not authoritative and the quote token shall be consulted instead.`
-    - Add APAY-SRV-016: `When enhancePaymentRequirements completes, the server scheme shall set the PaymentRequirements payTo field to AGENTIC_PAY_SENTINEL_PAY_TO.`
+    - Add APAY-CON-007: `The system shall define a sentinel constant AGENT_PAY_SENTINEL_PAY_TO with value "urn:x402:agent-pay:see-quote" to indicate that the payTo field in PaymentRequirements is not authoritative and the quote token shall be consulted instead.`
+    - Add APAY-SRV-016: `When enhancePaymentRequirements completes, the server scheme shall set the PaymentRequirements payTo field to AGENT_PAY_SENTINEL_PAY_TO.`
     - Add APAY-SRV-017: `When enhancePaymentRequirements completes, the server scheme shall set the PaymentRequirements maxTimeoutSeconds field to the quote token's validity window (exp minus iat).`
     - Update APAY-SRV-012 rationale to note that the returned requirements now also normalize payTo and maxTimeoutSeconds.
-    - Add a rationale note in §2.3 (Architectural Constraints) or a new §2.4 explaining the sentinel convention and why Agentic Pay treats the quote token as authoritative over the outer PaymentRequirements fields.
+    - Add a rationale note in §2.3 (Architectural Constraints) or a new §2.4 explaining the sentinel convention and why Agent Pay treats the quote token as authoritative over the outer PaymentRequirements fields.
 
   - [ ] 28.13 Update `docs/tasks.md` traceability matrix
     - Add APAY-CON-007 → `src/constants.ts` → `test/unit/constants.test.ts`
@@ -1988,9 +1988,9 @@ _Moved from `spec.md`. Tracks implementation state against the formal EARS requi
 | Constants (APAY-CON-*) | ✅ Complete | Unit |
 | Authentication (APAY-AUTH-*) | ✅ Complete | 28 tests |
 | DPoP (APAY-DPOP-*) | ✅ Complete | 33 tests |
-| Agentic Pay Client (APAY-WCL-*) | ✅ Complete | Unit |
+| Agent Pay Client (APAY-WCL-*) | ✅ Complete | Unit |
 | InProcess Facilitator (APAY-FCL-001) | ✅ Complete | Integration |
-| AgenticPayFacilitatorClient (APAY-FCL-002–010) | ✅ Complete | Unit + Integration |
+| AgentPayFacilitatorClient (APAY-FCL-002–010) | ✅ Complete | Unit + Integration |
 | Builders / Network Routing (APAY-BLD-*) | ✅ Complete | Unit + Integration |
 | Sentinel Values (APAY-CON-007, APAY-SRV-016–017) | ✅ Complete | Unit |
 | Express Middleware (APAY-MWR-001–014) | ✅ Core Complete | 15 tests |
@@ -2002,8 +2002,8 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 | ID | Area | Limitation |
 |----|------|------------|
 | APAY-AUTH-005 | AWS SigV4 | Simplified placeholder; production use requires `@aws-sdk/signature-v4`. |
-| APAY-FAC-003a | Quote Token Verification (In-Process) | The in-process facilitator (`src/fab/facilitator/verify.ts`) wraps quote token signature verification in a try/catch that silently swallows failures, making it best-effort. The `AgenticPayFacilitatorClient` verifies fully. Task 27 tracks making this mandatory. |
-| APAY-FAC-007 | Settlement (In-Process) | The in-process facilitator returns a success placeholder; actual fund capture requires Agentic Pay backend integration. The `AgenticPayFacilitatorClient` calls `POST /capture` correctly. |
+| APAY-FAC-003a | Quote Token Verification (In-Process) | The in-process facilitator (`src/fab/facilitator/verify.ts`) wraps quote token signature verification in a try/catch that silently swallows failures, making it best-effort. The `AgentPayFacilitatorClient` verifies fully. Task 27 tracks making this mandatory. |
+| APAY-FAC-007 | Settlement (In-Process) | The in-process facilitator returns a success placeholder; actual fund capture requires Agent Pay backend integration. The `AgentPayFacilitatorClient` calls `POST /capture` correctly. |
 
 ### Not Yet Implemented
 
@@ -2011,9 +2011,9 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 |------|-------------|
 | OIDC Discovery / Quote Verification (Task 27) | `fetchServiceJWKS` implemented with caching. Remaining: make quote signature verification mandatory in in-process facilitator (currently best-effort), add unit tests, update integration tests. |
 | Zod Validation Schemas | Comprehensive runtime validation schemas (types exist, Zod schemas not fully wired). |
-| Express Middleware (Task 24) | Core middleware implemented (`agenticPayMiddleware`). Storage abstraction, logging/observability, and advanced examples deferred. |
-| MCP Server Tool (Task 25) | Model Context Protocol server exposing Agentic Pay tools for AI agents. |
-| Facilitator Extensibility (Task 26) | Analysis and abstraction for multi-Agentic Pay-provider extensibility. |
+| Express Middleware (Task 24) | Core middleware implemented (`agentPayMiddleware`). Storage abstraction, logging/observability, and advanced examples deferred. |
+| MCP Server Tool (Task 25) | Model Context Protocol server exposing Agent Pay tools for AI agents. |
+| Facilitator Extensibility (Task 26) | Analysis and abstraction for multi-Agent Pay-provider extensibility. |
 | Property-Based Tests | `fast-check` property tests for correctness properties APAY-PROP-001 through APAY-PROP-014. |
 | CI/CD Pipeline | Automated testing, coverage enforcement, and npm publishing. |
 | Performance Benchmarks | Formal measurement against APAY-PRF-001 through APAY-PRF-004. |
@@ -2037,8 +2037,8 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 | APAY-CON-007 | `src/constants.ts` | `test/unit/fab/server.test.ts` |
 | APAY-AUTH-001–008 | `src/auth/*.ts` | `test/unit/auth/*.test.ts` |
 | APAY-DPOP-001–017 | `src/dpop/*.ts` | `test/unit/dpop/*.test.ts` |
-| APAY-WCL-001–010 | `src/agentic-pay-client.ts`, `src/config.ts` | `test/unit/facilitator-client.test.ts` |
-| APAY-FCL-001–010 | `src/facilitator-client.ts`, `src/agentic-pay-facilitator-client.ts` | `test/integrations/fab-test.test.ts` |
+| APAY-WCL-001–010 | `src/agent-pay-client.ts`, `src/config.ts` | `test/unit/facilitator-client.test.ts` |
+| APAY-FCL-001–010 | `src/facilitator-client.ts`, `src/agent-pay-facilitator-client.ts` | `test/integrations/fab-test.test.ts` |
 | APAY-DSC-001–014 | `src/discovery.ts` | `test/unit/discovery.test.ts` |
 | APAY-NET-001–005 | `src/networks/*.ts` | `test/unit/networks/*.test.ts` |
 | APAY-WCOMPAT-001–007 | (external interface) | `test/integrations/fab-test.test.ts` |
@@ -2046,7 +2046,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 | APAY-PROP-001–015 | (cross-cutting) | planned: `fast-check` property tests |
 | APAY-BLD-001–003, 005 | `src/builders/resource-server-builder.ts` | `test/unit/builders/resource-server-builder.test.ts`, `test/integrations/multi-facilitator.test.ts` |
 | APAY-BLD-002 | `src/builders/client-builder.ts` | `test/unit/builders/client-builder.test.ts` |
-| APAY-BLD-004 | `src/agentic-pay-facilitator-client.ts` | `test/unit/builders/agentic-pay-facilitator-network-filter.test.ts` |
+| APAY-BLD-004 | `src/agent-pay-facilitator-client.ts` | `test/unit/builders/agent-pay-facilitator-network-filter.test.ts` |
 | APAY-BLD-006 | `src/builders/register.ts` | `test/integrations/multi-facilitator.test.ts` |
 | APAY-MWR-001–014 | `src/middleware/express.ts` | `test/unit/middleware/express.test.ts` |
 
@@ -2067,11 +2067,11 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 | Constants (APAY-CON) | 7 |
 | Authentication (APAY-AUTH) | 8 |
 | DPoP (APAY-DPOP) | 17 |
-| Agentic Pay Client (APAY-WCL) | 10 |
+| Agent Pay Client (APAY-WCL) | 10 |
 | Facilitator Client (APAY-FCL) | 10 |
-| Agentic Pay Discovery (APAY-DSC) | 14 |
+| Agent Pay Discovery (APAY-DSC) | 14 |
 | Pre-configured Networks (APAY-NET) | 5 |
-| Agentic Pay Provider Contract (APAY-WCOMPAT) | 7 |
+| Agent Pay Provider Contract (APAY-WCOMPAT) | 7 |
 | Exported Stubs (APAY-STUB) | 1 |
 | Performance (APAY-PRF) | 4 |
 | Security (APAY-SEC) | 6 |
@@ -2084,31 +2084,31 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 
 - [x] 29. Refactor Registration: Network-Aware Facilitator Routing with Default Fallback
 
-  Refactor the registration model so that the Agentic Pay facilitator only handles explicitly registered networks, while all other networks fall back to the official x402 facilitator (`https://x402.org/facilitator`). Today, both the buyer (client) and seller (server) sides require manual, per-network registration of Agentic Pay schemes. This task introduces a single "register these networks for Agentic Pay" entry point that wires up client, server, and facilitator schemes for the specified networks, and lets everything else pass through to the default `HTTPFacilitatorClient`.
+  Refactor the registration model so that the Agent Pay facilitator only handles explicitly registered networks, while all other networks fall back to the official x402 facilitator (`https://x402.org/facilitator`). Today, both the buyer (client) and seller (server) sides require manual, per-network registration of Agent Pay schemes. This task introduces a single "register these networks for Agent Pay" entry point that wires up client, server, and facilitator schemes for the specified networks, and lets everything else pass through to the default `HTTPFacilitatorClient`.
 
-  **Status (implemented):** `createAgenticPayResourceServer` and `createAgenticPayClient` builders implemented in `src/builders/resource-server-builder.ts` and `src/builders/client-builder.ts`. Two-phase API (`registerNetwork` → `initialize`) with network filter on `AgenticPayFacilitatorClient`, default `HTTPFacilitatorClient` fallback, idempotent registration, and method chaining. Legacy `buildAgenticPayResourceServer` / `buildAgenticPayClient` convenience functions delegate to the two-phase API.
+  **Status (implemented):** `createAgentPayResourceServer` and `createAgentPayClient` builders implemented in `src/builders/resource-server-builder.ts` and `src/builders/client-builder.ts`. Two-phase API (`registerNetwork` → `initialize`) with network filter on `AgentPayFacilitatorClient`, default `HTTPFacilitatorClient` fallback, idempotent registration, and method chaining. Legacy `buildAgentPayResourceServer` / `buildAgentPayClient` convenience functions delegate to the two-phase API.
 
   **Motivation:**
-  - Currently, every network that Agentic Pay should handle must be individually registered on the client (`x402Client.register`), the server (`x402ResourceServer.register`), and the facilitator (`x402Facilitator.register`). This is repetitive and error-prone.
-  - There is no built-in fallback: if a service accepts both `aws:marketplace` (FAB) and `eip155:8453` (EVM on-chain), the integrator must either register Agentic Pay schemes for both or manually set up two facilitator clients. If they forget to register a network, it silently fails.
-  - The desired experience: "I want Agentic Pay to handle `aws:marketplace` and `eip155:8453`. Everything else (e.g., `solana:mainnet`) should fall back to the official x402 facilitator automatically."
+  - Currently, every network that Agent Pay should handle must be individually registered on the client (`x402Client.register`), the server (`x402ResourceServer.register`), and the facilitator (`x402Facilitator.register`). This is repetitive and error-prone.
+  - There is no built-in fallback: if a service accepts both `aws:base` (FAB) and `eip155:8453` (EVM on-chain), the integrator must either register Agent Pay schemes for both or manually set up two facilitator clients. If they forget to register a network, it silently fails.
+  - The desired experience: "I want Agent Pay to handle `aws:base` and `eip155:8453`. Everything else (e.g., `solana:mainnet`) should fall back to the official x402 facilitator automatically."
 
   **Design:**
 
   The core idea is a two-phase API: create a server/client, then register networks individually via `registerNetwork()`. This separates construction from configuration and makes it easy to extend later (e.g., register different networks with different options).
 
   **Server side:**
-  1. `createAgenticPayResourceServer(config)` returns a `FABResourceServer` object with a `registerNetwork(network, options?)` method.
-  2. Networks are added one at a time (or chained): `server.registerNetwork('aws:marketplace').registerNetwork('eip155:8453')`.
+  1. `createAgentPayResourceServer(config)` returns a `FABResourceServer` object with a `registerNetwork(network, options?)` method.
+  2. Networks are added one at a time (or chained): `server.registerNetwork('aws:base').registerNetwork('eip155:8453')`.
   3. `server.initialize()` fetches supported kinds from facilitators and returns the underlying `x402ResourceServer`.
-  4. The Agentic Pay facilitator (Agentic Pay-based) is registered for the specified networks. The default `HTTPFacilitatorClient` acts as catch-all for any network not claimed by FAB.
+  4. The Agent Pay facilitator (Agent Pay-based) is registered for the specified networks. The default `HTTPFacilitatorClient` acts as catch-all for any network not claimed by FAB.
 
   **Client side:**
-  1. `createAgenticPayClient(config)` returns a `FABClient` object with a `registerNetwork(network)` method.
+  1. `createAgentPayClient(config)` returns a `FABClient` object with a `registerNetwork(network)` method.
   2. Networks are added one at a time (or chained).
   3. The underlying `x402Client` is available via `.client` and `createPaymentPayload` is delegated.
 
-  **Convenience builders** (`buildAgenticPayResourceServer`, `buildAgenticPayClient`) are kept for backward compatibility — they delegate to the two-phase API internally.
+  **Convenience builders** (`buildAgentPayResourceServer`, `buildAgentPayClient`) are kept for backward compatibility — they delegate to the two-phase API internally.
 
   **Scope:**
 
@@ -2116,85 +2116,85 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
     - [ ] 29.1.1 Define `FABResourceServerConfig` interface
       ```typescript
       interface FABResourceServerConfig {
-        /** Networks that Agentic Pay should handle (e.g., ['aws:marketplace', 'eip155:8453']) */
+        /** Networks that Agent Pay should handle (e.g., ['aws:base', 'eip155:8453']) */
         fabNetworks: Network[];
-        /** Agentic Pay base URL for the Agentic Pay facilitator */
-        agenticPayBaseUrl: string;
-        /** Agentic Pay ID for the Agentic Pay facilitator */
-        agenticPayId: string;
+        /** Agent Pay base URL for the Agent Pay facilitator */
+        agentPayBaseUrl: string;
+        /** Agent Pay ID for the Agent Pay facilitator */
+        agentPayId: string;
         /** Service signing keys for quote tokens */
         signingKeys: SigningKeysConfig;
         /** Service URL (used as issuer in quote tokens) */
         serviceUrl: string;
-        /** Optional: Agentic Pay auth config for facilitator API calls */
-        agenticPayAuth?: AgenticPayFacilitatorAuthConfig;
-        /** Optional: Agentic Pay auth config for Agentic Pay client (used by facilitator scheme) */
-        agenticPayClientAuth?: AuthConfig;
+        /** Optional: Agent Pay auth config for facilitator API calls */
+        agentPayAuth?: AgentPayFacilitatorAuthConfig;
+        /** Optional: Agent Pay auth config for Agent Pay client (used by facilitator scheme) */
+        agentPayClientAuth?: AuthConfig;
         /** Optional: custom default facilitator URL (defaults to https://x402.org/facilitator) */
         defaultFacilitatorUrl?: string;
         /** Optional: disable default facilitator fallback entirely */
         disableDefaultFallback?: boolean;
       }
       ```
-    - [ ] 29.1.2 Implement `buildAgenticPayResourceServer(config)` factory function
-      - Create a `AgenticPayFacilitatorClient` (or `InProcessFacilitatorClient`) for the Agentic Pay networks
+    - [ ] 29.1.2 Implement `buildAgentPayResourceServer(config)` factory function
+      - Create a `AgentPayFacilitatorClient` (or `InProcessFacilitatorClient`) for the Agent Pay networks
       - Create an `HTTPFacilitatorClient` for the default fallback (unless `disableDefaultFallback` is true)
       - Instantiate `x402ResourceServer` with `[fabFacilitatorClient, defaultFacilitatorClient]` (FAB first for precedence)
-      - For each network in `fabNetworks`, call `server.register(network, new AgenticPayServerScheme({...}))` with the provided signing keys and service URL
+      - For each network in `fabNetworks`, call `server.register(network, new AgentPayServerScheme({...}))` with the provided signing keys and service URL
       - Call `server.initialize()` to fetch supported kinds from both facilitators
       - Return the configured `x402ResourceServer`
     - [ ] 29.1.3 Handle edge cases
       - Validate `fabNetworks` is non-empty
-      - Validate Agentic Pay URL is a valid URL
+      - Validate Agent Pay URL is a valid URL
       - Validate signing keys are present
-      - If `disableDefaultFallback` is true, only pass the Agentic Pay facilitator client
-      - If a network in `fabNetworks` is not supported by the Agentic Pay's `/.well-known/x402-supported` response, log a warning (Agentic Pay may not support it yet)
+      - If `disableDefaultFallback` is true, only pass the Agent Pay facilitator client
+      - If a network in `fabNetworks` is not supported by the Agent Pay's `/.well-known/x402-supported` response, log a warning (Agent Pay may not support it yet)
 
   - [ ] 29.2 Create `FABClientBuilder` in `src/builders/client-builder.ts`
     - [ ] 29.2.1 Define `FABClientConfig` interface
       ```typescript
       interface FABClientConfig {
-        /** Networks to register Agentic Pay client schemes for */
+        /** Networks to register Agent Pay client schemes for */
         fabNetworks: Network[];
-        /** Agentic Pay base URL */
-        agenticPayBaseUrl: string;
-        /** Agentic Pay ID */
-        agenticPayId: string;
-        /** Optional: Agentic Pay auth config */
-        agenticPayAuth?: AuthConfig;
+        /** Agent Pay base URL */
+        agentPayBaseUrl: string;
+        /** Agent Pay ID */
+        agentPayId: string;
+        /** Optional: Agent Pay auth config */
+        agentPayAuth?: AuthConfig;
         /** Optional: DPoP configuration */
         dpop?: { keyPair: DPoPKeyPair; enabled: boolean };
       }
       ```
-    - [ ] 29.2.2 Implement `buildAgenticPayClient(config)` factory function
-      - Create a single `AgenticPayClientScheme` instance configured with Agentic Pay
-      - For each network in `fabNetworks`, call `client.register(network, fabClientScheme)` — the same `AgenticPayClientScheme` instance can be reused across networks because the scheme is stateless w.r.t. network (the network is passed through to Agentic Pay)
+    - [ ] 29.2.2 Implement `buildAgentPayClient(config)` factory function
+      - Create a single `AgentPayClientScheme` instance configured with Agent Pay
+      - For each network in `fabNetworks`, call `client.register(network, fabClientScheme)` — the same `AgentPayClientScheme` instance can be reused across networks because the scheme is stateless w.r.t. network (the network is passed through to Agent Pay)
       - Return the configured `x402Client`
     - [ ] 29.2.3 Handle edge cases
       - Validate `fabNetworks` is non-empty
-      - Validate Agentic Pay URL
-      - Allow passing an existing `x402Client` instance to add Agentic Pay networks to (for composability with non-Agentic-Pay schemes the client may also support)
+      - Validate Agent Pay URL
+      - Allow passing an existing `x402Client` instance to add Agent Pay networks to (for composability with non-Agent-Pay schemes the client may also support)
 
   - [ ] 29.3 Update `InProcessFacilitatorClient` to support multi-facilitator composition
-    - [ ] 29.3.1 The `InProcessFacilitatorClient` wraps an `x402Facilitator` which already supports multiple scheme registrations. Verify that registering the Agentic Pay facilitator scheme for specific networks and then passing this client as one of multiple facilitator clients to `x402ResourceServer` works correctly.
-    - [ ] 29.3.2 The `x402ResourceServer` constructor accepts `FacilitatorClient | FacilitatorClient[]`. Verify that passing `[inProcessFabClient, httpDefaultClient]` gives Agentic Pay precedence for registered networks and falls back to HTTP for others.
+    - [ ] 29.3.1 The `InProcessFacilitatorClient` wraps an `x402Facilitator` which already supports multiple scheme registrations. Verify that registering the Agent Pay facilitator scheme for specific networks and then passing this client as one of multiple facilitator clients to `x402ResourceServer` works correctly.
+    - [ ] 29.3.2 The `x402ResourceServer` constructor accepts `FacilitatorClient | FacilitatorClient[]`. Verify that passing `[inProcessFabClient, httpDefaultClient]` gives Agent Pay precedence for registered networks and falls back to HTTP for others.
     - [ ] 29.3.3 No code changes expected — this subtask is verification of existing behavior. Document findings.
 
-  - [ ] 29.4 Update `AgenticPayFacilitatorClient.getSupported()` to scope to registered networks
-    - [ ] 29.4.1 Currently `AgenticPayFacilitatorClient.getSupported()` returns whatever the Agentic Pay's `/.well-known/x402-supported` endpoint returns. This is correct — Agentic Pay declares what it supports, and the `x402ResourceServer.initialize()` maps those to facilitator clients.
-    - [ ] 29.4.2 However, if Agentic Pay declares support for networks that the integrator did NOT include in `fabNetworks`, those networks would still be claimed by the Agentic Pay facilitator (because `initialize()` maps by what `getSupported()` returns, not by what the integrator registered). This could shadow the default facilitator for networks the integrator didn't intend to handle via Agentic Pay.
-    - [ ] 29.4.3 Solution: Add an optional `networkFilter` to `AgenticPayFacilitatorClient` constructor. When set, `getSupported()` filters the Agentic Pay's response to only include kinds whose network is in the filter set. This ensures the Agentic Pay facilitator only claims the networks the integrator explicitly chose.
+  - [ ] 29.4 Update `AgentPayFacilitatorClient.getSupported()` to scope to registered networks
+    - [ ] 29.4.1 Currently `AgentPayFacilitatorClient.getSupported()` returns whatever the Agent Pay's `/.well-known/x402-supported` endpoint returns. This is correct — Agent Pay declares what it supports, and the `x402ResourceServer.initialize()` maps those to facilitator clients.
+    - [ ] 29.4.2 However, if Agent Pay declares support for networks that the integrator did NOT include in `fabNetworks`, those networks would still be claimed by the Agent Pay facilitator (because `initialize()` maps by what `getSupported()` returns, not by what the integrator registered). This could shadow the default facilitator for networks the integrator didn't intend to handle via Agent Pay.
+    - [ ] 29.4.3 Solution: Add an optional `networkFilter` to `AgentPayFacilitatorClient` constructor. When set, `getSupported()` filters the Agent Pay's response to only include kinds whose network is in the filter set. This ensures the Agent Pay facilitator only claims the networks the integrator explicitly chose.
       ```typescript
       constructor(
-        agenticPayBaseUrl: string,
-        authConfig?: AgenticPayFacilitatorAuthConfig,
+        agentPayBaseUrl: string,
+        authConfig?: AgentPayFacilitatorAuthConfig,
         networkFilter?: Set<Network>  // NEW: only claim these networks
       )
       ```
     - [ ] 29.4.4 Update `getSupported()` implementation:
       ```typescript
       async getSupported(): Promise<SupportedResponse> {
-        const response = await fetch(`${this.agenticPayBaseUrl}/.well-known/x402-supported`);
+        const response = await fetch(`${this.agentPayBaseUrl}/.well-known/x402-supported`);
         if (!response.ok) throw new Error(`Failed to fetch supported kinds: ${response.statusText}`);
         const supported = await response.json() as SupportedResponse;
         
@@ -2207,20 +2207,20 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
       }
       ```
 
-  - [ ] 29.5 Create convenience `registerAgenticPayNetworks` function in `src/builders/register.ts`
+  - [ ] 29.5 Create convenience `registerAgentPayNetworks` function in `src/builders/register.ts`
     - [ ] 29.5.1 Implement a single function that wires up both server and facilitator for the common case:
       ```typescript
       /**
-       * Register Agentic Pay networks on an existing x402ResourceServer.
-       * For each network, registers a AgenticPayServerScheme.
-       * Does NOT handle facilitator client setup — use buildAgenticPayResourceServer for that.
+       * Register Agent Pay networks on an existing x402ResourceServer.
+       * For each network, registers a AgentPayServerScheme.
+       * Does NOT handle facilitator client setup — use buildAgentPayResourceServer for that.
        */
-      function registerAgenticPayNetworks(
+      function registerAgentPayNetworks(
         server: x402ResourceServer,
         networks: Network[],
         config: { signingKeys: SigningKeysConfig; serviceUrl: string }
       ): x402ResourceServer {
-        const fabServer = new AgenticPayServerScheme({
+        const fabServer = new AgentPayServerScheme({
           signingKeys: config.signingKeys,
           serviceUrl: config.serviceUrl,
         });
@@ -2236,80 +2236,80 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
     - [ ] 29.6.1 Export the new builder functions and config types:
       ```typescript
       // Builders
-      export { buildAgenticPayResourceServer } from './builders/resource-server-builder';
-      export { buildAgenticPayClient } from './builders/client-builder';
-      export { registerAgenticPayNetworks } from './builders/register';
+      export { buildAgentPayResourceServer } from './builders/resource-server-builder';
+      export { buildAgentPayClient } from './builders/client-builder';
+      export { registerAgentPayNetworks } from './builders/register';
       export type { FABResourceServerConfig } from './builders/resource-server-builder';
       export type { FABClientConfig } from './builders/client-builder';
       ```
     - [ ] 29.6.2 Keep existing exports unchanged for backward compatibility. The new builders are additive.
 
   - [ ] 29.7 Update examples to use new builders
-    - [ ] 29.7.1 Update `examples/test-service.ts` to use `buildAgenticPayResourceServer`:
+    - [ ] 29.7.1 Update `examples/test-service.ts` to use `buildAgentPayResourceServer`:
       ```typescript
       // BEFORE (manual registration):
-      const facilitatorClient = new AgenticPayFacilitatorClient(AGENTIC_PAY_BASE_URL, { ... });
+      const facilitatorClient = new AgentPayFacilitatorClient(AGENT_PAY_BASE_URL, { ... });
       const server = new x402ResourceServer(facilitatorClient);
-      server.register('fab:test', new AgenticPayServerScheme({ ... }));
-      server.register('eip155:8453', new AgenticPayServerScheme({ ... }));
+      server.register('fab:test', new AgentPayServerScheme({ ... }));
+      server.register('eip155:8453', new AgentPayServerScheme({ ... }));
       await server.initialize();
 
       // AFTER (builder):
-      const server = await buildAgenticPayResourceServer({
+      const server = await buildAgentPayResourceServer({
         fabNetworks: ['fab:test', 'eip155:8453'],
-        agenticPayBaseUrl: AGENTIC_PAY_BASE_URL,
-        agenticPayId: 'mock-agentic-pay-provider',
+        agentPayBaseUrl: AGENT_PAY_BASE_URL,
+        agentPayId: 'mock-agent-pay-provider',
         signingKeys: { privateKey: serviceKeys.privateKey, publicKey: publicJWK, alg: 'RS256' },
         serviceUrl: SERVICE_URL,
-        agenticPayAuth: { getAuthHeaders: async () => ({ ... }) },
+        agentPayAuth: { getAuthHeaders: async () => ({ ... }) },
       });
       ```
-    - [ ] 29.7.2 Update `examples/test-client.ts` to use `buildAgenticPayClient`:
+    - [ ] 29.7.2 Update `examples/test-client.ts` to use `buildAgentPayClient`:
       ```typescript
       // BEFORE (manual registration):
       const paymentClient = new x402Client()
-        .register('fab:test', new AgenticPayClientScheme({ ... }))
-        .register('eip155:8453', new AgenticPayClientScheme({ ... }));
+        .register('fab:test', new AgentPayClientScheme({ ... }))
+        .register('eip155:8453', new AgentPayClientScheme({ ... }));
 
       // AFTER (builder):
-      const paymentClient = buildAgenticPayClient({
+      const paymentClient = buildAgentPayClient({
         fabNetworks: ['fab:test', 'eip155:8453'],
-        agenticPayBaseUrl: AGENTIC_PAY_BASE_URL,
-        agenticPayId: AGENTIC_PAY_ID,
-        agenticPayAuth: { type: 'apiKey', apiKey: API_KEY },
+        agentPayBaseUrl: AGENT_PAY_BASE_URL,
+        agentPayId: AGENT_PAY_ID,
+        agentPayAuth: { type: 'apiKey', apiKey: API_KEY },
       });
       ```
     - [ ] 29.7.3 Add a new example `examples/multi-facilitator.ts` showing the fallback scenario:
-      - Register `aws:marketplace` and `eip155:8453` for Agentic Pay
+      - Register `aws:base` and `eip155:8453` for Agent Pay
       - Show that `solana:mainnet` would fall back to the default x402 facilitator
       - Include comments explaining the precedence model
 
-  - [ ] 29.8 Write unit tests for `buildAgenticPayResourceServer` in `test/unit/builders/resource-server-builder.test.ts`
-    - [ ] 29.8.1 Test: builds server with Agentic Pay facilitator for specified networks
-      - Mock `AgenticPayFacilitatorClient.getSupported()` to return the specified networks
+  - [ ] 29.8 Write unit tests for `buildAgentPayResourceServer` in `test/unit/builders/resource-server-builder.test.ts`
+    - [ ] 29.8.1 Test: builds server with Agent Pay facilitator for specified networks
+      - Mock `AgentPayFacilitatorClient.getSupported()` to return the specified networks
       - Verify `server.hasRegisteredScheme(network, 'fab')` is true for each specified network
       - Verify `server.getSupportedKind(2, network, 'fab')` returns a kind for each network
     - [ ] 29.8.2 Test: default facilitator is included when `disableDefaultFallback` is false (default)
       - Mock both facilitator clients
       - Verify that a network NOT in `fabNetworks` but supported by the default facilitator is available via `getSupportedKind`
     - [ ] 29.8.3 Test: default facilitator is excluded when `disableDefaultFallback` is true
-      - Verify that only Agentic Pay networks are available
-    - [ ] 29.8.4 Test: Agentic Pay facilitator takes precedence over default for overlapping networks
-      - If both Agentic Pay and default facilitator support `eip155:8453`, the Agentic Pay facilitator should win (it's first in the array)
+      - Verify that only Agent Pay networks are available
+    - [ ] 29.8.4 Test: Agent Pay facilitator takes precedence over default for overlapping networks
+      - If both Agent Pay and default facilitator support `eip155:8453`, the Agent Pay facilitator should win (it's first in the array)
       - Verify by checking which facilitator client is used for verify/settle
     - [ ] 29.8.5 Test: validation errors for invalid config
       - Empty `fabNetworks` array throws
-      - Invalid `agenticPayBaseUrl` throws
+      - Invalid `agentPayBaseUrl` throws
       - Missing `signingKeys` throws
     - Target: 5-7 tests
 
-  - [ ] 29.9 Write unit tests for `buildAgenticPayClient` in `test/unit/builders/client-builder.test.ts`
-    - [ ] 29.9.1 Test: registers Agentic Pay client scheme for all specified networks
-      - Build client with `fabNetworks: ['aws:marketplace', 'eip155:8453']`
+  - [ ] 29.9 Write unit tests for `buildAgentPayClient` in `test/unit/builders/client-builder.test.ts`
+    - [ ] 29.9.1 Test: registers Agent Pay client scheme for all specified networks
+      - Build client with `fabNetworks: ['aws:base', 'eip155:8453']`
       - Create a mock `PaymentRequired` with `accepts` containing both networks
       - Verify `createPaymentPayload` works for both networks
     - [ ] 29.9.2 Test: client rejects payment requirements for unregistered networks
-      - Build client with `fabNetworks: ['aws:marketplace']`
+      - Build client with `fabNetworks: ['aws:base']`
       - Create `PaymentRequired` with only `solana:mainnet` in `accepts`
       - Verify `createPaymentPayload` throws (no registered scheme for solana)
     - [ ] 29.9.3 Test: client selects registered network when multiple options available
@@ -2317,39 +2317,39 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
       - Create `PaymentRequired` with `accepts` containing both `eip155:8453` and `solana:mainnet`
       - Verify client selects `eip155:8453` (the one it has a scheme for)
     - [ ] 29.9.4 Test: composability with existing x402Client
-      - Build Agentic Pay client, then add a non-Agentic-Pay scheme manually
+      - Build Agent Pay client, then add a non-Agent-Pay scheme manually
       - Verify both work
     - [ ] 29.9.5 Test: validation errors
       - Empty `fabNetworks` throws
-      - Invalid `agenticPayBaseUrl` throws
+      - Invalid `agentPayBaseUrl` throws
     - Target: 5-6 tests
 
-  - [ ] 29.10 Write unit tests for `AgenticPayFacilitatorClient` network filter in `test/unit/agentic-pay-facilitator-client.test.ts`
-    - [ ] 29.10.1 Test: without filter, `getSupported()` returns all Agentic Pay-supported networks
-      - Mock Agentic Pay returning `['aws:marketplace', 'fab:test', 'eip155:8453']`
+  - [ ] 29.10 Write unit tests for `AgentPayFacilitatorClient` network filter in `test/unit/agent-pay-facilitator-client.test.ts`
+    - [ ] 29.10.1 Test: without filter, `getSupported()` returns all Agent Pay-supported networks
+      - Mock Agent Pay returning `['aws:base', 'fab:test', 'eip155:8453']`
       - Verify all three are in the response
-    - [ ] 29.10.2 Test: with filter `['aws:marketplace']`, `getSupported()` only returns `aws:marketplace`
-      - Same mock Agentic Pay response
-      - Verify only `aws:marketplace` is in the filtered response
-    - [ ] 29.10.3 Test: with filter for networks Agentic Pay doesn't support, returns empty kinds
-      - Filter for `['solana:mainnet']` but Agentic Pay only supports Agentic Pay networks
+    - [ ] 29.10.2 Test: with filter `['aws:base']`, `getSupported()` only returns `aws:base`
+      - Same mock Agent Pay response
+      - Verify only `aws:base` is in the filtered response
+    - [ ] 29.10.3 Test: with filter for networks Agent Pay doesn't support, returns empty kinds
+      - Filter for `['solana:mainnet']` but Agent Pay only supports Agent Pay networks
       - Verify `kinds` is empty
     - Target: 3-4 tests
 
   - [ ] 29.11 Write integration test for multi-facilitator fallback in `test/integrations/multi-facilitator.test.ts`
-    - [ ] 29.11.1 Test: end-to-end Agentic Pay payment on a FAB-registered network
-      - Use `buildAgenticPayResourceServer` with `fabNetworks: ['aws:marketplace']`
-      - Use `buildAgenticPayClient` with `fabNetworks: ['aws:marketplace']`
+    - [ ] 29.11.1 Test: end-to-end Agent Pay payment on a FAB-registered network
+      - Use `buildAgentPayResourceServer` with `fabNetworks: ['aws:base']`
+      - Use `buildAgentPayClient` with `fabNetworks: ['aws:base']`
       - Run the full flow: buildPaymentRequirements → createPaymentPayload → verifyPayment → settlePayment
       - Verify success
-    - [ ] 29.11.2 Test: server offers multiple networks, client only supports Agentic Pay networks
-      - Server registers `aws:marketplace` (FAB) and `eip155:8453` (default facilitator)
-      - Client registers only `aws:marketplace`
-      - Server builds requirements for `aws:marketplace` — client pays successfully
+    - [ ] 29.11.2 Test: server offers multiple networks, client only supports Agent Pay networks
+      - Server registers `aws:base` (FAB) and `eip155:8453` (default facilitator)
+      - Client registers only `aws:base`
+      - Server builds requirements for `aws:base` — client pays successfully
       - Server builds requirements for `eip155:8453` — client correctly rejects (no scheme registered)
-    - [ ] 29.11.3 Test: Agentic Pay facilitator precedence over default
-      - Both Agentic Pay and default facilitator claim `eip155:8453`
-      - Verify the Agentic Pay facilitator handles verify/settle (not the default)
+    - [ ] 29.11.3 Test: Agent Pay facilitator precedence over default
+      - Both Agent Pay and default facilitator claim `eip155:8453`
+      - Verify the Agent Pay facilitator handles verify/settle (not the default)
       - This validates the `x402ResourceServer` precedence model
     - Target: 3-4 tests
 
@@ -2359,33 +2359,33 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 
   - [ ] 29.13 Update documentation
     - [ ] 29.13.1 Update `README.md`
-      - Add "Quick Start" section showing `buildAgenticPayResourceServer` and `buildAgenticPayClient`
+      - Add "Quick Start" section showing `buildAgentPayResourceServer` and `buildAgentPayClient`
       - Add "Multi-Facilitator Fallback" section explaining the precedence model
       - Show the before/after comparison of manual vs builder registration
     - [ ] 29.13.2 Update `docs/design.md` (if exists) or add a section to `docs/spec.md`
       - Document the multi-facilitator architecture
-      - Document the network filter on `AgenticPayFacilitatorClient`
-      - Document the precedence model: Agentic Pay first, default second
+      - Document the network filter on `AgentPayFacilitatorClient`
+      - Document the precedence model: Agent Pay first, default second
     - [ ] 29.13.3 Add JSDoc to all new public APIs
-      - `buildAgenticPayResourceServer` — full parameter docs, usage example
-      - `buildAgenticPayClient` — full parameter docs, usage example
-      - `registerAgenticPayNetworks` — full parameter docs
+      - `buildAgentPayResourceServer` — full parameter docs, usage example
+      - `buildAgentPayClient` — full parameter docs, usage example
+      - `registerAgentPayNetworks` — full parameter docs
       - `FABResourceServerConfig` — field-level docs
       - `FABClientConfig` — field-level docs
 
   - [ ] 29.14 Update spec.md with new requirements
-    - Add APAY-BLD-001: `The system shall provide a buildAgenticPayResourceServer factory function that accepts a list of networks and returns a fully configured x402ResourceServer with Agentic Pay facilitator precedence over the default facilitator.`
-    - Add APAY-BLD-002: `The system shall provide a buildAgenticPayClient factory function that accepts a list of networks and returns a fully configured x402Client with Agentic Pay client schemes registered for each network.`
-    - Add APAY-BLD-003: `When buildAgenticPayResourceServer is called without disableDefaultFallback, the system shall include an HTTPFacilitatorClient as a fallback facilitator for networks not handled by FAB.`
-    - Add APAY-BLD-004: `The AgenticPayFacilitatorClient shall support an optional networkFilter that restricts getSupported() to only return kinds for networks in the filter set.`
-    - Add APAY-BLD-005: `When multiple facilitator clients are provided to x402ResourceServer, the Agentic Pay facilitator client shall be positioned first in the array to ensure precedence during initialize().`
-    - Add APAY-BLD-006: `The registerAgenticPayNetworks helper shall register a AgenticPayServerScheme for each specified network on an existing x402ResourceServer without modifying facilitator client configuration.`
+    - Add APAY-BLD-001: `The system shall provide a buildAgentPayResourceServer factory function that accepts a list of networks and returns a fully configured x402ResourceServer with Agent Pay facilitator precedence over the default facilitator.`
+    - Add APAY-BLD-002: `The system shall provide a buildAgentPayClient factory function that accepts a list of networks and returns a fully configured x402Client with Agent Pay client schemes registered for each network.`
+    - Add APAY-BLD-003: `When buildAgentPayResourceServer is called without disableDefaultFallback, the system shall include an HTTPFacilitatorClient as a fallback facilitator for networks not handled by FAB.`
+    - Add APAY-BLD-004: `The AgentPayFacilitatorClient shall support an optional networkFilter that restricts getSupported() to only return kinds for networks in the filter set.`
+    - Add APAY-BLD-005: `When multiple facilitator clients are provided to x402ResourceServer, the Agent Pay facilitator client shall be positioned first in the array to ensure precedence during initialize().`
+    - Add APAY-BLD-006: `The registerAgentPayNetworks helper shall register a AgentPayServerScheme for each specified network on an existing x402ResourceServer without modifying facilitator client configuration.`
 
   - [ ] 29.15 Update traceability matrix
     - Add APAY-BLD-001 → `src/builders/resource-server-builder.ts` → `test/unit/builders/resource-server-builder.test.ts`
     - Add APAY-BLD-002 → `src/builders/client-builder.ts` → `test/unit/builders/client-builder.test.ts`
     - Add APAY-BLD-003 → `src/builders/resource-server-builder.ts` → `test/unit/builders/resource-server-builder.test.ts`
-    - Add APAY-BLD-004 → `src/agentic-pay-facilitator-client.ts` → `test/unit/agentic-pay-facilitator-client.test.ts`
+    - Add APAY-BLD-004 → `src/agent-pay-facilitator-client.ts` → `test/unit/agent-pay-facilitator-client.test.ts`
     - Add APAY-BLD-005 → `src/builders/resource-server-builder.ts` → `test/integrations/multi-facilitator.test.ts`
     - Add APAY-BLD-006 → `src/builders/register.ts` → `test/unit/builders/resource-server-builder.test.ts`
 
@@ -2401,7 +2401,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
   }
   ```
 
-  So by passing `[fabFacilitatorClient, defaultFacilitatorClient]`, Agentic Pay claims its networks first. The default facilitator only fills in networks that Agentic Pay didn't claim. This is exactly the behavior we want.
+  So by passing `[fabFacilitatorClient, defaultFacilitatorClient]`, Agent Pay claims its networks first. The default facilitator only fills in networks that Agent Pay didn't claim. This is exactly the behavior we want.
 
   **Files created:**
   - `src/builders/resource-server-builder.ts`
@@ -2414,7 +2414,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
   - `examples/multi-facilitator.ts`
 
   **Files modified:**
-  - `src/agentic-pay-facilitator-client.ts` (add `networkFilter` parameter)
+  - `src/agent-pay-facilitator-client.ts` (add `networkFilter` parameter)
   - `src/index.ts` (add builder exports)
   - `examples/test-service.ts` (update to use builder)
   - `examples/test-client.ts` (update to use builder)
@@ -2424,17 +2424,17 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 
   **Estimated test count:** 16-21 new tests
   **Dependencies:** None (uses existing `@x402/core` multi-facilitator support)
-  **Risk:** Low — builders are additive, existing manual registration still works. The only behavioral change is the `networkFilter` on `AgenticPayFacilitatorClient`, which is opt-in (default: no filter, same as today).
+  **Risk:** Low — builders are additive, existing manual registration still works. The only behavioral change is the `networkFilter` on `AgentPayFacilitatorClient`, which is opt-in (default: no filter, same as today).
   **Backward compatibility:** Full. All existing code continues to work. Builders are a new, optional API surface.
 
 - [x] 30. Create Brazil Package and Upload to code.amazon.com
 
-  Create a Brazil package for `@x402/aws-agentic-pay` on code.amazon.com so the SDK can be consumed by internal teams via the Brazil dependency model. This involves creating the package using the NpmPrettyMuch build system, configuring it for the existing codebase, and uploading it to GitFarm.
+  Create a Brazil package for `aws-agent-pay-x402` on code.amazon.com so the SDK can be consumed by internal teams via the Brazil dependency model. This involves creating the package using the NpmPrettyMuch build system, configuring it for the existing codebase, and uploading it to GitFarm.
 
   _Spec references: APAY-CMP-001 through APAY-CMP-005, APAY-BLD-001 through APAY-BLD-003_
 
   **Context:**
-  - The `@x402/aws-agentic-pay` package is currently a local npm project built with `tsup` and tested with `vitest`.
+  - The `aws-agent-pay-x402` package is currently a local npm project built with `tsup` and tested with `vitest`.
   - Amazon's internal TypeScript build system is [NpmPrettyMuch](https://code.amazon.com/packages/NpmPrettyMuch), which wraps npm and integrates with Brazil's dependency model.
   - The package has two production dependencies (`jose`, `zod`) and one peer dependency (`@x402/core`).
   - The [BuilderHub Create CLI](https://docs.hub.amazon.dev/docs/create/cli-guide/howto-pkg.html) provides the `create package` command to scaffold and `create package upload` to promote packages to Brazil/GitFarm.
@@ -2450,13 +2450,13 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
   **Plan:**
 
   - [ ] 30.1 Identify or create a Bindle for the package
-    - Determine the owning team and Bindle for `@x402/aws-agentic-pay`.
+    - Determine the owning team and Bindle for `aws-agent-pay-x402`.
     - If no Bindle exists, create one at [bindles.amazon.com](https://bindles.amazon.com) with appropriate team ownership.
     - Record the Bindle ID (`amzn1.bindle.resource.xxxxxxxxxxxxxxxxxxxx`).
     - Decide on package permissions: Public source + Public artifacts (recommended for an SDK consumed by other teams).
 
   - [ ] 30.2 Create a version set (if one doesn't exist)
-    - Create a version set for the Agentic Pay project:
+    - Create a version set for the Agent Pay project:
       ```bash
       brazil vs create \
         --from Linux/central \
@@ -2516,7 +2516,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
     - Do NOT copy: `node_modules/`, `dist/`, `coverage/`, `.git/`, `examples/` (examples can be added later).
 
   - [ ] 30.7 Adapt `package.json` for Brazil
-    - Update the `name` field to use the `@amzn/` scope if required by internal conventions (e.g., `@amzn/x402-fab`), or keep `@x402/aws-agentic-pay` if the team prefers.
+    - Update the `name` field to use the `@amzn/` scope if required by internal conventions (e.g., `@amzn/x402-fab`), or keep `aws-agent-pay-x402` if the team prefers.
     - Ensure `repository` field points to the GitFarm repo:
       ```json
       "repository": {
@@ -2568,7 +2568,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
     - Verify the build succeeds on [build.amazon.com](https://build.amazon.com).
 
   - [ ] 30.12 Verify the package is consumable
-    - In a separate test package or workspace, add `X402Fab` as a dependency in the `Config` file and `@amzn/x402-fab` (or `@x402/aws-agentic-pay`) in `package.json`.
+    - In a separate test package or workspace, add `X402Fab` as a dependency in the `Config` file and `@amzn/x402-fab` (or `aws-agent-pay-x402`) in `package.json`.
     - Run `brazil-build` and verify the dependency resolves and imports work.
 
   - [ ] 30.13 Update documentation
@@ -2579,7 +2579,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
       dependencies = { 1.0 = { X402Fab = 1.0; }; };
 
       Add to your package.json:
-      "dependencies": { "@x402/aws-agentic-pay": "*" }
+      "dependencies": { "aws-agent-pay-x402": "*" }
       ```
     - Update `docs/sdk-guide.md` with a note about Brazil package availability.
 
@@ -2602,7 +2602,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
   **Open questions:**
   1. What is the Bindle ID for this package? (Needs team input)
   2. What version set should this build into? (Needs team input)
-  3. Should the npm scope be `@amzn/x402-fab` or `@x402/aws-agentic-pay`? (Naming convention decision)
+  3. Should the npm scope be `@amzn/x402-fab` or `aws-agent-pay-x402`? (Naming convention decision)
   4. Is `@x402/core` already available as a Brazil package, or does it need to be onboarded first?
 
 ---
@@ -2611,30 +2611,30 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 
 _Added: 2026-05-11. These tasks prepare the SDK for production release against the AWS Marketplace Agent Pay Service._
 
-- [x] 31. Terminology Refactor: "Agentic Pay" → "Agentic Pay"
+- [x] 31. Terminology Refactor: "Agent Pay" → "Agent Pay"
 
   **Priority: 1 (highest) — Business decision, affects all other tasks**
 
-  Rename all references to "Agentic Pay" throughout the codebase to "Agentic Pay" (or `agenticPay` / `AgenticPay` in code identifiers). This is a branding decision — the AWS service is called "Agent Pay", not a "Agentic Pay".
+  Rename all references to "Agent Pay" throughout the codebase to "Agent Pay" (or `agentPay` / `AgentPay` in code identifiers). This is a branding decision — the AWS service is called "Agent Pay", not a "Agent Pay".
 
   **Scope:**
   - All source files (`src/**/*.ts`)
   - All test files (`test/**/*.ts`)
   - All example files (`examples/**/*.ts`)
   - All documentation (`docs/**/*.md`, `README.md`)
-  - File names (e.g., `agentic-pay-client.ts` → `agentic-pay-client.ts`, `agentic-pay-facilitator-client.ts` → `agentic-pay-facilitator-client.ts`)
-  - Type/interface names (e.g., `AgenticPayFacilitatorClient` → `AgenticPayFacilitatorClient`, `AgenticPayClientForClient` → `AgenticPayClientForClient`, `DefaultAgenticPayClient` → `DefaultAgenticPayClient`)
-  - Config field names (e.g., `agenticPayBaseUrl` → `agenticPayBaseUrl`, `agenticPayId` → removed or renamed, `agenticPayAuth` → `agenticPayAuth`)
+  - File names (e.g., `agent-pay-client.ts` → `agent-pay-client.ts`, `agent-pay-facilitator-client.ts` → `agent-pay-facilitator-client.ts`)
+  - Type/interface names (e.g., `AgentPayFacilitatorClient` → `AgentPayFacilitatorClient`, `AgentPayClientForClient` → `AgentPayClientForClient`, `DefaultAgentPayClient` → `DefaultAgentPayClient`)
+  - Config field names (e.g., `agentPayBaseUrl` → `agentPayBaseUrl`, `agentPayId` → removed or renamed, `agentPayAuth` → `agentPayAuth`)
   - Constants (e.g., `https://pay.aws.amazon.com` → the actual Agent Pay endpoint)
-  - Mock server (`mock-agentic-pay-server.ts` → `mock-agentic-pay-server.ts`)
+  - Mock server (`mock-agent-pay-server.ts` → `mock-agent-pay-server.ts`)
   - Package exports and barrel files
 
   **Naming convention:**
-  - Class names: `AgenticPay*` (PascalCase)
-  - Variable/field names: `agenticPay*` (camelCase)
-  - File names: `agentic-pay-*` (kebab-case)
-  - Documentation prose: "Agentic Pay" or "Agent Pay Service"
-  - Never use "Agentic Pay" in new code
+  - Class names: `AgentPay*` (PascalCase)
+  - Variable/field names: `agentPay*` (camelCase)
+  - File names: `agent-pay-*` (kebab-case)
+  - Documentation prose: "Agent Pay" or "Agent Pay Service"
+  - Never use "Agent Pay" in new code
 
   **Approach:**
   1. Create a mapping table of old → new names
@@ -2682,13 +2682,13 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
   ```
 
   **Key differences from current implementation:**
-  1. No `network`, `amount`, `currency`, `payTo`, `agenticPayId` in request — Agent Pay extracts everything from the quote token
+  1. No `network`, `amount`, `currency`, `payTo`, `agentPayId` in request — Agent Pay extracts everything from the quote token
   2. Response uses `paymentId` (not `transactionId`) with format `awsmp-{UUIDv7}`
   3. No separate `/capture` endpoint — payment is auto-captured on creation
   4. DPoP key is passed as `dpopJwk` in request body (not as a header proof)
   5. Auth is always AWS SigV4 (no API key, no OAuth2 for this endpoint)
   6. Signing algorithm is ES384 (not RS256)
-  7. Quote token `aud` is `aws:marketplace`
+  7. Quote token `aud` is `aws:base`
   8. Quote token `settlement.listing_id` replaces `payTo` as the seller identifier
 
   **Payment Token Structure (from Agent Pay):**
@@ -2712,21 +2712,21 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
 
   - [ ] 32.1 Add spec requirements for Agent Pay API integration
     - Add APAY-APAY-001 through APAY-APAY-015 to `docs/spec.md`
-    - Define the `AgenticPayClient` interface matching the API
+    - Define the `AgentPayClient` interface matching the API
     - Define request/response types
     - Define error types matching API error responses
 
-  - [ ] 32.2 Implement `AgenticPayClient` class
+  - [ ] 32.2 Implement `AgentPayClient` class
     - `createPayment(request: CreateAgentPaymentRequest): Promise<CreateAgentPaymentResponse>`
     - `getPayment(paymentId: string): Promise<GetAgentPaymentResponse>`
     - `listPayments(request?: ListAgentPaymentsRequest): Promise<ListAgentPaymentsResponse>`
     - Auth: AWS SigV4 only (use `@aws-sdk/signature-v4` or accept pre-signed requests)
     - Base URL configurable (for testing against mock server)
 
-  - [ ] 32.3 Update `AgenticPayClientScheme.createPaymentPayload` to use new API shape
+  - [ ] 32.3 Update `AgentPayClientScheme.createPaymentPayload` to use new API shape
     - Send only `{ quoteToken, clientToken?, dpopJwk? }` — no amount/currency/network/payTo
     - Map response `paymentId` to the payload's transaction identifier
-    - Map response `paymentToken` to the Agentic Pay payload
+    - Map response `paymentToken` to the Agent Pay payload
 
   - [ ] 32.4 Update mock server to match Agent Pay API signature
     - Rename `POST /transactions` → `POST /CreateAgentPayment`
@@ -2738,7 +2738,7 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
     - Validate quote token structure (parse JWT, check `aud`, check `exp`)
     - Return appropriate error codes (400, 403, 404, 409, 429, 500)
 
-  - [ ] 32.5 Update `AgenticPayFacilitatorClient` (formerly `AgenticPayFacilitatorClient`)
+  - [ ] 32.5 Update `AgentPayFacilitatorClient` (formerly `AgentPayFacilitatorClient`)
     - Remove `POST /capture` call from `settle()` — Agent Pay auto-captures
     - `verify()` remains: fetch JWKS, verify payment token signature (ES384), verify quote token
     - `settle()` becomes a no-op that returns success (payment already captured)
@@ -2747,13 +2747,13 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
   - [ ] 32.6 Update types for new payment ID format
     - Payment ID format: `awsmp-{UUIDv7}` (42 chars, pattern: `^awsmp-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
     - Update `generateTransactionId` / `parseTransactionId` or replace with `paymentId` utilities
-    - Update `AgenticPayPayloadV2` to use `paymentId` instead of `transactionId`
+    - Update `AgentPayPayloadV2` to use `paymentId` instead of `transactionId`
 
   - [ ] 32.7 Update all tests to match new API shape
   - [ ] 32.8 Update all examples to match new API shape
   - [ ] 32.9 Update documentation (spec, sdk-guide, README)
 
-  **Files modified:** `src/agentic-pay-client.ts` (new), `src/fab/client/scheme.ts`, `src/agentic-pay-facilitator-client.ts`, `src/types.ts`, `src/utils.ts`, `examples/mock-agentic-pay-server.ts`, all test files
+  **Files modified:** `src/agent-pay-client.ts` (new), `src/fab/client/scheme.ts`, `src/agent-pay-facilitator-client.ts`, `src/types.ts`, `src/utils.ts`, `examples/mock-agent-pay-server.ts`, all test files
   **Risk:** High — this is a breaking change to the client-side API. Must be coordinated with Task 31 (terminology).
 
 ---
@@ -2785,7 +2785,7 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
     - Compare `cnf.jkt` against computed thumbprint
     - Return verification result
 
-  - [ ] 33.3 Update `AgenticPayServerScheme` / facilitator verify to check `cnf.jkt`
+  - [ ] 33.3 Update `AgentPayServerScheme` / facilitator verify to check `cnf.jkt`
     - If payment token contains `cnf.jkt`, verification MUST check it
     - The DPoP public key must be available to the verifier (passed in or stored)
     - If `cnf.jkt` is present but no DPoP key is available for comparison, fail verification
@@ -2843,22 +2843,22 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
 
 ---
 
-- [x] 35. Network Identifier: `aws:marketplace` → `aws:marketplace` (Parameterized)
+- [x] 35. Network Identifier: `aws:base` → `aws:base` (Parameterized)
 
   **Priority: 5 — Release requirement, affects all code paths**
 
-  Change the default network identifier from `aws:marketplace` to `aws:marketplace` and ensure it's never a magic literal anywhere in the codebase. The identifier must be a configurable constant so it can be changed again without a code sweep.
+  Change the default network identifier from `aws:base` to `aws:base` and ensure it's never a magic literal anywhere in the codebase. The identifier must be a configurable constant so it can be changed again without a code sweep.
 
   **Subtasks:**
 
   - [ ] 35.1 Define the network identifier as a single constant
-    - Add `DEFAULT_NETWORK = 'aws:marketplace'` to `src/constants.ts`
-    - Remove or deprecate any `aws:marketplace` references
-    - All code that currently uses `'aws:marketplace'` must reference this constant
+    - Add `DEFAULT_NETWORK = 'aws:base'` to `src/constants.ts`
+    - Remove or deprecate any `aws:base` references
+    - All code that currently uses `'aws:base'` must reference this constant
 
   - [ ] 35.2 Update the CAIP family pattern
-    - Current: `AGENTIC_PAY_CAIP_FAMILY = 'fab:*'`
-    - New: needs to match `aws:marketplace` — update to `'aws:*'` or make it configurable
+    - Current: `AGENT_PAY_CAIP_FAMILY = 'fab:*'`
+    - New: needs to match `aws:base` — update to `'aws:*'` or make it configurable
     - Evaluate impact on facilitator network matching logic
 
   - [ ] 35.3 Update all source files
@@ -2869,19 +2869,19 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
     - `src/utils.ts` — update `parseTransactionId` / `formatTransactionId` if they validate `fab:` prefix
 
   - [ ] 35.4 Update all test files
-    - Replace all `'aws:marketplace'` and `'fab:test'` literals with the constant or a test-specific constant
-    - Ensure tests still pass with `aws:marketplace`
+    - Replace all `'aws:base'` and `'fab:test'` literals with the constant or a test-specific constant
+    - Ensure tests still pass with `aws:base`
 
   - [ ] 35.5 Update all examples and documentation
-    - README, sdk-guide, spec — replace `aws:marketplace` with `aws:marketplace`
+    - README, sdk-guide, spec — replace `aws:base` with `aws:base`
     - Examples — use the constant, not a literal
 
   - [ ] 35.6 Update quote token `aud` claim
-    - The quote token's `aud` field must be `aws:marketplace` (confirmed by the Agent Pay API example)
-    - Verify `AgenticPayServerScheme.enhancePaymentRequirements` uses the network from the registered kind (not hardcoded)
+    - The quote token's `aud` field must be `aws:base` (confirmed by the Agent Pay API example)
+    - Verify `AgentPayServerScheme.enhancePaymentRequirements` uses the network from the registered kind (not hardcoded)
 
   - [ ] 35.7 Update transaction/payment ID format
-    - Current: `aws:marketplace:7f8e9d0c1b2a3456`
+    - Current: `aws:base:7f8e9d0c1b2a3456`
     - New: Agent Pay uses `awsmp-{UUIDv7}` — this is handled in Task 32.6
     - Ensure no code assumes `fab:` prefix in payment IDs
 
@@ -2900,7 +2900,7 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
   **Subtasks:**
 
   - [ ] 36.1 Investigate and confirm the bug
-    - Trace the code path: `agenticPayMiddleware` → `x402ResourceServer.settlePayment` → facilitator `settle()`
+    - Trace the code path: `agentPayMiddleware` → `x402ResourceServer.settlePayment` → facilitator `settle()`
     - Confirm that `capture: "auto"` in `extra` triggers a settle call
     - Identify where the conditional should be
 
@@ -2910,7 +2910,7 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
     - Only perform `verifyPayment` (signature check)
 
   - [ ] 36.3 Fix the facilitator `settle()` for auto-capture
-    - In `AgenticPayFacilitatorClient.settle()`: if the payment was auto-captured, return `{ success: true }` immediately without making an HTTP call
+    - In `AgentPayFacilitatorClient.settle()`: if the payment was auto-captured, return `{ success: true }` immediately without making an HTTP call
     - This is also addressed in Task 32.5 (Agent Pay has no `/capture` endpoint)
 
   - [ ] 36.4 Update spec requirements
@@ -2945,11 +2945,11 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
     }
     ```
 
-  - [ ] 37.2 Update `AgenticPayPaymentExtra` type
+  - [ ] 37.2 Update `AgentPayPaymentExtra` type
     - Add `description?: string` and `dimensions?: Record<string, string | number>` to the extra fields
     - These flow from the service's payment requirements config into the quote token
 
-  - [ ] 37.3 Update `AgenticPayServerScheme.enhancePaymentRequirements`
+  - [ ] 37.3 Update `AgentPayServerScheme.enhancePaymentRequirements`
     - Read `description` and `dimensions` from `paymentRequirements.extra`
     - Include them in the quote token payload when present
     - Omit when not provided (keep backward compatible)
@@ -2965,7 +2965,7 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
       routes: {
         'GET /api/premium': {
           price: 0.15,
-          network: 'aws:marketplace',
+          network: 'aws:base',
           description: 'Premium API access - 1 request',
           dimensions: { requests: 1, tier: 'premium' }
         }
@@ -3013,88 +3013,88 @@ All tasks depend on Task 31 (terminology refactor) being completed first. Tasks 
 
 ---
 
-- [x] 38. Rename Agentic Pay → Agentic Pay (Codebase-Wide)
+- [x] 38. Rename Agent Pay → Agent Pay (Codebase-Wide)
 
   **Priority: Next — Required before release**
 
-  Remove all references to "FAB" (Agentic Pay) and rename to "Agentic Pay" throughout the codebase. This is a branding alignment — the product is "AWS Marketplace Agent Pay", not "FAB".
+  Remove all references to "FAB" (Agent Pay) and rename to "Agent Pay" throughout the codebase. This is a branding alignment — the product is "AWS Marketplace Agent Pay", not "FAB".
 
   **Scope of changes:**
 
   **Directory rename:**
-  - `src/fab/` → `src/agentic-pay/`
+  - `src/fab/` → `src/agent-pay/`
 
   **Class/type renames:**
-  - `FABScheme` → `AgenticPayScheme`
-  - `AgenticPayClientScheme` → `AgenticPayClientScheme` (re-export alias)
-  - `AgenticPayServerScheme` → `AgenticPayServerScheme` (re-export alias)
-  - `AgenticPayFacilitatorScheme` → `AgenticPayFacilitatorScheme` (re-export alias)
-  - `AgenticPayAWSClientScheme` → `AgenticPayAWSClientScheme`
-  - `AgenticPayAWSServerScheme` → `AgenticPayAWSServerScheme`
-  - `AgenticPayAWSFacilitatorScheme` → `AgenticPayAWSFacilitatorScheme`
-  - `AgenticPayClientSchemeConfig` → `AgenticPayClientSchemeConfig`
-  - `AgenticPayServerSchemeConfig` → `AgenticPayServerSchemeConfig`
-  - `AgenticPayFacilitatorSchemeConfig` → `AgenticPayFacilitatorSchemeConfig`
-  - `FABResourceServer` → `AgenticPayResourceServer`
-  - `FABResourceServerOptions` → `AgenticPayResourceServerOptions`
-  - `FABResourceServerConfig` → `AgenticPayResourceServerConfig`
-  - `FABClientOptions` → `AgenticPayClientOptions`
-  - `FABClientConfig` → `AgenticPayClientConfig`
-  - `FABClient` → `AgenticPayClient` (builder return type)
-  - `FABMiddlewareConfig` → `AgenticPayMiddlewareConfig`
-  - `FABRouteConfig` → `AgenticPayRouteConfig`
-  - `FABRoutesConfig` → `AgenticPayRoutesConfig`
-  - `AgenticPayPaymentExtra` → `AgenticPayPaymentExtra`
-  - `AgenticPayPayloadV2` → `AgenticPayPayloadV2`
-  - `FABSettlement` → `AgenticPaySettlement`
-  - `FABSupport` → `AgenticPaySupport`
-  - `FABTerms` → `AgenticPayTerms`
-  - `AgenticPayError` → `AgenticPayError`
+  - `FABScheme` → `AgentPayScheme`
+  - `AgentPayClientScheme` → `AgentPayClientScheme` (re-export alias)
+  - `AgentPayServerScheme` → `AgentPayServerScheme` (re-export alias)
+  - `AgentPayFacilitatorScheme` → `AgentPayFacilitatorScheme` (re-export alias)
+  - `AgentPayAWSClientScheme` → `AgentPayAWSClientScheme`
+  - `AgentPayAWSServerScheme` → `AgentPayAWSServerScheme`
+  - `AgentPayAWSFacilitatorScheme` → `AgentPayAWSFacilitatorScheme`
+  - `AgentPayClientSchemeConfig` → `AgentPayClientSchemeConfig`
+  - `AgentPayServerSchemeConfig` → `AgentPayServerSchemeConfig`
+  - `AgentPayFacilitatorSchemeConfig` → `AgentPayFacilitatorSchemeConfig`
+  - `FABResourceServer` → `AgentPayResourceServer`
+  - `FABResourceServerOptions` → `AgentPayResourceServerOptions`
+  - `FABResourceServerConfig` → `AgentPayResourceServerConfig`
+  - `FABClientOptions` → `AgentPayClientOptions`
+  - `FABClientConfig` → `AgentPayClientConfig`
+  - `FABClient` → `AgentPayClient` (builder return type)
+  - `FABMiddlewareConfig` → `AgentPayMiddlewareConfig`
+  - `FABRouteConfig` → `AgentPayRouteConfig`
+  - `FABRoutesConfig` → `AgentPayRoutesConfig`
+  - `AgentPayPaymentExtra` → `AgentPayPaymentExtra`
+  - `AgentPayPayloadV2` → `AgentPayPayloadV2`
+  - `FABSettlement` → `AgentPaySettlement`
+  - `FABSupport` → `AgentPaySupport`
+  - `FABTerms` → `AgentPayTerms`
+  - `AgentPayError` → `AgentPayError`
 
   **Constant renames:**
-  - `AGENTIC_PAY_SCHEME = 'fab'` → `AGENTIC_PAY_SCHEME = 'aws:marketplace'`
-  - `AGENTIC_PAY_CAIP_FAMILY = 'fab:*'` → `AGENTIC_PAY_CAIP_FAMILY = 'aws:*'`
-  - `AGENTIC_PAY_SENTINEL_PAY_TO = 'urn:x402:agentic-pay:see-quote'` → `AGENTIC_PAY_SENTINEL_PAY_TO = 'urn:x402:agentic-pay:see-quote'`
+  - `AGENT_PAY_SCHEME = 'fab'` → `AGENT_PAY_SCHEME = 'aws:base'`
+  - `AGENT_PAY_CAIP_FAMILY = 'fab:*'` → `AGENT_PAY_CAIP_FAMILY = 'aws:*'`
+  - `AGENT_PAY_SENTINEL_PAY_TO = 'urn:x402:agent-pay:see-quote'` → `AGENT_PAY_SENTINEL_PAY_TO = 'urn:x402:agent-pay:see-quote'`
 
   **Function renames:**
-  - `createAgenticPayResourceServer` → `createAgenticPayResourceServer`
-  - `createAgenticPayClient` → `createAgenticPayClient`
-  - `buildAgenticPayResourceServer` → `buildAgenticPayResourceServer`
-  - `buildAgenticPayClient` → `buildAgenticPayClient`
-  - `registerAgenticPayNetworks` → `registerAgenticPayNetworks`
-  - `agenticPayMiddleware` → `agenticPayMiddleware`
+  - `createAgentPayResourceServer` → `createAgentPayResourceServer`
+  - `createAgentPayClient` → `createAgentPayClient`
+  - `buildAgentPayResourceServer` → `buildAgentPayResourceServer`
+  - `buildAgentPayClient` → `buildAgentPayClient`
+  - `registerAgentPayNetworks` → `registerAgentPayNetworks`
+  - `agentPayMiddleware` → `agentPayMiddleware`
 
   **Variable renames (in code):**
-  - `fabPayload` → `agenticPayPayload`
-  - `fabClient` → `agenticPayClient`
-  - `fabServer` → `agenticPayServer`
-  - `fabFacilitator` → `agenticPayFacilitator`
-  - `fabClientScheme` → `agenticPayClientScheme`
+  - `fabPayload` → `agentPayPayload`
+  - `fabClient` → `agentPayClient`
+  - `fabServer` → `agentPayServer`
+  - `fabFacilitator` → `agentPayFacilitator`
+  - `fabClientScheme` → `agentPayClientScheme`
 
   **Package:**
-  - `@x402/aws-agentic-pay` → `@x402/aws-agentic-pay`
+  - `aws-agent-pay-x402` → `aws-agent-pay-x402`
   - Package description updated
 
   **Wire-format changes:**
-  - x402 scheme identifier: `"fab"` → `"aws:marketplace"`
-  - Sentinel payTo: `"urn:x402:agentic-pay:see-quote"` → `"urn:x402:agentic-pay:see-quote"`
+  - x402 scheme identifier: `"fab"` → `"aws:base"`
+  - Sentinel payTo: `"urn:x402:agent-pay:see-quote"` → `"urn:x402:agent-pay:see-quote"`
   - CAIP family: `"fab:*"` → `"aws:*"`
 
   **Import path changes:**
-  - All imports from `./fab/` → `./agentic-pay/`
-  - Package sub-path exports: `@x402/aws-agentic-pay/client`, `/server`, `/facilitator`
+  - All imports from `./fab/` → `./agent-pay/`
+  - Package sub-path exports: `aws-agent-pay-x402/client`, `/server`, `/facilitator`
 
   **Documentation:**
-  - All .md files: replace Agentic Pay terminology with Agentic Pay
+  - All .md files: replace Agent Pay terminology with Agent Pay
   - Spec requirement IDs: `FAB-*` → `APAY-*`
   - Update all code examples in docs
 
   **Test files:**
   - Update all test descriptions and variable names
-  - Update scheme identifier assertions from `'fab'` to `'aws:marketplace'`
+  - Update scheme identifier assertions from `'fab'` to `'aws:base'`
 
   **Execution steps:**
-  1. Rename `src/fab/` directory → `src/agentic-pay/`
+  1. Rename `src/fab/` directory → `src/agent-pay/`
   2. Sed replace all identifiers (classes, types, constants, functions, variables)
   3. Update import paths
   4. Update package.json (name, exports, description)
@@ -3107,7 +3107,7 @@ All tasks depend on Task 31 (terminology refactor) being completed first. Tasks 
 
   **Risk:** High — 1100+ references across 80+ files. Mechanically straightforward but large surface area. Must be done in one pass to avoid partial states.
 
-  **Breaking changes:** Yes — this changes the x402 scheme identifier from `"fab"` to `"aws:marketplace"`, the package name, and all public API names. Any existing consumers would need to update imports.
+  **Breaking changes:** Yes — this changes the x402 scheme identifier from `"fab"` to `"aws:base"`, the package name, and all public API names. Any existing consumers would need to update imports.
 
 ---
 
@@ -3119,13 +3119,13 @@ All tasks depend on Task 31 (terminology refactor) being completed first. Tasks 
 
   | Decision | Current Value | Question |
   |----------|---------------|----------|
-  | x402 scheme identifier | `"aws:marketplace"` | Is this the final wire-format string? Once shipped, changing it is a breaking protocol change. |
-  | Package name | `@x402/aws-agentic-pay` | Confirmed? Alternatives: `@x402/agentic-pay`, `@aws/agentic-pay-x402` |
-  | Network identifier | `"aws:marketplace"` (same as scheme) | Is scheme = network intentional? In x402, these are typically different (e.g., scheme=`"exact"`, network=`"eip155:8453"`). |
-  | Sentinel URN | `"urn:x402:agentic-pay:see-quote"` | Any concerns with this format? |
+  | x402 scheme identifier | `"aws:base"` | Is this the final wire-format string? Once shipped, changing it is a breaking protocol change. |
+  | Package name | `aws-agent-pay-x402` | Confirmed? Alternatives: `@x402/agent-pay`, `@aws/agent-pay-x402` |
+  | Network identifier | `"aws:base"` (same as scheme) | Is scheme = network intentional? In x402, these are typically different (e.g., scheme=`"exact"`, network=`"eip155:8453"`). |
+  | Sentinel URN | `"urn:x402:agent-pay:see-quote"` | Any concerns with this format? |
   | CAIP family | `"aws:*"` | Does this conflict with any other AWS x402 schemes? |
-  | Public class names | `AgenticPayClientScheme`, `AgenticPayServerScheme`, etc. | Any preference for shorter names? |
-  | Service branding | "Agentic Pay" vs "Agent Pay" vs "AWS Marketplace Agent Pay" | Which is the canonical short name for developer-facing docs? |
+  | Public class names | `AgentPayClientScheme`, `AgentPayServerScheme`, etc. | Any preference for shorter names? |
+  | Service branding | "Agent Pay" vs "Agent Pay" vs "AWS Marketplace Agent Pay" | Which is the canonical short name for developer-facing docs? |
 
   **Action items:**
   - [ ] Schedule review with product/business owner
@@ -3140,13 +3140,13 @@ All tasks depend on Task 31 (terminology refactor) being completed first. Tasks 
 
   **Priority: Medium — Useful for release but core is already working**
 
-  The core `agenticPayMiddleware` is implemented (`src/middleware/express.ts`) with 15 unit tests. This task covers enhancements for production readiness.
+  The core `agentPayMiddleware` is implemented (`src/middleware/express.ts`) with 15 unit tests. This task covers enhancements for production readiness.
 
   **What's already done:**
   - Route matching (exact, wildcard, method-agnostic)
   - 402 response generation with quote token
   - Payment verification via x402ResourceServer
-  - `req.agenticPayPayment` attachment after verification
+  - `req.agentPayPayment` attachment after verification
   - Lazy server initialization
   - `onPaymentVerified` and `onPaymentSettled` hooks
   - `onError` custom error handler
@@ -3175,7 +3175,7 @@ All tasks depend on Task 31 (terminology refactor) being completed first. Tasks 
     - Return cached response for duplicate payment presentations
 
   - [ ] 40.5 Add health check endpoint option
-    - Optional `/health` or `/_agentic-pay/health` endpoint
+    - Optional `/health` or `/_agent-pay/health` endpoint
     - Reports middleware status, server initialization state
 
   - [ ] 40.6 Create production example

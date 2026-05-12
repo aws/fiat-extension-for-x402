@@ -1,27 +1,27 @@
 /**
- * @x402/aws-agentic-pay - Agentic Pay x402 TypeScript Extension
+ * aws-agent-pay-x402 - Agent Pay x402 TypeScript Extension
  * 
- * This module provides the Agentic Pay (Federated Application Billing) implementation
+ * This module provides the Agent Pay (Federated Application Billing) implementation
  * for the x402 payment protocol.
  */
 
 // Scheme implementations
-export { AgenticPayClientScheme, AgenticPayServerScheme, AgenticPayFacilitatorScheme } from './agentic-pay';
+export { AgentPayClientScheme, AgentPayServerScheme, AgentPayFacilitatorScheme } from './agent-pay';
 
 // Pre-configured network schemes
-export { AgenticPayAWSClientScheme, AgenticPayAWSServerScheme, AgenticPayAWSFacilitatorScheme } from './networks';
+export { AgentPayAWSClientScheme, AgentPayAWSServerScheme, AgentPayAWSFacilitatorScheme } from './networks';
 
 // Configuration types
 export type {
   SigningKeysConfig,
-  AgenticPayConfig,
-  AgenticPayClientForClient,
-  AgenticPayClientForFacilitator,
-  AgenticPayClient,
-  AgenticPayClientSchemeConfig,
-  AgenticPayServerSchemeConfig,
-  AgenticPayFacilitatorSchemeConfig,
-  ServiceAgenticPaySigner as ServiceAgenticPaySignerInterface,
+  AgentPayConfig,
+  AgentPayClientForClient,
+  AgentPayClientForFacilitator,
+  AgentPayClient,
+  AgentPayClientSchemeConfig,
+  AgentPayServerSchemeConfig,
+  AgentPayFacilitatorSchemeConfig,
+  ServiceAgentPaySigner as ServiceAgentPaySignerInterface,
   DpopJwk,
   CreateAgentPaymentRequest,
   CreateAgentPaymentResponse,
@@ -30,31 +30,31 @@ export type {
   ListAgentPaymentsResponse
 } from './config';
 
-// Agentic Pay client implementation
-export { DefaultAgenticPayClient } from './agentic-pay-client';
+// Agent Pay client implementation
+export { DefaultAgentPayClient } from './agent-pay-client';
 
 // Facilitator client implementation
 export { InProcessFacilitatorClient } from './facilitator-client';
-export { AgenticPayFacilitatorClient } from './agentic-pay-facilitator-client';
-export type { AgenticPayFacilitatorAuthConfig } from './agentic-pay-facilitator-client';
+export { AgentPayFacilitatorClient } from './agent-pay-facilitator-client';
+export type { AgentPayFacilitatorAuthConfig } from './agent-pay-facilitator-client';
 
 // Signers
-export { toServiceAgenticPaySigner, toAgenticPaySigner } from './signer';
-export type { ServiceAgenticPaySigner, AgenticPaySigner } from './signer';
+export { toServiceAgentPaySigner, toAgentPaySigner } from './signer';
+export type { ServiceAgentPaySigner, AgentPaySigner } from './signer';
 
 // Types
 export type {
   SettlementMethod,
   SettlementCycle,
-  AgenticPaySettlement,
-  AgenticPaySupport,
-  AgenticPayTerms,
-  AgenticPayPaymentExtra,
+  AgentPaySettlement,
+  AgentPaySupport,
+  AgentPayTerms,
+  AgentPayPaymentExtra,
   QuoteTokenPrice,
   QuoteTokenPayload,
   PaymentContext,
   PaymentTokenPayload,
-  AgenticPayPayloadV2,
+  AgentPayPayloadV2,
   DPoPKeyPair,
   DPoPProofPayload,
   DPoPProofOptions,
@@ -64,7 +64,7 @@ export type {
 
 // Error classes
 export {
-  AgenticPayError,
+  AgentPayError,
   ValidationError,
   SignatureError,
   ExpiryError,
@@ -75,13 +75,13 @@ export {
 
 // Constants
 export {
-  AGENTIC_PAY_SCHEME,
+  AGENT_PAY_SCHEME,
   SETTLEMENT_METHODS,
   SETTLEMENT_CYCLES,
   DEFAULT_QUOTE_VALIDITY_SECONDS,
   DEFAULT_PAYMENT_VALIDITY_SECONDS,
-  AGENTIC_PAY_CAIP_FAMILY,
-  AGENTIC_PAY_SENTINEL_PAY_TO,
+  AGENT_PAY_CAIP_FAMILY,
+  AGENT_PAY_SENTINEL_PAY_TO,
   DEFAULT_NETWORK
 } from './constants';
 
@@ -101,15 +101,15 @@ export {
   clearServiceJWKSCache
 } from './utils';
 
-// Agentic Pay Discovery
+// Agent Pay Discovery
 export {
-  getAgenticPayBaseUrl,
-  discoverAgenticPayEndpoints,
-  fetchAgenticPayPublicKeys,
+  getAgentPayBaseUrl,
+  discoverAgentPayEndpoints,
+  fetchAgentPayPublicKeys,
   clearDiscoveryCache,
   clearJWKSCache
 } from './discovery';
-export type { AgenticPayDiscoveryMetadata } from './discovery';
+export type { AgentPayDiscoveryMetadata } from './discovery';
 
 // Security utilities
 export { ALLOWED_ALGORITHMS, secureCompare, validateUrl } from './security';
@@ -127,28 +127,28 @@ export {
 
 // Express Middleware
 export {
-  agenticPayMiddleware,
-  type AgenticPayMiddlewareConfig,
-  type AgenticPayRouteConfig,
-  type AgenticPayRoutesConfig,
+  agentPayMiddleware,
+  type AgentPayMiddlewareConfig,
+  type AgentPayRouteConfig,
+  type AgentPayRoutesConfig,
   type PaymentInfo,
 } from './middleware';
 
 // Builders (network-aware facilitator routing)
 export {
-  createAgenticPayResourceServer,
-  createAgenticPayClient,
-  buildAgenticPayResourceServer,
-  buildAgenticPayClient,
-  registerAgenticPayNetworks
+  createAgentPayResourceServer,
+  createAgentPayClient,
+  buildAgentPayResourceServer,
+  buildAgentPayClient,
+  registerAgentPayNetworks
 } from './builders';
 export type {
-  AgenticPayResourceServerOptions,
-  AgenticPayResourceServer,
+  AgentPayResourceServerOptions,
+  AgentPayResourceServer,
   NetworkOptions,
   InitializeOptions,
-  AgenticPayClientOptions,
-  AgenticPayClientBuilder,
-  AgenticPayResourceServerConfig,
-  AgenticPayClientConfig
+  AgentPayClientOptions,
+  AgentPayClientBuilder,
+  AgentPayResourceServerConfig,
+  AgentPayClientConfig
 } from './builders';
