@@ -111,6 +111,9 @@ export {
 } from './discovery';
 export type { AgenticPayDiscoveryMetadata } from './discovery';
 
+// Security utilities
+export { ALLOWED_ALGORITHMS, secureCompare, validateUrl } from './security';
+
 // DPoP (Demonstrating Proof-of-Possession)
 export {
   generateDPoPKeyPair,

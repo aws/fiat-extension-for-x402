@@ -13,6 +13,7 @@
  */
 
 import type { FacilitatorClient } from '@x402/core/http';
+import { ALLOWED_ALGORITHMS, secureCompare } from './security';
 import type {
   Network,
   PaymentPayload,
@@ -121,10 +122,11 @@ export class AgenticPayFacilitatorClient implements FacilitatorClient {
       // 1. Fetch Agentic Pay's JWKS
       const agenticPayJWKS = await this.fetchJWKS(this.agenticPayBaseUrl);
 
-      // 2. Verify payment token signature
+      // 2. Verify payment token signature (algorithm allowlist enforced)
       const { payload: paymentTokenPayload } = await jose.jwtVerify(
         apPayload.paymentToken,
-        jose.createLocalJWKSet(agenticPayJWKS)
+        jose.createLocalJWKSet(agenticPayJWKS),
+        { algorithms: ALLOWED_ALGORITHMS }
       );
 
       // 3. Check payment token expiry
@@ -147,8 +149,8 @@ export class AgenticPayFacilitatorClient implements FacilitatorClient {
         };
       }
 
-      // 5. Verify quote token matches requirements
-      if (quoteToken !== extra.quoteToken) {
+      // 5. Verify quote token matches requirements (constant-time comparison)
+      if (!secureCompare(quoteToken, extra.quoteToken)) {
         return {
           isValid: false,
           invalidReason: 'invalid_payment',
@@ -162,8 +164,10 @@ export class AgenticPayFacilitatorClient implements FacilitatorClient {
       // 7. Fetch service's JWKS
       const serviceJWKS = await this.fetchJWKS(quote.iss);
 
-      // 8. Verify quote token signature
-      await jose.jwtVerify(quoteToken, jose.createLocalJWKSet(serviceJWKS));
+      // 8. Verify quote token signature (algorithm allowlist enforced)
+      await jose.jwtVerify(quoteToken, jose.createLocalJWKSet(serviceJWKS), {
+        algorithms: ALLOWED_ALGORITHMS
+      });
 
       // 9. Verify amounts match
       const quotePrice = Array.isArray(quote.price) ? quote.price[0] : quote.price;

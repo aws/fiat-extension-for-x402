@@ -3,6 +3,7 @@
  */
 
 import * as jose from 'jose';
+import { ALLOWED_ALGORITHMS, secureCompare } from '../../security';
 import { PaymentPayload, PaymentRequirements, VerifyResponse } from '@x402/core/types';
 import type { AgenticPayClientForFacilitator } from '../../config';
 import { AgenticPayPayloadV2, AgenticPayPaymentExtra, MismatchError } from '../../types';
@@ -59,7 +60,7 @@ export async function verifyPayment(
     const tokenPaymentId = paymentJWT.payment_id ||
       paymentJWT.payment_context?.transaction_id;
 
-    if (payloadPaymentId && tokenPaymentId && payloadPaymentId !== tokenPaymentId) {
+    if (payloadPaymentId && tokenPaymentId && !secureCompare(payloadPaymentId, tokenPaymentId)) {
       throw new MismatchError(
         'Payment ID mismatch',
         tokenPaymentId,
@@ -103,6 +104,7 @@ export async function verifyPayment(
       // Disable jose's built-in exp check — we check it separately with a specific error reason
       await jose.jwtVerify(extra.quoteToken, jose.createLocalJWKSet(jwksData), {
         clockTolerance: Infinity,
+        algorithms: ALLOWED_ALGORITHMS,
       });
     } catch (jwksError) {
       const errorMessage = jwksError instanceof Error ? jwksError.message : String(jwksError);

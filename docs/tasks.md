@@ -747,7 +747,7 @@ This document outlines the implementation tasks for building the Agentic Pay x40
     - Measure bundle size (target: < 50KB gzipped)
     - _Requirements: 13.1, 13.2, 13.3, 13.8_
 
-- [ ] 18. Security Hardening
+- [x] 18. Security Hardening
   - [ ] 18.1 Implement input validation for all external inputs
     - Validate URLs to prevent injection
     - Validate JWT algorithms (allowlist RS256, ES256, ES384, ES512)

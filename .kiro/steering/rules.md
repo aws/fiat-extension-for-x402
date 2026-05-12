@@ -30,16 +30,9 @@ inclusion: always
 - Never use "FAB", "Federated Application Billing", or "wallet" in new code or documentation.
 - The x402 scheme identifier is `aws:marketplace`.
 - The network identifier is `aws:marketplace` — use the `DEFAULT_NETWORK` constant, never a magic literal.
-- The package is `@x402/aws-agentic-pay`.
-- Use "allowlist" not "whitelist", "blocklist" not "blacklist".
-
-## Code Style
-
-- Prefer ES384 for payment token signing (matches Agent Pay production).
-- Agent Pay auto-captures on creation — there is no separate capture/settle step.
-- The `settle()` function is a no-op that returns success immediately.
-- Use `agenticPay` (camelCase) for variables, `AgenticPay` (PascalCase) for types/classes, `agentic-pay` (kebab-case) for file names.
 - Keep the `DEFAULT_NETWORK` constant as the single source of truth for the network string.
+- The package is `@x402/aws-agentic-pay`.
+- Use inclusive terms: "allowlist" not "whitelist", "blocklist" not "blacklist", etc.
 
 ## API Contract
 
