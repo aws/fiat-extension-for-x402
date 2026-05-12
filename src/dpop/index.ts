@@ -5,7 +5,7 @@
  * for DPoP token binding as specified in RFC 9449.
  */
 
-export { generateDPoPKeyPair, type DPoPAlgorithm } from './key-generation';
+export { generateDPoPKeyPair, toDpopJwk, type DPoPAlgorithm } from './key-generation';
 export { createDPoPProof, computeJWKThumbprint } from './proof-creation';
 export { verifyDPoPProof, extractDPoPThumbprint } from './proof-verification';
 

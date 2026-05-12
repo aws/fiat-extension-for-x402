@@ -5,7 +5,7 @@
  *
  * Usage:
  *   const client = createFABClient({ ... });
- *   client.registerNetwork('fab:aws');
+ *   client.registerNetwork('aws:marketplace');
  *   client.registerNetwork('eip155:8453');
  *
  * Or use the convenience builder:
@@ -87,7 +87,7 @@ function validateClientConfig(config: FABClientOptions): void {
  *   agenticPayAuth: { type: 'apiKey', apiKey: process.env.AGENTIC_PAY_API_KEY },
  * });
  *
- * client.registerNetwork('fab:aws');
+ * client.registerNetwork('aws:marketplace');
  * client.registerNetwork('eip155:8453');
  *
  * const payload = await client.createPaymentPayload(paymentRequired);

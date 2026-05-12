@@ -49,7 +49,7 @@ const fabServer = createFABResourceServer({
 });
 
 // Register networks individually — easy to extend later
-fabServer.registerNetwork('fab:aws');
+fabServer.registerNetwork('aws:marketplace');
 fabServer.registerNetwork('eip155:8453');
 
 // Initialize (fetches supported kinds from facilitators)
@@ -60,7 +60,7 @@ const server = await fabServer.initialize();
 // In your API endpoint
 const requirements = await server.buildPaymentRequirements({
   scheme: 'fab',
-  network: 'fab:aws',
+  network: 'aws:marketplace',
   payTo: 'your-agentic-pay-id',
   price: 0.15,
 });
@@ -96,7 +96,7 @@ const fabClient = createFABClient({
 });
 
 // Register networks
-fabClient.registerNetwork('fab:aws');
+fabClient.registerNetwork('aws:marketplace');
 fabClient.registerNetwork('eip155:8453');
 
 // When you receive a 402 response
@@ -125,7 +125,7 @@ const fabServer = createFABResourceServer({
 });
 
 // FAB handles these networks via your Agentic Pay provider
-fabServer.registerNetwork('fab:aws');
+fabServer.registerNetwork('aws:marketplace');
 fabServer.registerNetwork('eip155:8453');
 
 // Networks not registered (e.g., solana:mainnet) automatically
@@ -143,7 +143,7 @@ If you prefer a single call, the legacy `buildFABResourceServer` still works:
 import { buildFABResourceServer } from '@x402/fab';
 
 const server = await buildFABResourceServer({
-  fabNetworks: ['fab:aws', 'eip155:8453'],
+  fabNetworks: ['aws:marketplace', 'eip155:8453'],
   agenticPayBaseUrl: 'https://pay.aws.amazon.com',
   agenticPayId: 'my-agentic-pay',
   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
@@ -163,7 +163,7 @@ const facilitatorClient = new AgenticPayFacilitatorClient('https://pay.aws.amazo
 const server = new x402ResourceServer(facilitatorClient);
 
 // Helper to register FAB for multiple networks in one call
-registerFABNetworks(server, ['fab:aws', 'eip155:8453'], {
+registerFABNetworks(server, ['aws:marketplace', 'eip155:8453'], {
   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
   serviceUrl: 'https://api.example.com',
 });
@@ -250,13 +250,13 @@ const dpopKeyPair = await generateDPoPKeyPair('ES256');
 // Create a DPoP proof for a specific request
 const proof = await createDPoPProof(dpopKeyPair, {
   method: 'POST',
-  url: 'https://pay.aws.amazon.com/transactions',
+  url: 'https://pay.aws.amazon.com/CreateAgentPayment',
 });
 
 // Server-side: verify the proof
 const result = await verifyDPoPProof(proof, {
   method: 'POST',
-  url: 'https://pay.aws.amazon.com/transactions',
+  url: 'https://pay.aws.amazon.com/CreateAgentPayment',
 });
 ```
 
@@ -318,46 +318,43 @@ const server = new FABAWSServerScheme({ signingKeys, serviceUrl });
 ## Payment Flow
 
 1. Client requests protected resource
-2. Service returns 402 Payment Required with quote token
-3. Client sends quote to Agentic Pay for authorization
-4. Agentic Pay returns signed payment token
+2. Service returns 402 Payment Required with signed quote token
+3. Client sends quote token to Agent Pay (`POST /CreateAgentPayment`)
+4. Agent Pay verifies quote, auto-captures payment, returns signed payment JWT
 5. Client retries request with payment token
-6. Service verifies payment with Agentic Pay (via facilitator)
-7. Service settles payment (capture)
-8. Service delivers resource
+6. Service verifies payment token signature (Agent Pay's ES384 public key)
+7. Service delivers resource
 
-The Agentic Pay provider acts as both payment issuer and facilitator - no separate facilitator service needed.
+Agent Pay auto-captures on creation — there is no separate settlement step.
 
-## Agentic Pay Compatibility
+## Agent Pay Integration
 
-FAB is Agentic Pay provider agnostic. Any Agentic Pay provider can work with this SDK as long as it implements the standard HTTP API interface:
+FAB integrates with the AWS Marketplace Agent Pay Service. The SDK communicates with the following API:
 
-### Required Agentic Pay Endpoints
+### Agent Pay API Endpoints
 
-**For Clients (end users):**
-- `POST /transactions` - Create/authorize a new transaction
-  - Request: `{ network, amount, currency, payTo, quoteToken, agenticPayId }`
-  - Response: `{ transactionId, paymentToken }`
+**For Clients (AI agents / buyers):**
+- `POST /CreateAgentPayment` - Create and auto-capture a payment
+  - Request: `{ quoteToken, clientToken?, dpopJwk? }`
+  - Response: `{ paymentId, paymentToken, createdAt }`
+- `GET /GetAgentPayment/{paymentId}` - Get full payment detail
+- `POST /ListAgentPayments` - List payments (paginated)
 
-**For Services (merchants/facilitators):**
-- `POST /capture` - Capture/settle an authorized transaction
-  - Request: `{ transactionId, amount, currency }`
-  - Response: `{ success, captureId, timestamp }`
+**For Services (sellers / verifiers):**
+- `GET /.well-known/jwks.json` - Public keys for payment token signature verification (ES384)
 
-**For Both:**
-- `GET /.well-known/jwks.json` - Public keys for JWT signature verification
-- `GET /.well-known/x402-supported` - Supported payment kinds and networks
+**Authentication:** All endpoints use AWS SigV4.
 
 ### Security Model
 
-FAB's security is based on cryptographic signatures, not transaction state lookups:
+FAB's security is based on cryptographic signatures:
 
-1. **Payment token signature** - Proves Agentic Pay authorized the transaction
-2. **Quote token signature** - Proves the service issued the quote
-3. **Amount verification** - Ensures amounts in both tokens match
-4. **Service-side idempotency** - Services track processed transaction IDs to prevent double-spending
+1. **Payment token signature** - Proves Agent Pay authorized the transaction (ES384, KMS-backed)
+2. **Quote token signature** - Proves the service issued the quote (RS256 or ES256)
+3. **DPoP binding** - Optional `cnf.jkt` in payment token binds it to the buyer's ephemeral key
+4. **Idempotency** - `clientToken` ensures duplicate requests return the same response
 
-The signed payment token IS the proof of payment. Services should maintain their own records of processed transactions rather than querying Agentic Pay state.
+The signed payment token IS the proof of payment. Agent Pay auto-captures on creation — there is no separate settlement step.
 
 ### Authentication Flexibility
 
@@ -400,11 +397,11 @@ app.use(fabPaymentMiddleware({
   agenticPayId: 'my-agentic-pay',
   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
   serviceUrl: 'https://api.example.com',
-  networks: ['fab:aws'],
+  networks: ['aws:marketplace'],
   routes: {
     'GET /api/premium': {
       price: 0.15,
-      network: 'fab:aws',
+      network: 'aws:marketplace',
       payTo: 'seller-agentic-pay-id',
     },
   },
@@ -537,25 +534,28 @@ The project targets 90% coverage across all metrics:
 - **Branches**: 90%
 - **Statements**: 90%
 
-306 tests currently passing across unit and integration suites.
+332 tests currently passing across unit and integration suites.
 
 ## Status
 
-Core implementation complete (v0.1.0):
+Core implementation complete (v0.2.0):
+- AWS Marketplace Agent Pay API integration (`CreateAgentPayment`, `GetAgentPayment`, `ListAgentPayments`)
 - x402 scheme integration (client, server, facilitator)
-- JWT-based quote and payment tokens
+- JWT-based quote and payment tokens (ES384 payment tokens from Agent Pay)
+- Auto-capture on payment creation (no separate settle step)
+- Client token idempotency support
+- DPoP proof-of-possession (EC keys: P-256, P-384, P-521)
 - Authentication (API Key, OAuth2, AWS SigV4, Custom)
-- DPoP proof-of-possession
 - Express middleware (`fabPaymentMiddleware`)
 - Network-aware facilitator routing with default fallback
+- Quote token extensions (description, dimensions)
 - Sentinel values for redundant x402 core fields
-- 306 tests passing
+- 332 tests passing
 - Working examples
 
 Known limitations:
 - AWS SigV4 auth is a simplified placeholder (production use needs `@aws-sdk/signature-v4`)
-- Quote token signature verification in the in-process facilitator is best-effort (silently swallows failures); `AgenticPayFacilitatorClient` verifies fully
-- Settlement in the in-process facilitator is a placeholder (use `AgenticPayFacilitatorClient` for real capture)
+- Network identifier is `aws:marketplace` (configurable via `DEFAULT_NETWORK` constant)
 
 See [tasks.md](./docs/tasks.md) for full status and roadmap.
 

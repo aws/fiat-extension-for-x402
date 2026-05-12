@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as jose from 'jose';
 import { FABScheme } from '../../../src/fab/facilitator/scheme';
 import { verifyPayment } from '../../../src/fab/facilitator/verify';
@@ -9,6 +9,7 @@ import type { FABPayloadV2 } from '../../../src/types';
 import { FAB_SCHEME } from '../../../src/constants';
 import { FAB_SENTINEL_PAY_TO } from '../../../src/constants';
 import { createMockAgenticPayClient } from '../../helpers/mock-agentic-pay-client';
+import { clearServiceJWKSCache } from '../../../src/utils';
 
 /**
  * FAB Facilitator Unit Tests
@@ -24,8 +25,12 @@ describe('FAB Facilitator Scheme', () => {
   let publicKey: jose.KeyLike;
   let scheme: FABScheme;
   const agenticPayId = 'agentic-pay-test-456';
+  const mockFetch = vi.fn();
 
   beforeEach(async () => {
+    vi.stubGlobal('fetch', mockFetch);
+    clearServiceJWKSCache();
+
     // Create mock Agentic Pay client
     const mock = await createMockAgenticPayClient(agenticPayId);
     agenticPayClient = mock.agenticPayClient;
@@ -36,6 +41,27 @@ describe('FAB Facilitator Scheme', () => {
       agenticPayId,
       agenticPayClient
     });
+
+    // Mock fetch to serve the service's JWKS (using the same key that signs quote tokens)
+    const servicePublicJWK = await jose.exportJWK(publicKey);
+    servicePublicJWK.kid = 'test-service-key';
+    servicePublicJWK.alg = 'RS256';
+    servicePublicJWK.use = 'sig';
+
+    mockFetch.mockImplementation(async (url: string) => {
+      if (typeof url === 'string' && url.includes('/.well-known/jwks.json')) {
+        return {
+          ok: true,
+          json: async () => ({ keys: [servicePublicJWK] }),
+        };
+      }
+      return { ok: false, statusText: 'Not Found' };
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    clearServiceJWKSCache();
   });
 
   describe('Scheme', () => {

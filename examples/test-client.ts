@@ -67,7 +67,7 @@ async function main() {
     });
 
     // Register networks individually
-    fabClient.registerNetwork('fab:aws');
+    fabClient.registerNetwork('aws:marketplace');
     fabClient.registerNetwork('eip155:8453');
 
     // The underlying x402Client handles payment creation

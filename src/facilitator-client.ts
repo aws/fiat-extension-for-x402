@@ -33,7 +33,7 @@ import type {
  * 
  * // Create facilitator with FAB scheme
  * const facilitator = new x402Facilitator()
- *   .register('fab:aws', new FABFacilitatorScheme({
+ *   .register('aws:marketplace', new FABFacilitatorScheme({
  *     agenticPayId: 'my-agentic-pay',
  *     agenticPay: { baseUrl: 'https://pay.example.com' }
  *   }));

@@ -10,13 +10,6 @@
 // ============================================================================
 
 /**
- * Capture mode for payment settlement
- * - manual: Payment must be explicitly captured by the service
- * - auto: Payment is automatically captured when authorized
- */
-export type CaptureMode = 'manual' | 'auto';
-
-/**
  * Settlement method codes (FAB-specific, with ISO 20022 mapping intent)
  * 
  * Note: These are FAB conceptual codes, not official ISO 20022 settlement method codes.
@@ -77,8 +70,6 @@ export interface FABTerms {
 export interface FABPaymentExtra {
   /** Quote token (signed JWT from service) - REQUIRED */
   quoteToken: string;
-  /** Capture mode - OPTIONAL */
-  capture?: CaptureMode;
   /** Product/service reference identifier - OPTIONAL */
   reference?: string;
   /** Settlement terms - OPTIONAL */
@@ -118,10 +109,12 @@ export interface QuoteTokenPayload {
   price: QuoteTokenPrice | QuoteTokenPrice[];
   /** Payment recipient - seller's Agentic Pay ID */
   payTo: string;
-  /** Capture mode */
-  capture: CaptureMode;
   /** Product/service reference identifier */
   reference: string;
+  /** Human-readable description of what is being charged for - OPTIONAL */
+  description?: string;
+  /** Key-value dimensions describing units consumed (e.g., { tokens: 1500, model: "claude-4" }) - OPTIONAL */
+  dimensions?: Record<string, string | number>;
   /** Settlement terms - OPTIONAL */
   settlement?: FABSettlement;
   /** Support/dispute contact information - OPTIONAL */
@@ -344,6 +337,29 @@ export class DPoPError extends FABError {
     this.name = 'DPoPError';
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, DPoPError);
+    }
+  }
+}
+
+/**
+ * Error thrown when a clientToken is reused with different request parameters (HTTP 409).
+ * The same clientToken with the same parameters returns the cached response (idempotency).
+ * A different set of parameters triggers this error.
+ */
+export class IdempotencyConflictError extends FABError {
+  /** The clientToken that caused the conflict */
+  readonly clientToken: string;
+
+  constructor(clientToken: string, message?: string) {
+    super(
+      message || `Idempotency conflict: clientToken "${clientToken}" was used with different parameters`,
+      'IDEMPOTENCY_CONFLICT',
+      { clientToken }
+    );
+    this.name = 'IdempotencyConflictError';
+    this.clientToken = clientToken;
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, IdempotencyConflictError);
     }
   }
 }

@@ -41,6 +41,12 @@ export const DEFAULT_PAYMENT_VALIDITY_SECONDS = 3600;
 export const FAB_CAIP_FAMILY = 'fab:*';
 
 /**
+ * Default network identifier for AWS Marketplace Agent Pay.
+ * Use this constant instead of hardcoding the network string.
+ */
+export const DEFAULT_NETWORK = 'aws:marketplace';
+
+/**
  * Sentinel value for PaymentRequirements.payTo in FAB.
  * 
  * In FAB, the signed quote token is the authoritative source for the payment

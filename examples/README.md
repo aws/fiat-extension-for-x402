@@ -21,12 +21,12 @@ npm run example:client
 
 - **Two-Phase API**: `createFABResourceServer` / `createFABClient` with `registerNetwork()` for adding networks individually
 - **Multi-Facilitator Routing**: FAB handles registered networks, default x402 facilitator handles the rest
-- **Method Chaining**: `server.registerNetwork('fab:aws').registerNetwork('eip155:8453')`
+- **Method Chaining**: `server.registerNetwork('aws:marketplace').registerNetwork('eip155:8453')`
 - **Authentication**: API Key, OAuth2, and AWS SigV4 authentication to Agentic Pay
 - **DPoP**: Token binding with ephemeral client keys to prevent theft
 - **Payment Flow**: Complete 402 Payment Required → authorize → pay → access flow
 - **Auto Capture**: Automatic payment settlement on verification
-- **Cross-Network FAB**: FAB handling both `fab:aws` and `eip155:8453` (EVM Base) via the same Agentic Pay
+- **Cross-Network FAB**: FAB handling both `aws:marketplace` and `eip155:8453` (EVM Base) via the same Agentic Pay
 
 ## Files
 

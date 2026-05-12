@@ -14,8 +14,6 @@ export interface AgenticPayDiscoveryMetadata {
   jwks_uri: string;
   /** URL where clients create payment transactions */
   payment_endpoint: string;
-  /** URL template for capture endpoint */
-  capture_endpoint: string;
   /** Settlement methods this Agentic Pay provider supports */
   supported_settlement_methods?: string[];
   /** Algorithms used to sign Payment JWTs */
@@ -52,13 +50,13 @@ const networkRegistry = new Map<string, string>();
 /**
  * Register a network's Agentic Pay base URL
  * 
- * @param network - Network identifier (e.g., 'fab:aws')
+ * @param network - Network identifier (e.g., 'aws:marketplace')
  * @param baseUrl - Agentic Pay base URL (e.g., 'https://pay.aws.amazon.com')
  * 
  * @example
  * ```typescript
  * // Register AWS FAB network
- * registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
+ * registerNetwork('aws:marketplace', 'https://pay.aws.amazon.com');
  * 
  * // Register custom FAB network
  * registerNetwork('fab:custom', 'https://custom-pay.example.com');
@@ -75,10 +73,6 @@ export function registerNetwork(network: string, baseUrl: string): void {
   }
 
   const [scheme, provider] = parts;
-
-  if (scheme !== 'fab') {
-    throw new Error(`Unsupported scheme: ${scheme}`);
-  }
 
   if (!provider || provider.trim() === '') {
     throw new Error(`Missing provider in network identifier: ${network}`);
@@ -117,7 +111,7 @@ export function unregisterNetwork(network: string): boolean {
  * @example
  * ```typescript
  * const networks = getRegisteredNetworks();
- * console.log(networks.get('fab:aws'));
+ * console.log(networks.get('aws:marketplace'));
  * ```
  */
 export function getRegisteredNetworks(): Map<string, string> {
@@ -142,32 +136,28 @@ export function clearNetworkRegistry(): void {
  * Looks up Agentic Pay base URL from the registry. If not found, throws an error.
  * You must register networks using registerNetwork() before calling this.
  * 
- * @param network - Network identifier (e.g., 'fab:aws')
+ * @param network - Network identifier (e.g., 'aws:marketplace')
  * @returns Agentic Pay base URL
  * @throws Error if network identifier is invalid or not registered
  * 
  * @example
  * ```typescript
  * // Register first
- * registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
+ * registerNetwork('aws:marketplace', 'https://pay.aws.amazon.com');
  * 
  * // Then get
- * const baseUrl = getAgenticPayBaseUrl('fab:aws');
+ * const baseUrl = getAgenticPayBaseUrl('aws:marketplace');
  * // → "https://pay.aws.amazon.com"
  * ```
  */
 export function getAgenticPayBaseUrl(network: string): string {
   // Validate network format: scheme:provider
   const parts = network.split(':');
-  if (parts.length !== 2) {
+  if (parts.length < 2) {
     throw new Error(`Invalid network identifier format: ${network}`);
   }
 
-  const [scheme, provider] = parts;
-
-  if (scheme !== 'fab') {
-    throw new Error(`Unsupported scheme: ${scheme}`);
-  }
+  const provider = parts.slice(1).join(':');
 
   if (!provider || provider.trim() === '') {
     throw new Error(`Missing provider in network identifier: ${network}`);
@@ -188,13 +178,13 @@ export function getAgenticPayBaseUrl(network: string): string {
  * Fetches the Agentic Pay's OIDC discovery document to get endpoint URLs
  * and supported capabilities.
  * 
- * @param network - Network identifier (e.g., 'fab:aws')
+ * @param network - Network identifier (e.g., 'aws:marketplace')
  * @param options - Discovery options
  * @returns Agentic Pay discovery metadata
  * 
  * @example
  * ```typescript
- * const metadata = await discoverAgenticPayEndpoints('fab:aws');
+ * const metadata = await discoverAgenticPayEndpoints('aws:marketplace');
  * console.log(metadata.payment_endpoint);
  * // → 'https://pay.aws.amazon.com/v1/transactions'
  * ```
@@ -250,13 +240,13 @@ export async function discoverAgenticPayEndpoints(
 /**
  * Fetch Agentic Pay's public keys (JWKS) for signature verification
  * 
- * @param network - Network identifier (e.g., 'fab:aws')
+ * @param network - Network identifier (e.g., 'aws:marketplace')
  * @param options - Fetch options
  * @returns JSON Web Key Set
  * 
  * @example
  * ```typescript
- * const jwks = await fetchAgenticPayPublicKeys('fab:aws');
+ * const jwks = await fetchAgenticPayPublicKeys('aws:marketplace');
  * // Use with jose library to verify signatures
  * ```
  */

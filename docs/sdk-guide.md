@@ -36,7 +36,7 @@ Each core class maintains a registry of `(network → scheme)` pairs. You call `
 // Pseudocode — this is what happens under the hood
 server.register('eip155:8453', evmServerScheme);   // Base chain (EVM)
 server.register('solana:mainnet', solanaScheme);    // Solana
-server.register('fab:aws', fabServerScheme);        // FAB (this extension)
+server.register('aws:marketplace', fabServerScheme);        // FAB (this extension)
 ```
 
 When a payment comes in, the core class looks up the network from the `PaymentRequirements` and delegates to the matching scheme.
@@ -47,7 +47,7 @@ When a payment comes in, the core class looks up the network from the `PaymentRe
 // What the server sends in a 402 response
 interface PaymentRequirements {
   scheme: string;           // e.g. "exact", "fab"
-  network: string;          // e.g. "eip155:8453", "fab:aws"
+  network: string;          // e.g. "eip155:8453", "aws:marketplace"
   payTo: string;            // recipient address/ID
   amount: string;           // e.g. "0.15"
   asset: string;            // e.g. "iso4217:USD", "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
@@ -170,7 +170,7 @@ Client                          Service                         Agentic Pay Prov
   │  2. 402 Payment Required       │                                │
   │     { accepts: [{              │                                │
   │         scheme: "fab",         │                                │
-  │         network: "fab:aws",    │                                │
+  │         network: "aws:marketplace",    │                                │
   │         amount: "0.15",        │                                │
   │         asset: "iso4217:USD",  │                                │
   │         extra: {               │                                │
@@ -212,7 +212,7 @@ The quote token is a JWT signed by the service's private key (RS256 or ES256):
 ```json
 {
   "iss": "https://api.example.com",
-  "aud": "fab:aws",
+  "aud": "aws:marketplace",
   "iat": 1709654400,
   "exp": 1709654700,
   "jti": "550e8400-e29b-41d4-a716-446655440000",
@@ -240,7 +240,7 @@ The payment token is a JWT signed by the Agentic Pay provider's private key:
   "iat": 1709654410,
   "exp": 1709658010,
   "payment_context": {
-    "transaction_id": "fab:aws:a1b2c3d4e5f6g7h8",
+    "transaction_id": "aws:marketplace:a1b2c3d4e5f6g7h8",
     "quote_token": "<original quote token JWT>"
   },
   "cnf": {
@@ -336,7 +336,7 @@ const server = createFABResourceServer({
 });
 
 // Phase 1: register which networks FAB should handle
-server.registerNetwork('fab:aws');
+server.registerNetwork('aws:marketplace');
 
 // Phase 2: initialize (fetches supported kinds, builds routing table)
 const x402Server = await server.initialize();
@@ -386,13 +386,13 @@ Sub-path exports are available for tree-shaking: `@x402/fab/client`, `@x402/fab/
 
 1. **AWS SigV4** — Simplified placeholder implementation. Production should use `@aws-sdk/signature-v4`.
 2. **OIDC Discovery** — Full OIDC discovery (`/.well-known/openid-configuration`) is a stub. However, `fetchServiceJWKS` (direct JWKS fetching from `/.well-known/jwks.json`) is fully implemented with 1-hour caching.
-3. **Settlement (In-Process Facilitator)** — The in-process `FABFacilitatorScheme.settle()` returns a placeholder. The `AgenticPayFacilitatorClient.settle()` performs real HTTP-based capture via `POST /capture`.
-4. **Quote Token Verification (In-Process Facilitator)** — The in-process facilitator's quote signature check is best-effort (silently swallows failures). The `AgenticPayFacilitatorClient` verifies quote token signatures fully.
-5. **Zod Schemas** — Types are fully defined but Zod runtime validation schemas are not fully wired up yet.
+3. **Quote Token Verification (In-Process Facilitator)** — The in-process facilitator now mandatorily verifies quote token signatures by fetching the service's JWKS. If the JWKS endpoint is unreachable or the signature is invalid, verification fails with `invalid_quote`.
+4. **Zod Schemas** — Types are fully defined but Zod runtime validation schemas are not fully wired up yet.
+5. **Settlement** — Agent Pay auto-captures on creation. The `settlePayment()` function is a no-op that returns success immediately. There is no separate `/capture` endpoint.
 
 ### 4.5 Test Suite
 
-306 tests passing across 29 test files. Run with:
+332 tests passing across 31 test files. Run with:
 
 ```bash
 npm test              # single run

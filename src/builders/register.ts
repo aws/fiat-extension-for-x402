@@ -27,7 +27,7 @@ import { ValidationError } from '../types';
  * @example
  * ```typescript
  * const server = new x402ResourceServer(myFacilitatorClient);
- * registerFABNetworks(server, ['fab:aws', 'eip155:8453'], {
+ * registerFABNetworks(server, ['aws:marketplace', 'eip155:8453'], {
  *   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
  *   serviceUrl: 'https://api.example.com',
  * });

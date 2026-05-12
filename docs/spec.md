@@ -1,8 +1,8 @@
 # FAB x402 Extension — System Requirements Specification
 
 **Document ID:** FAB-SRS-001  
-**Version:** 0.1.0  
-**Date:** 2026-03-05  
+**Version:** 0.2.0  
+**Date:** 2026-05-11  
 **Status:** Current State Capture  
 **Methodology:** EARS (Easy Approach to Requirements Syntax) per INCOSE best practices  
 **System:** @x402/fab — Federated Application Billing Extension for x402 Protocol
@@ -83,11 +83,12 @@ The FAB x402 extension operates as a library consumed by three categories of int
 1. Client requests a protected resource from the service.
 2. Service returns HTTP 402 with payment requirements containing a signed quote token.
 3. Client sends the quote token to its Agentic Pay provider for authorization.
-4. Agentic Pay provider returns a signed payment token with a transaction ID.
+4. Agentic Pay provider verifies the quote, captures the payment, and returns a signed payment token.
 5. Client retries the resource request with the payment token.
-6. Service verifies the payment token via the Agentic Pay provider (facilitator).
-7. Service captures/settles the payment.
-8. Service delivers the resource.
+6. Service verifies the payment token signature (Agent Pay's public key via JWKS).
+7. Service delivers the resource.
+
+Note: Agent Pay auto-captures during step 4. The `capture` field in the quote token (`"auto"` or `"manual"`) is a seller-side semantic that controls whether the middleware delivers immediately after verification or defers to the route handler for additional logic.
 
 ### 2.3 Architectural Constraints
 
@@ -136,7 +137,7 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 |----|-------------|
 | FAB-REG-001 | The FAB extension shall identify itself with the scheme name `"fab"`. |
 | FAB-REG-002 | The FAB extension shall use the CAIP family identifier `"fab:*"` for facilitator network matching. |
-| FAB-REG-003 | The FAB extension shall support network identifiers in the format `fab:<provider>` (e.g., `fab:aws`). |
+| FAB-REG-003 | The FAB extension shall support network identifiers in the format `fab:<provider>` (e.g., `aws:marketplace`). |
 | FAB-REG-004 | The FAB extension shall implement the `SchemeNetworkClient`, `SchemeNetworkServer`, and `SchemeNetworkFacilitator` interfaces from `@x402/core`. |
 
 ### 3.2 Type System
@@ -147,7 +148,7 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 | FAB-TYP-002 | The system shall define a `SettlementMethod` type constrained to the values `"INST"` (instant), `"CLRG"` (clearing/batch), and `"CRDT"` (credit/invoice). |
 | FAB-TYP-003 | The system shall define a `SettlementCycle` type constrained to the values `"MNTH"` (monthly), `"WEEK"` (weekly), and `"QRTR"` (quarterly). |
 | FAB-TYP-004 | The system shall define a `FABPaymentExtra` interface containing a required `quoteToken` string field and optional `capture`, `reference`, `settlement`, `support`, and `terms` fields. |
-| FAB-TYP-005 | The system shall define a `QuoteTokenPayload` interface containing the JWT claims `iss`, `aud`, `iat`, `exp`, `jti`, `price`, `payTo`, `capture`, `reference`, and optional `settlement`, `support`, `terms`. |
+| FAB-TYP-005 | The system shall define a `QuoteTokenPayload` interface containing the JWT claims `iss`, `aud`, `iat`, `exp`, `jti`, `price`, `payTo`, `capture`, `reference`, and optional `settlement`, `support`, `terms`, `description` (string), and `dimensions` (Record<string, string \| number>). |
 | FAB-TYP-006 | The system shall define a `PaymentTokenPayload` interface containing the JWT claims `iss`, `sub`, `aud`, `iat`, `exp`, `payment_context` (with `transaction_id` and `quote_token`), and optional `cnf.jkt` for DPoP binding. |
 | FAB-TYP-007 | The system shall define a `FABPayloadV2` interface containing `paymentToken` and `transactionId` string fields for x402 payload transport. |
 
@@ -178,7 +179,7 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 | FAB-SRV-008 | The server scheme shall set the quote token `payTo` field to the service's Agentic Pay identifier from the payment requirements. |
 | FAB-SRV-009 | The server scheme shall set the quote token `capture` field to the value from `extra.capture`, defaulting to `"manual"`. |
 | FAB-SRV-010 | The server scheme shall set the quote token `reference` field to the value from `extra.reference`, defaulting to `"RESOURCE"`. |
-| FAB-SRV-011 | Where settlement, support, or terms are provided in the payment requirements extra data, the server scheme shall include them in the quote token payload. |
+| FAB-SRV-011 | Where settlement, support, terms, description, or dimensions are provided in the payment requirements extra data, the server scheme shall include them in the quote token payload. |
 | FAB-SRV-012 | When `enhancePaymentRequirements` completes, the server scheme shall return the original payment requirements with the signed quote token added to the `extra.quoteToken` field. |
 | FAB-SRV-013 | When `parsePrice` is called with a money string, the server scheme shall extract the numeric amount and currency code and return an `AssetAmount` with the asset formatted as `iso4217:<currency>`. |
 | FAB-SRV-014 | The server scheme constructor shall accept either a `ServiceFABSigner` instance or a `SigningKeysConfig` with `serviceUrl` (from which a signer is created via `toServiceFABSigner`). |
@@ -192,10 +193,10 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 |----|-------------|
 | FAB-CLI-001 | When `createPaymentPayload` is called, the client scheme shall extract the `quoteToken` from the payment requirements `extra` field. |
 | FAB-CLI-002 | If the payment requirements `extra` field does not contain a `quoteToken`, then the client scheme shall throw a `ValidationError`. |
-| FAB-CLI-003 | The client scheme shall decode the quote token to extract the service URL (issuer) and price information. |
-| FAB-CLI-004 | If the decoded quote token does not contain a `price` field, then the client scheme shall throw a `ValidationError` with the message `"Missing price in quote token"`. |
-| FAB-CLI-005 | The client scheme shall call the Agentic Pay provider's `authorize()` method with the network, amount, currency, service URL (as `payTo`), quote token, and Agentic Pay ID. |
-| FAB-CLI-006 | When the Agentic Pay provider returns a `transactionId` and `paymentToken`, the client scheme shall wrap them in a `FABPayloadV2` and return a `PaymentPayloadResult`. |
+| FAB-CLI-003 | The client scheme shall generate a `clientToken` (UUID) for idempotency if one is not provided. |
+| FAB-CLI-004 | The client scheme shall call the Agentic Pay provider's `createPayment()` method with `{ quoteToken, clientToken, dpopJwk? }`. |
+| FAB-CLI-005 | When the Agentic Pay provider returns a `paymentId` and `paymentToken`, the client scheme shall wrap them in a `FABPayloadV2` (setting both `paymentId` and `transactionId` for backward compatibility) and return a `PaymentPayloadResult`. |
+| FAB-CLI-006 | Where a `dpopJwk` is configured on the client scheme, the client scheme shall include it in the `createPayment` request for DPoP binding. |
 | FAB-CLI-007 | The client scheme constructor shall accept either a `AgenticPayClientForClient` instance or a `AgenticPayConfig` (from which a `DefaultAgenticPayClient` is created). |
 | FAB-CLI-008 | If the client scheme constructor receives neither a `agenticPayClient` nor a `Agentic Pay` configuration, then it shall throw a `ValidationError`. |
 
@@ -204,15 +205,14 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 | ID | Requirement |
 |----|-------------|
 | FAB-FAC-001 | When `verify` is called, the facilitator scheme shall verify the payment token JWT signature using the Agentic Pay's public key via the `AgenticPayClientForFacilitator`. |
-| FAB-FAC-002 | When `verify` is called, the facilitator scheme shall extract the quote token from the payment token's `payment_context.quote_token` field. |
-| FAB-FAC-003 | When `verify` is called, the facilitator scheme shall verify that the quote token in the payment matches the quote token in the payment requirements `extra.quoteToken`. |
+| FAB-FAC-002 | When `verify` is called, the facilitator scheme shall verify that `requirements.extra.quoteToken` exists. |
+| FAB-FAC-003 | When `verify` is called, the facilitator scheme shall verify the payment ID in the payload matches the payment ID in the verified payment token. |
 | FAB-FAC-003a | When `verify` is called, the facilitator scheme shall verify the quote token JWT signature by fetching the service's JWKS from `{quote.iss}/.well-known/jwks.json` via `fetchServiceJWKS` and calling `jose.jwtVerify`. If signature verification fails, the facilitator shall return `{ isValid: false, invalidReason: "invalid_quote" }`. |
 | FAB-FAC-003b | When `verify` is called, the facilitator scheme shall check the quote token's `exp` claim against the current time. If the quote token has expired, the facilitator shall return `{ isValid: false, invalidReason: "quote_expired" }`. |
 | FAB-FAC-004 | When `verify` is called, the facilitator scheme shall verify that the amount and currency in the quote token match the payment requirements. |
 | FAB-FAC-005 | When verification succeeds, the facilitator scheme shall return `{ valid: true, transactionId }`. |
 | FAB-FAC-006 | If any verification step fails, then the facilitator scheme shall return `{ valid: false, error: <message> }` without throwing an exception. |
-| FAB-FAC-007 | When `settle` is called, the facilitator scheme shall call the Agentic Pay provider's `capturePayment()` method and return a `SettleResponse`. |
-| FAB-FAC-008 | If settlement fails, then the facilitator scheme shall return `{ settled: false, error: <message> }` without throwing an exception. |
+| FAB-FAC-007 | When `settle` is called, the facilitator scheme shall return `{ success: true }` immediately without making an HTTP call. Agent Pay auto-captures during `CreateAgentPayment` — there is no separate capture endpoint. The `capture` field in the quote token is a seller-side semantic only. |
 | FAB-FAC-009 | When `getSigners` is called, the facilitator scheme shall return an array containing the configured `agenticPayId`. |
 | FAB-FAC-010 | When `getExtra` is called, the facilitator scheme shall return an object containing the `agenticPayId`. |
 | FAB-FAC-011 | The facilitator scheme constructor shall accept either a `AgenticPayClientForFacilitator` instance or a `AgenticPayConfig` (from which a `DefaultAgenticPayClient` is created). |
@@ -260,6 +260,7 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 | FAB-CON-005 | The system shall define `SETTLEMENT_CYCLES` containing `MNTH`, `WEEK`, and `QRTR`. |
 | FAB-CON-006 | The system shall define `FAB_CAIP_FAMILY` as the string `"fab:*"`. |
 | FAB-CON-007 | The system shall define a sentinel constant `FAB_SENTINEL_PAY_TO` with value `"urn:x402:fab:see-quote"` to indicate that the `payTo` field in `PaymentRequirements` is not authoritative and the quote token shall be consulted instead. |
+| FAB-CON-008 | The system shall define `DEFAULT_NETWORK` as the string `"aws:marketplace"`. |
 
 ---
 
@@ -296,7 +297,8 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 | FAB-DPOP-014 | Where a `nonceStore` is configured and the `jti` is new, the system shall store the `jti` with an expiry of `iat + maxAge`. |
 | FAB-DPOP-015 | When `extractDPoPThumbprint` is called with a DPoP proof JWT, the system shall extract the `jwk` from the protected header and return its SHA-256 thumbprint. |
 | FAB-DPOP-016 | If `extractDPoPThumbprint` is called with a proof that has no `jwk` header, then the system shall throw a `DPoPError`. |
-| FAB-DPOP-017 | The system shall define a `DPoPAlgorithm` type constrained to the values `"ES256"` and `"RS256"`. |
+| FAB-DPOP-017 | The system shall define a `DPoPAlgorithm` type constrained to the values `"ES256"`, `"ES384"`, `"ES512"`, and `"RS256"`. |
+| FAB-DPOP-018 | The system shall provide a `toDpopJwk` function that converts a DPoP key pair's public key to the `DpopJwk` format (`{ kty: 'EC', crv, x, y }`) expected by the Agent Pay API. If the key is not EC, it shall throw a `DPoPError`. |
 
 ---
 
@@ -305,15 +307,15 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 | ID | Requirement |
 |----|-------------|
 | FAB-WCL-001 | The system shall define a `DefaultAgenticPayClient` class that implements both `AgenticPayClientForClient` and `AgenticPayClientForFacilitator` interfaces. |
-| FAB-WCL-002 | When `authorize` is called on Agentic Pay client, the system shall send an HTTP POST to `{baseUrl}/transactions` with the payment authorization payload as JSON. |
+| FAB-WCL-002 | When `createPayment` is called on the Agentic Pay client, the system shall send an HTTP POST to `{baseUrl}/CreateAgentPayment` with `{ quoteToken, clientToken?, dpopJwk? }` as JSON. |
 | FAB-WCL-003 | When `verifyPaymentToken` is called on Agentic Pay client, the system shall fetch the Agentic Pay's public keys from `{baseUrl}/.well-known/jwks.json` using `jose.createRemoteJWKSet` and verify the JWT signature. |
-| FAB-WCL-004 | When `capturePayment` is called on Agentic Pay client, the system shall send an HTTP POST to `{baseUrl}/capture` with the transaction ID, amount, and currency as JSON. |
+| FAB-WCL-004 | The `DefaultAgenticPayClient` shall NOT provide a `capturePayment` method. Agent Pay auto-captures on creation. |
 | FAB-WCL-005 | Where authentication is configured on Agentic Pay client, the system shall apply the configured authenticator to all outgoing HTTP requests before sending. |
 | FAB-WCL-006 | Agentic Pay client shall cache JWKS remote sets with a TTL of 1 hour to avoid redundant network requests. |
 | FAB-WCL-007 | If Agentic Pay returns a non-OK HTTP response to `authorize`, then Agentic Pay client shall throw a `ValidationError` containing the HTTP status code and response body. |
-| FAB-WCL-008 | If Agentic Pay response to `authorize` is missing `transactionId` or `paymentToken`, then Agentic Pay client shall throw a `ValidationError`. |
-| FAB-WCL-009 | If Agentic Pay response to `capturePayment` is missing `success` or `captureId`, then Agentic Pay client shall throw a `ValidationError`. |
+| FAB-WCL-008 | If the Agentic Pay response to `createPayment` is missing `paymentId` or `paymentToken`, then the Agentic Pay client shall throw a `ValidationError`. |
 | FAB-WCL-010 | The `DefaultAgenticPayClient` constructor shall strip trailing slashes from the `baseUrl`. |
+| FAB-WCL-011 | If the Agentic Pay service returns HTTP 409 (Conflict), the client shall throw an `IdempotencyConflictError` with the `clientToken` that caused the conflict. |
 
 ### 3.13 Facilitator Client
 
@@ -326,7 +328,7 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 | FAB-FCL-005 | The system shall define a `AgenticPayFacilitatorAuthConfig` interface with an optional `getAuthHeaders(): Promise<Record<string, string>>` method. |
 | FAB-FCL-006 | When `getSupported` is called on the `AgenticPayFacilitatorClient`, the system shall fetch from `{agenticPayBaseUrl}/.well-known/x402-supported` and return the supported payment kinds. |
 | FAB-FCL-007 | When `verify` is called on the `AgenticPayFacilitatorClient`, the system shall: (a) fetch the Agentic Pay's JWKS from `{agenticPayBaseUrl}/.well-known/jwks.json`, (b) verify the payment token signature, (c) check payment token expiry, (d) extract and match the quote token against requirements, (e) fetch the service's JWKS from `{quote.iss}/.well-known/jwks.json`, (f) verify the quote token signature, and (g) verify amounts match. |
-| FAB-FCL-008 | When `settle` is called on the `AgenticPayFacilitatorClient`, the system shall first verify the payment, then send an HTTP POST to `{agenticPayBaseUrl}/capture` with the transaction ID, amount, and currency. |
+| FAB-FCL-008 | When `settle` is called on the `AgenticPayFacilitatorClient`, the system shall return `{ success: true }` immediately without making an HTTP call. Agent Pay auto-captures during `CreateAgentPayment` — there is no `/capture` endpoint. |
 | FAB-FCL-009 | The `AgenticPayFacilitatorClient` shall cache JWKS responses with a TTL of 1 hour. |
 | FAB-FCL-010 | Where `AgenticPayFacilitatorAuthConfig` is provided, the `AgenticPayFacilitatorClient` shall include the auth headers in capture requests. |
 
@@ -343,7 +345,7 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 | FAB-BLD-005 | When multiple facilitator clients are provided to `x402ResourceServer`, the FAB facilitator client shall be positioned first in the array to ensure precedence during `initialize()`. |
 | FAB-BLD-006 | The system shall provide a `registerFABNetworks` helper that registers a `FABServerScheme` for each specified network on an existing `x402ResourceServer` without modifying facilitator client configuration. |
 | FAB-BLD-007 | The `registerNetwork` method on `FABResourceServer` and `FABClient` shall be idempotent — calling it with the same network twice shall have no additional effect. |
-| FAB-BLD-008 | The `registerNetwork` method shall return `this` to support method chaining (e.g., `server.registerNetwork('fab:aws').registerNetwork('eip155:8453')`). |
+| FAB-BLD-008 | The `registerNetwork` method shall return `this` to support method chaining (e.g., `server.registerNetwork('aws:marketplace').registerNetwork('eip155:8453')`). |
 | FAB-BLD-009 | If `initialize()` is called on a `FABResourceServer` with no networks registered, the system shall throw a `ValidationError`. |
 
 ### 3.14 Agentic Pay Discovery
@@ -352,7 +354,7 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 |----|-------------|
 | FAB-DSC-001 | The system shall define a `AgenticPayDiscoveryMetadata` interface containing `issuer`, `jwks_uri`, `payment_endpoint`, `capture_endpoint` (required), and optional `supported_settlement_methods`, `signing_alg_values_supported`, `dpop_signing_alg_values_supported`, `token_endpoint_auth_methods_supported`, and `grant_types_supported`. |
 | FAB-DSC-002 | When `registerNetwork` is called with a valid `fab:<provider>` network identifier and a valid URL, the system shall store the mapping in an internal registry. |
-| FAB-DSC-003 | If `registerNetwork` is called with a network identifier that does not match the `fab:<provider>` format, then the system shall throw an `Error`. |
+| FAB-DSC-003 | The system shall accept any `scheme:provider` format for network identifiers (e.g., `aws:marketplace`, `fab:aws`, `eip155:8453`). The `fab:` prefix restriction has been removed. |
 | FAB-DSC-004 | When `unregisterNetwork` is called, the system shall remove the network from the registry and return `true` if it existed, `false` otherwise. |
 | FAB-DSC-005 | When `getRegisteredNetworks` is called, the system shall return a copy of the network-to-URL registry as a `Map<string, string>`. |
 | FAB-DSC-006 | When `clearNetworkRegistry` is called, the system shall remove all registered networks. |
@@ -369,7 +371,7 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 
 | ID | Requirement |
 |----|-------------|
-| FAB-NET-001 | The system shall provide `FABAWSClientScheme`, `FABAWSServerScheme`, and `FABAWSFacilitatorScheme` as pre-configured scheme implementations for the `fab:aws` network. |
+| FAB-NET-001 | The system shall provide `FABAWSClientScheme`, `FABAWSServerScheme`, and `FABAWSFacilitatorScheme` as pre-configured scheme implementations for the `aws:marketplace` network. |
 | FAB-NET-002 | The AWS pre-configured schemes shall use `https://pay.aws.amazon.com` as the default Agentic Pay base URL. |
 | FAB-NET-003 | `FABAWSClientScheme` shall accept a `{ agenticPayId: string }` configuration and delegate to the base `FABClientScheme` with the AWS Agentic Pay URL. |
 | FAB-NET-004 | `FABAWSServerScheme` shall accept a `{ signingKeys: SigningKeysConfig; serviceUrl: string }` configuration and delegate to the base `FABServerScheme` with the AWS Agentic Pay URL. |
@@ -387,8 +389,7 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 | FAB-MWR-004 | When a request matches a protected route and a valid payment is present in the `Authorization: x402 <base64>`, `X-Payment`, or `payment-signature` header, the middleware shall verify the payment via `x402ResourceServer.verifyPayment`. |
 | FAB-MWR-005 | When payment verification succeeds, the middleware shall attach a `PaymentInfo` object to `req.fabPayment` containing `payer`, `transactionId`, `network`, `amount`, and `asset`, then call `next()`. |
 | FAB-MWR-006 | When payment verification fails, the middleware shall return an HTTP 402 response with a JSON body containing `error` and `details` fields. |
-| FAB-MWR-007 | When the accepted payment requirements specify `capture: "auto"`, the middleware shall call `x402ResourceServer.settlePayment` after successful verification and before calling `next()`. |
-| FAB-MWR-008 | If auto-capture settlement fails, the middleware shall return an HTTP 500 response with a JSON body describing the settlement failure. |
+| FAB-MWR-007 | The middleware shall NOT call `settlePayment` regardless of capture mode — Agent Pay auto-captures during `CreateAgentPayment`. The `capture` field is a seller-side semantic: when `"auto"`, the middleware calls `next()` immediately after verification; when `"manual"`, the middleware still calls `next()` but the `onPaymentSettled` hook is not fired (the seller handles delivery logic in the route handler). |
 | FAB-MWR-009 | When a request does not match any protected route, the middleware shall call `next()` without processing payment logic. |
 | FAB-MWR-010 | The middleware shall lazily initialize the `x402ResourceServer` (via `createFABResourceServer`) on the first request to a protected route, not at middleware creation time. |
 | FAB-MWR-011 | If `fabPaymentMiddleware` is called with an empty `networks` array or an empty `routes` object, then it shall throw a `ValidationError`. |
@@ -402,12 +403,12 @@ Any Agentic Pay provider that integrates with the FAB x402 extension shall expos
 
 | ID | Requirement |
 |----|-------------|
-| FAB-WCOMPAT-001 | A compatible Agentic Pay provider shall expose `POST /transactions` accepting a JSON body with `network`, `amount`, `currency`, `payTo`, `quoteToken`, and `agenticPayId` fields, and returning a JSON response with `transactionId` and `paymentToken` (a signed JWT). |
-| FAB-WCOMPAT-002 | A compatible Agentic Pay provider shall expose `POST /capture` accepting a JSON body with `transactionId`, `amount`, and `currency` fields, and returning a JSON response with `success` (boolean), `captureId`, and `timestamp`. |
+| FAB-WCOMPAT-001 | A compatible Agentic Pay provider shall expose `POST /CreateAgentPayment` accepting a JSON body with `quoteToken` (required), `clientToken` (optional, idempotency key), and `dpopJwk` (optional, EC public key for DPoP binding), and returning a JSON response with `paymentId`, `paymentToken` (signed JWT), and `createdAt`. |
+| FAB-WCOMPAT-002 | Agent Pay auto-captures on creation. No separate `/capture` endpoint is required. |
 | FAB-WCOMPAT-003 | A compatible Agentic Pay provider shall expose `GET /.well-known/jwks.json` returning a JSON Web Key Set containing the public keys used to sign payment tokens. |
 | FAB-WCOMPAT-004 | A compatible Agentic Pay provider shall expose `GET /.well-known/x402-supported` returning a `SupportedResponse` with `x402Version` and a `kinds` array listing supported payment schemes and networks. |
 | FAB-WCOMPAT-005 | Where OIDC discovery is supported, a compatible Agentic Pay provider shall expose `GET /.well-known/openid-configuration` returning a `AgenticPayDiscoveryMetadata` document with at minimum `issuer`, `jwks_uri`, and `payment_endpoint`. |
-| FAB-WCOMPAT-006 | Payment tokens issued by a compatible Agentic Pay provider shall be JWTs signed with RS256 or ES256, containing `iss`, `sub`, `aud`, `iat`, `exp`, and `payment_context` (with `transaction_id` and `quote_token`) claims. |
+| FAB-WCOMPAT-006 | Payment tokens issued by a compatible Agentic Pay provider shall be JWTs signed with ES384, containing `iss`, `sub`, `aud`, `iat`, `exp`, and `payment_context` (with `transaction_id` and `quote_token`) claims. |
 | FAB-WCOMPAT-007 | A compatible Agentic Pay provider shall verify that the `quoteToken` in a transaction request is a valid, unexpired JWT before authorizing the transaction. |
 
 ### 3.17 Exported Stubs
@@ -415,6 +416,15 @@ Any Agentic Pay provider that integrates with the FAB x402 extension shall expos
 | ID | Requirement |
 |----|-------------|
 | FAB-STUB-001 | The system shall export a deprecated `fetchServicePublicKey(serviceUrl)` function that throws an `Error` directing callers to use `fetchServiceJWKS()` instead. The system shall export `fetchServiceJWKS(serviceUrl)` which returns a `jose.createRemoteJWKSet` function compatible with `jose.jwtVerify`, with results cached for 1 hour. The system shall export `clearServiceJWKSCache(serviceUrl?)` to invalidate cached entries. |
+
+### 3.18 Agent Pay API Types
+
+| ID | Requirement |
+|----|-------------|
+| FAB-APAY-001 | The system shall define a `CreateAgentPaymentRequest` interface with `quoteToken` (required string), `clientToken` (optional string, 1-128 chars), and `dpopJwk` (optional `DpopJwk` object). |
+| FAB-APAY-002 | The system shall define a `CreateAgentPaymentResponse` interface with `paymentId` (string, format `awsmp-{UUIDv7}`), `paymentToken` (string, ES384-signed JWT), and `createdAt` (ISO 8601 string). |
+| FAB-APAY-003 | The system shall define a `DpopJwk` interface with `kty: 'EC'`, `crv: 'P-256' | 'P-384' | 'P-521'`, `x: string`, `y: string`. |
+| FAB-APAY-004 | The system shall define an `IdempotencyConflictError` class extending `FABError` with code `'IDEMPOTENCY_CONFLICT'` and a `clientToken` property. |
 
 ---
 
@@ -434,7 +444,7 @@ Any Agentic Pay provider that integrates with the FAB x402 extension shall expos
 | ID | Requirement |
 |----|-------------|
 | FAB-SEC-001 | The system shall validate all external inputs before processing. |
-| FAB-SEC-002 | The system shall whitelist JWT signing algorithms to RS256 and ES256 only. |
+| FAB-SEC-002 | The system shall use an algorithm allowlist restricting JWT signing to RS256, ES256, ES384, and ES512. |
 | FAB-SEC-003 | The system shall check token expiry before performing any further processing. |
 | FAB-SEC-004 | The system shall use `crypto.randomUUID()` for all nonce and JTI generation. |
 | FAB-SEC-005 | The system shall not log private keys, payment tokens, or other sensitive credential material. |
@@ -533,21 +543,19 @@ The `FABClientScheme.createPaymentPayload()` does not sign payment tokens locall
 
 The design.md originally showed a local-signing approach using `AgenticPayFABSigner`. That was an early design iteration that was superseded.
 
-### 6.5 Settlement as a Placeholder
+### 6.5 Settlement (Auto-Capture by Agent Pay)
 
-The facilitator scheme's `settle()` currently returns a success placeholder. Real settlement requires:
+Agent Pay auto-captures during `CreateAgentPayment`. There is no separate `/capture` endpoint in the Agent Pay API. The `settle()` function in both the in-process facilitator and the `AgenticPayFacilitatorClient` returns `{ success: true }` immediately without making any HTTP call.
 
-1. Calling the Agentic Pay's `POST /capture` endpoint to capture held funds
-2. Agentic Pay transferring funds to the service's account
-3. Recording the settlement for reconciliation
-
-This is intentionally deferred because settlement behavior varies by Agentic Pay provider. The `AgenticPayFacilitatorClient.settle()` implements the real HTTP-based capture flow, while the in-process `FABFacilitatorScheme.settle()` remains a stub for testing.
+The `capture` field in the quote token (`"auto"` or `"manual"`) is a **seller-side semantic** — it does not affect whether Agent Pay captures the payment (it always does). It controls the seller's delivery behavior:
+- `"auto"`: The middleware delivers the resource immediately after payment verification.
+- `"manual"`: The seller's route handler decides when/whether to deliver (e.g., after additional validation).
 
 ### 6.6 Service JWKS Fetching
 
 The facilitator needs the service's public key to verify quote token signatures. The `fetchServiceJWKS(serviceUrl)` function fetches JWKS from `{serviceUrl}/.well-known/jwks.json` using `jose.createRemoteJWKSet` and caches results for 1 hour. The original `fetchServicePublicKey` is deprecated in favor of this function.
 
-The `AgenticPayFacilitatorClient` independently fetches service JWKS and verifies quote token signatures — that path is fully operational. The in-process facilitator (`src/fab/facilitator/verify.ts`) also calls `fetchServiceJWKS` and `jose.jwtVerify`, but currently wraps the call in a try/catch that silently swallows failures, making it best-effort. Task 27 tracks making this verification mandatory.
+The `AgenticPayFacilitatorClient` independently fetches service JWKS and verifies quote token signatures — that path is fully operational. The in-process facilitator (`src/fab/facilitator/verify.ts`) now mandatorily verifies quote token signatures by fetching the service's JWKS and calling `jose.jwtVerify`. If the JWKS endpoint is unreachable or the signature is invalid, verification fails with `invalidReason: 'invalid_quote'`. An optional `serviceJWKSUrl` override is supported for proxied services.
 
 ### 6.7 Dependency Choices
 
@@ -613,7 +621,7 @@ Concrete examples of the JWT structures defined in §3.2.
 ```json
 {
   "iss": "https://api.weather.com",
-  "aud": "fab:aws",
+  "aud": "aws:marketplace",
   "iat": 1735689600,
   "exp": 1735689900,
   "jti": "quote_a1b2c3d4",
@@ -635,25 +643,29 @@ Concrete examples of the JWT structures defined in §3.2.
 
 ```json
 {
-  "iss": "https://pay.aws.amazon.com",
-  "sub": "client_uuid_555",
-  "aud": "https://api.weather.com",
+  "iss": "aws-marketplace",
+  "sub": "buyer-account-id",
   "iat": 1735689600,
   "exp": 1735693200,
+  "payment_id": "awsmp-01970f3e-4b2a-7dc0-8e1f-6a3b9c5d7e2f",
   "payment_context": {
-    "transaction_id": "fab:aws:7f8e9d0c1b2a3456",
+    "transaction_id": "awsmp-01970f3e-4b2a-7dc0-8e1f-6a3b9c5d7e2f",
     "quote_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+  },
+  "cnf": {
+    "jkt": "sha256-thumbprint-of-dpop-key"
   }
 }
 ```
 
-### Transaction ID Format
+### Payment ID Format
 
 ```
-fab:aws:7f8e9d0c1b2a3456
-└─┬──┘ └──────┬─────────┘
-  │           └── 16-char hex unique ID (from crypto.randomUUID)
-  └── network identifier
+Payment ID Format:
+awsmp-01970f3e-4b2a-7dc0-8e1f-6a3b9c5d7e2f
+└─┬─┘ └──────────────┬──────────────────────┘
+  │                   └── UUIDv7 (time-ordered)
+  └── prefix (AWS Marketplace Payment)
 ```
 
 

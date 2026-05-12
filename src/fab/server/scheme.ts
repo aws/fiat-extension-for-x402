@@ -108,8 +108,9 @@ export class FABScheme implements SchemeNetworkServer {
         currency
       },
       payTo: paymentRequirements.payTo,
-      capture: (paymentRequirements.extra?.capture as any) || 'manual',
       reference: (paymentRequirements.extra?.reference as string) || 'RESOURCE',
+      description: paymentRequirements.extra?.description as string | undefined,
+      dimensions: paymentRequirements.extra?.dimensions as Record<string, string | number> | undefined,
       settlement: paymentRequirements.extra?.settlement as any,
       support: paymentRequirements.extra?.support as any,
       terms: paymentRequirements.extra?.terms as any

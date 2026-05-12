@@ -44,7 +44,6 @@ export type { ServiceFABSigner, AgenticPayFABSigner } from './signer';
 
 // Types
 export type {
-  CaptureMode,
   SettlementMethod,
   SettlementCycle,
   FABSettlement,
@@ -70,7 +69,8 @@ export {
   SignatureError,
   ExpiryError,
   MismatchError,
-  DPoPError
+  DPoPError,
+  IdempotencyConflictError
 } from './types';
 
 // Constants
@@ -81,7 +81,8 @@ export {
   DEFAULT_QUOTE_VALIDITY_SECONDS,
   DEFAULT_PAYMENT_VALIDITY_SECONDS,
   FAB_CAIP_FAMILY,
-  FAB_SENTINEL_PAY_TO
+  FAB_SENTINEL_PAY_TO,
+  DEFAULT_NETWORK
 } from './constants';
 
 // Utilities
@@ -113,6 +114,7 @@ export type { AgenticPayDiscoveryMetadata } from './discovery';
 // DPoP (Demonstrating Proof-of-Possession)
 export {
   generateDPoPKeyPair,
+  toDpopJwk,
   createDPoPProof,
   computeJWKThumbprint,
   verifyDPoPProof,

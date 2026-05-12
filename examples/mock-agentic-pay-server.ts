@@ -411,7 +411,7 @@ app.get('/.well-known/x402-supported', (_req, res) => {
         {
           x402Version: 2,
           scheme: 'fab',
-          network: 'fab:aws',
+          network: 'aws:marketplace',
           extra: {
             agenticPayId: AGENTIC_PAY_ID
           }

@@ -6,7 +6,7 @@
  * x402 facilitator handles everything else.
  *
  * In this example:
- * - fab:aws and eip155:8453 are handled by FAB (via the Agentic Pay provider)
+ * - aws:marketplace and eip155:8453 are handled by FAB (via the Agentic Pay provider)
  * - solana:mainnet would fall back to the official x402 facilitator
  *
  * This is the recommended pattern for services that want to accept
@@ -53,10 +53,10 @@ async function main() {
 
   // Register networks — can be chained
   fabServer
-    .registerNetwork('fab:aws')
+    .registerNetwork('aws:marketplace')
     .registerNetwork('eip155:8453');
 
-  console.log('Server: Registered fab:aws and eip155:8453');
+  console.log('Server: Registered aws:marketplace and eip155:8453');
   console.log('Server: Default facilitator handles solana:mainnet, etc.');
   console.log('');
 
@@ -66,7 +66,7 @@ async function main() {
     // so non-FAB networks fall back to the official facilitator.
     const server = await fabServer.initialize();
     console.log('✓ Server initialized with multi-facilitator routing');
-    console.log(`  fab:aws       → FAB facilitator (Agentic Pay)`);
+    console.log(`  aws:marketplace       → FAB facilitator (Agentic Pay)`);
     console.log(`  eip155:8453   → FAB facilitator (Agentic Pay)`);
     console.log(`  solana:*      → default x402 facilitator`);
     console.log('');
@@ -95,11 +95,11 @@ async function main() {
 
   // Register networks
   fabClient
-    .registerNetwork('fab:aws')
+    .registerNetwork('aws:marketplace')
     .registerNetwork('eip155:8453');
 
   console.log('✓ Client initialized');
-  console.log(`  Can pay on: fab:aws, eip155:8453`);
+  console.log(`  Can pay on: aws:marketplace, eip155:8453`);
   console.log(`  Cannot pay on: solana:mainnet (no scheme registered)`);
   console.log('');
 
@@ -113,7 +113,7 @@ async function main() {
   // During server.initialize(), the x402ResourceServer calls getSupported()
   // on each facilitator client in order:
   //
-  //   1. AgenticPayFacilitatorClient (FAB) → claims fab:aws, eip155:8453
+  //   1. AgenticPayFacilitatorClient (FAB) → claims aws:marketplace, eip155:8453
   //   2. HTTPFacilitatorClient (default) → claims solana:mainnet, etc.
   //
   // The first facilitator to claim a (version, network, scheme) tuple wins.

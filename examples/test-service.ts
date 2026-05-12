@@ -75,7 +75,7 @@ async function initializeServer() {
   });
 
   // Register networks individually
-  fabServer.registerNetwork('fab:aws');
+  fabServer.registerNetwork('aws:marketplace');
   fabServer.registerNetwork('eip155:8453');
 
   // Initialize — routing decisions (like disabling the default fallback) go here.
@@ -85,7 +85,7 @@ async function initializeServer() {
   server = await fabServer.initialize({ disableDefaultFallback: true });
 
   console.log('✓ x402 Resource Server initialized');
-  console.log('  FAB networks: fab:aws, eip155:8453');
+  console.log('  FAB networks: aws:marketplace, eip155:8453');
   console.log('  Default fallback: disabled (local demo)');
 }
 
@@ -111,7 +111,7 @@ app.get('/foo', async (req, res) => {
       const paymentRequired = await server.createPaymentRequiredResponse(
         await server.buildPaymentRequirements({
           scheme: 'fab',  // FAB scheme
-          network: 'fab:aws',
+          network: 'aws:marketplace',
           payTo: 'service-pay-789',
           price: 0.15,
           asset: 'iso4217:USD',
@@ -232,7 +232,7 @@ app.get('/bar', async (req, res) => {
       const paymentRequired = await server.createPaymentRequiredResponse(
         await server.buildPaymentRequirements({
           scheme: 'fab',
-          network: 'fab:aws',
+          network: 'aws:marketplace',
           payTo: 'service-pay-789',
           price: 1.00,
           asset: 'iso4217:USD',
@@ -475,7 +475,7 @@ app.get('/health', (_req, res) => {
   res.json({
     status: 'healthy',
     service: 'test-service',
-    paymentScheme: 'fab:aws'
+    paymentScheme: 'aws:marketplace'
   });
 });
 
@@ -514,8 +514,8 @@ async function start() {
     console.log(`Agentic Pay URL:  ${AGENTIC_PAY_BASE_URL}`);
     console.log('');
     console.log('Endpoints:');
-    console.log(`  GET    /foo                   - Protected (requires $0.15, manual capture, fab:aws)`);
-    console.log(`  GET    /bar                   - Protected (requires $1.00, auto capture, fab:aws)`);
+    console.log(`  GET    /foo                   - Protected (requires $0.15, manual capture, aws:marketplace)`);
+    console.log(`  GET    /bar                   - Protected (requires $1.00, auto capture, aws:marketplace)`);
     console.log(`  GET    /baz                   - Protected (requires $2.00, eip155:8453 EVM Base via FAB)`);
     console.log(`  GET    /health                - Public`);
     console.log(`  GET    /.well-known/jwks.json - Public keys`);

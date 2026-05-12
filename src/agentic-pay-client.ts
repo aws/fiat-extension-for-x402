@@ -13,7 +13,7 @@ import type {
   ListAgentPaymentsRequest,
   ListAgentPaymentsResponse,
 } from './config';
-import { ValidationError } from './types';
+import { ValidationError, IdempotencyConflictError } from './types';
 import type { Authenticator, AuthenticatedRequest } from './auth/types';
 import { createAuthenticator } from './auth/factory';
 
@@ -85,6 +85,12 @@ export class DefaultAgenticPayClient implements AgenticPayClient {
       if (!response.ok) {
         const errorBody = await response.json().catch(() => ({ message: response.statusText })) as Record<string, unknown>;
         const message = (errorBody.message as string) || response.statusText;
+
+        // 409 Conflict: clientToken reused with different parameters
+        if (response.status === 409 && request.clientToken) {
+          throw new IdempotencyConflictError(request.clientToken, message);
+        }
+
         throw new ValidationError(
           `Agentic Pay authorization failed (${response.status}): ${message}`
         );

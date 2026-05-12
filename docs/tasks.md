@@ -750,7 +750,7 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
 - [ ] 18. Security Hardening
   - [ ] 18.1 Implement input validation for all external inputs
     - Validate URLs to prevent injection
-    - Validate JWT algorithms (whitelist RS256, ES256)
+    - Validate JWT algorithms (allowlist RS256, ES256, ES384, ES512)
     - Validate token expiry before processing
     - _Requirements: 14.1, 14.3, 14.4_
 
@@ -1790,9 +1790,11 @@ This document outlines the implementation tasks for building the FAB x402 TypeSc
 
   - _Requirements: Justify facilitator architecture, ensure extensibility for multiple Agentic Pays, ensure scalability for production use_
 
-- [ ] 27. OIDC Discovery and Quote Token Signature Verification
+- [x] 27. OIDC Discovery and Quote Token Signature Verification
 
   Implement service public key fetching via OIDC discovery so that the facilitator can verify quote token signatures end-to-end. This closes the gap where the in-process facilitator trusts quote tokens without verifying the service's signature.
+
+  **Status (implemented):** Quote token signature verification is now MANDATORY in the in-process facilitator. The verify logic fetches the service's JWKS from `{quote.iss}/.well-known/jwks.json`, verifies the signature (with `clockTolerance: Infinity` to separate signature from expiry checks), then explicitly checks `exp`. Returns `invalid_quote` on signature failure, `quote_expired` on expiry. Optional `serviceJWKSUrl` override supported. 7 unit tests in `test/unit/fab/quote-verification.test.ts`.
 
   _Spec references: FAB-DSC-009, FAB-DSC-011, FAB-STUB-001, FAB-FAC-002, FAB-FAC-003a, FAB-FAC-003b, FAB-FCL-007_
 
@@ -2088,8 +2090,8 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 
   **Motivation:**
   - Currently, every network that FAB should handle must be individually registered on the client (`x402Client.register`), the server (`x402ResourceServer.register`), and the facilitator (`x402Facilitator.register`). This is repetitive and error-prone.
-  - There is no built-in fallback: if a service accepts both `fab:aws` (FAB) and `eip155:8453` (EVM on-chain), the integrator must either register FAB schemes for both or manually set up two facilitator clients. If they forget to register a network, it silently fails.
-  - The desired experience: "I want FAB to handle `fab:aws` and `eip155:8453`. Everything else (e.g., `solana:mainnet`) should fall back to the official x402 facilitator automatically."
+  - There is no built-in fallback: if a service accepts both `aws:marketplace` (FAB) and `eip155:8453` (EVM on-chain), the integrator must either register FAB schemes for both or manually set up two facilitator clients. If they forget to register a network, it silently fails.
+  - The desired experience: "I want FAB to handle `aws:marketplace` and `eip155:8453`. Everything else (e.g., `solana:mainnet`) should fall back to the official x402 facilitator automatically."
 
   **Design:**
 
@@ -2097,7 +2099,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 
   **Server side:**
   1. `createFABResourceServer(config)` returns a `FABResourceServer` object with a `registerNetwork(network, options?)` method.
-  2. Networks are added one at a time (or chained): `server.registerNetwork('fab:aws').registerNetwork('eip155:8453')`.
+  2. Networks are added one at a time (or chained): `server.registerNetwork('aws:marketplace').registerNetwork('eip155:8453')`.
   3. `server.initialize()` fetches supported kinds from facilitators and returns the underlying `x402ResourceServer`.
   4. The FAB facilitator (Agentic Pay-based) is registered for the specified networks. The default `HTTPFacilitatorClient` acts as catch-all for any network not claimed by FAB.
 
@@ -2114,7 +2116,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
     - [ ] 29.1.1 Define `FABResourceServerConfig` interface
       ```typescript
       interface FABResourceServerConfig {
-        /** Networks that FAB should handle (e.g., ['fab:aws', 'eip155:8453']) */
+        /** Networks that FAB should handle (e.g., ['aws:marketplace', 'eip155:8453']) */
         fabNetworks: Network[];
         /** Agentic Pay base URL for the FAB facilitator */
         agenticPayBaseUrl: string;
@@ -2278,7 +2280,7 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
       });
       ```
     - [ ] 29.7.3 Add a new example `examples/multi-facilitator.ts` showing the fallback scenario:
-      - Register `fab:aws` and `eip155:8453` for FAB
+      - Register `aws:marketplace` and `eip155:8453` for FAB
       - Show that `solana:mainnet` would fall back to the default x402 facilitator
       - Include comments explaining the precedence model
 
@@ -2303,11 +2305,11 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 
   - [ ] 29.9 Write unit tests for `buildFABClient` in `test/unit/builders/client-builder.test.ts`
     - [ ] 29.9.1 Test: registers FAB client scheme for all specified networks
-      - Build client with `fabNetworks: ['fab:aws', 'eip155:8453']`
+      - Build client with `fabNetworks: ['aws:marketplace', 'eip155:8453']`
       - Create a mock `PaymentRequired` with `accepts` containing both networks
       - Verify `createPaymentPayload` works for both networks
     - [ ] 29.9.2 Test: client rejects payment requirements for unregistered networks
-      - Build client with `fabNetworks: ['fab:aws']`
+      - Build client with `fabNetworks: ['aws:marketplace']`
       - Create `PaymentRequired` with only `solana:mainnet` in `accepts`
       - Verify `createPaymentPayload` throws (no registered scheme for solana)
     - [ ] 29.9.3 Test: client selects registered network when multiple options available
@@ -2324,11 +2326,11 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 
   - [ ] 29.10 Write unit tests for `AgenticPayFacilitatorClient` network filter in `test/unit/agentic-pay-facilitator-client.test.ts`
     - [ ] 29.10.1 Test: without filter, `getSupported()` returns all Agentic Pay-supported networks
-      - Mock Agentic Pay returning `['fab:aws', 'fab:test', 'eip155:8453']`
+      - Mock Agentic Pay returning `['aws:marketplace', 'fab:test', 'eip155:8453']`
       - Verify all three are in the response
-    - [ ] 29.10.2 Test: with filter `['fab:aws']`, `getSupported()` only returns `fab:aws`
+    - [ ] 29.10.2 Test: with filter `['aws:marketplace']`, `getSupported()` only returns `aws:marketplace`
       - Same mock Agentic Pay response
-      - Verify only `fab:aws` is in the filtered response
+      - Verify only `aws:marketplace` is in the filtered response
     - [ ] 29.10.3 Test: with filter for networks Agentic Pay doesn't support, returns empty kinds
       - Filter for `['solana:mainnet']` but Agentic Pay only supports FAB networks
       - Verify `kinds` is empty
@@ -2336,14 +2338,14 @@ Total: 306 tests passing, 1 skipped, 1 todo. Build verified (ESM + CJS + Types).
 
   - [ ] 29.11 Write integration test for multi-facilitator fallback in `test/integrations/multi-facilitator.test.ts`
     - [ ] 29.11.1 Test: end-to-end FAB payment on a FAB-registered network
-      - Use `buildFABResourceServer` with `fabNetworks: ['fab:aws']`
-      - Use `buildFABClient` with `fabNetworks: ['fab:aws']`
+      - Use `buildFABResourceServer` with `fabNetworks: ['aws:marketplace']`
+      - Use `buildFABClient` with `fabNetworks: ['aws:marketplace']`
       - Run the full flow: buildPaymentRequirements → createPaymentPayload → verifyPayment → settlePayment
       - Verify success
     - [ ] 29.11.2 Test: server offers multiple networks, client only supports FAB networks
-      - Server registers `fab:aws` (FAB) and `eip155:8453` (default facilitator)
-      - Client registers only `fab:aws`
-      - Server builds requirements for `fab:aws` — client pays successfully
+      - Server registers `aws:marketplace` (FAB) and `eip155:8453` (default facilitator)
+      - Client registers only `aws:marketplace`
+      - Server builds requirements for `aws:marketplace` — client pays successfully
       - Server builds requirements for `eip155:8453` — client correctly rejects (no scheme registered)
     - [ ] 29.11.3 Test: FAB facilitator precedence over default
       - Both FAB and default facilitator claim `eip155:8453`
@@ -2647,7 +2649,7 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
 
 ---
 
-- [ ] 32. Integrate with AWS Marketplace Agent Pay API Signature
+- [x] 32. Integrate with AWS Marketplace Agent Pay API Signature
 
   **Priority: 2 — Core integration with the production service**
 
@@ -2756,7 +2758,7 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
 
 ---
 
-- [ ] 33. DPoP and Public Key Verification Hardening
+- [x] 33. DPoP and Public Key Verification Hardening
 
   **Priority: 3 — Security-critical for release**
 
@@ -2803,7 +2805,7 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
 
 ---
 
-- [ ] 34. Client Token (Idempotency Key) Support
+- [x] 34. Client Token (Idempotency Key) Support
 
   **Priority: 4 — Required by the AWS SDK contract**
 
@@ -2841,18 +2843,18 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
 
 ---
 
-- [ ] 35. Network Identifier: `fab:aws` → `aws:marketplace` (Parameterized)
+- [x] 35. Network Identifier: `aws:marketplace` → `aws:marketplace` (Parameterized)
 
   **Priority: 5 — Release requirement, affects all code paths**
 
-  Change the default network identifier from `fab:aws` to `aws:marketplace` and ensure it's never a magic literal anywhere in the codebase. The identifier must be a configurable constant so it can be changed again without a code sweep.
+  Change the default network identifier from `aws:marketplace` to `aws:marketplace` and ensure it's never a magic literal anywhere in the codebase. The identifier must be a configurable constant so it can be changed again without a code sweep.
 
   **Subtasks:**
 
   - [ ] 35.1 Define the network identifier as a single constant
     - Add `DEFAULT_NETWORK = 'aws:marketplace'` to `src/constants.ts`
-    - Remove or deprecate any `fab:aws` references
-    - All code that currently uses `'fab:aws'` must reference this constant
+    - Remove or deprecate any `aws:marketplace` references
+    - All code that currently uses `'aws:marketplace'` must reference this constant
 
   - [ ] 35.2 Update the CAIP family pattern
     - Current: `FAB_CAIP_FAMILY = 'fab:*'`
@@ -2867,11 +2869,11 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
     - `src/utils.ts` — update `parseTransactionId` / `formatTransactionId` if they validate `fab:` prefix
 
   - [ ] 35.4 Update all test files
-    - Replace all `'fab:aws'` and `'fab:test'` literals with the constant or a test-specific constant
+    - Replace all `'aws:marketplace'` and `'fab:test'` literals with the constant or a test-specific constant
     - Ensure tests still pass with `aws:marketplace`
 
   - [ ] 35.5 Update all examples and documentation
-    - README, sdk-guide, spec — replace `fab:aws` with `aws:marketplace`
+    - README, sdk-guide, spec — replace `aws:marketplace` with `aws:marketplace`
     - Examples — use the constant, not a literal
 
   - [ ] 35.6 Update quote token `aud` claim
@@ -2879,7 +2881,7 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
     - Verify `FABServerScheme.enhancePaymentRequirements` uses the network from the registered kind (not hardcoded)
 
   - [ ] 35.7 Update transaction/payment ID format
-    - Current: `fab:aws:7f8e9d0c1b2a3456`
+    - Current: `aws:marketplace:7f8e9d0c1b2a3456`
     - New: Agent Pay uses `awsmp-{UUIDv7}` — this is handled in Task 32.6
     - Ensure no code assumes `fab:` prefix in payment IDs
 
@@ -2887,7 +2889,7 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
 
 ---
 
-- [ ] 36. Fix Auto-Capture Settlement Logic (Service-Side)
+- [x] 36. Fix Auto-Capture Settlement Logic (Service-Side)
 
   **Priority: 6 — Bug fix**
 
@@ -2924,7 +2926,7 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
 
 ---
 
-- [ ] 37. Extend Quote Token Format: Description and Dimensions
+- [x] 37. Extend Quote Token Format: Description and Dimensions
 
   **Priority: 7 — Feature enhancement for release**
 

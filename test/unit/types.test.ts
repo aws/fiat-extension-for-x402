@@ -5,7 +5,6 @@ import type {
   QuoteTokenPayload,
   PaymentContext,
   PaymentTokenPayload,
-  CaptureMode,
   SettlementMethod,
   SettlementCycle,
   FABSettlement,
@@ -27,7 +26,6 @@ describe('Payment Types', () => {
     it('should accept payment extra with all optional fields', () => {
       const extra: FABPaymentExtra = {
         quoteToken: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
-        capture: 'manual',
         reference: 'WEATHER_DATA_TIER1',
         settlement: {
           method: 'CLRG',
@@ -45,7 +43,6 @@ describe('Payment Types', () => {
         ],
       };
       expect(extra.quoteToken).toBe('eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...');
-      expect(extra.capture).toBe('manual');
       expect(extra.reference).toBe('WEATHER_DATA_TIER1');
       expect(extra.settlement).toBeDefined();
       expect(extra.support).toBeDefined();
@@ -210,15 +207,6 @@ describe('Payment Types', () => {
 });
 
 describe('Settlement Types', () => {
-  describe('CaptureMode', () => {
-    it('should accept valid capture modes', () => {
-      const manual: CaptureMode = 'manual';
-      const automatic: CaptureMode = 'automatic';
-      expect(manual).toBe('manual');
-      expect(automatic).toBe('automatic');
-    });
-  });
-
   describe('SettlementMethod', () => {
     it('should accept valid settlement methods', () => {
       const inst: SettlementMethod = 'INST';

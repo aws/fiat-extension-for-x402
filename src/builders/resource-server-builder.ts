@@ -7,7 +7,7 @@
  *
  * Usage:
  *   const server = createFABResourceServer({ ... });
- *   server.registerNetwork('fab:aws');
+ *   server.registerNetwork('aws:marketplace');
  *   server.registerNetwork('eip155:8453');
  *   await server.initialize();
  *
@@ -124,7 +124,7 @@ function validateBaseConfig(config: FABResourceServerOptions): void {
  *   serviceUrl: 'https://api.example.com',
  * });
  *
- * server.registerNetwork('fab:aws');
+ * server.registerNetwork('aws:marketplace');
  * server.registerNetwork('eip155:8453');
  *
  * const x402Server = await server.initialize();

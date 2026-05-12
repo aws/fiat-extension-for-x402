@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { x402Client, x402HTTPClient } from '@x402/core/client';
 import { x402Facilitator } from '@x402/core/facilitator';
 import {
@@ -25,6 +25,7 @@ import { FAB_SCHEME } from '../../src/constants';
 import { FAB_SENTINEL_PAY_TO } from '../../src/constants';
 import { createMockAgenticPayClient } from '../helpers/mock-agentic-pay-client';
 import { createMockServiceSigner } from '../helpers/mock-service-signer';
+import { clearServiceJWKSCache } from '../../src/utils';
 
 /**
  * FAB Integration Tests
@@ -95,8 +96,12 @@ describe('FAB Integration Tests', () => {
   let agenticPayPublicKey: jose.KeyLike;
   const serviceUrl = 'https://api.example.com';
   const agenticPayId = 'agentic-pay-test-123';
+  const mockFetch = vi.fn();
 
   beforeEach(async () => {
+    vi.stubGlobal('fetch', mockFetch);
+    clearServiceJWKSCache();
+
     // Generate service key pair (service signs quote tokens)
     const serviceKeys = await jose.generateKeyPair('RS256');
     servicePrivateKey = serviceKeys.privateKey;
@@ -106,6 +111,24 @@ describe('FAB Integration Tests', () => {
     const agenticPayKeys = await jose.generateKeyPair('RS256');
     agenticPayPrivateKey = agenticPayKeys.privateKey;
     agenticPayPublicKey = agenticPayKeys.publicKey;
+
+    // Mock fetch to serve service JWKS for quote token verification
+    const servicePublicJWK = await jose.exportJWK(servicePublicKey);
+    servicePublicJWK.kid = 'test-service-key';
+    servicePublicJWK.alg = 'RS256';
+    servicePublicJWK.use = 'sig';
+
+    mockFetch.mockImplementation(async (url: string) => {
+      if (typeof url === 'string' && url.includes('/.well-known/jwks.json')) {
+        return { ok: true, json: async () => ({ keys: [servicePublicJWK] }) };
+      }
+      return { ok: false, statusText: 'Not Found' };
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    clearServiceJWKSCache();
   });
 
   describe('x402Client / x402ResourceServer / x402Facilitator - FAB Flow', () => {
@@ -118,6 +141,19 @@ describe('FAB Integration Tests', () => {
       
       // Create mock service signer
       const serviceMock = await createMockServiceSigner(serviceUrl);
+
+      // Update JWKS mock to serve THIS test's service public key
+      const svcPubJWK = await jose.exportJWK(serviceMock.publicKey);
+      svcPubJWK.kid = 'test-service-key';
+      svcPubJWK.alg = 'RS256';
+      svcPubJWK.use = 'sig';
+      mockFetch.mockImplementation(async (url: string) => {
+        if (typeof url === 'string' && url.includes('/.well-known/jwks.json')) {
+          return { ok: true, json: async () => ({ keys: [svcPubJWK] }) };
+        }
+        return { ok: false, statusText: 'Not Found' };
+      });
+      clearServiceJWKSCache();
 
       // Create client with Agentic Pay client
       const fabClient = new FABClient({

@@ -313,13 +313,12 @@ describe('fabPaymentMiddleware', () => {
   });
 
   describe('auto-capture settlement', () => {
-    it('settles payment when capture is auto', async () => {
+    it('does NOT call settlePayment when capture is auto (Agent Pay auto-captures)', async () => {
       mockVerifyPayment.mockResolvedValue({ isValid: true, payer: 'buyer-123' });
-      mockSettlePayment.mockResolvedValue({ success: true, transaction: 'fab:aws:tx123', network: 'fab:aws' });
 
       const paymentPayload = {
         x402Version: 2,
-        payload: { paymentToken: 'tok', transactionId: 'fab:aws:tx123' },
+        payload: { paymentToken: 'tok', paymentId: 'awsmp-123', transactionId: 'awsmp-123' },
         accepted: {
           scheme: 'fab',
           network: 'fab:aws',
@@ -345,21 +344,17 @@ describe('fabPaymentMiddleware', () => {
         expect(next).toHaveBeenCalledOnce();
       });
 
-      expect(mockSettlePayment).toHaveBeenCalledOnce();
+      // Agent Pay auto-captures — no settle call should be made
+      expect(mockSettlePayment).not.toHaveBeenCalled();
     });
 
-    it('returns 500 when settlement fails', async () => {
+    it('calls onPaymentSettled hook for auto-capture without HTTP settle call', async () => {
       mockVerifyPayment.mockResolvedValue({ isValid: true, payer: 'buyer-123' });
-      mockSettlePayment.mockResolvedValue({
-        success: false,
-        errorReason: 'capture_failed',
-        transaction: 'fab:aws:tx123',
-        network: 'fab:aws',
-      });
+      const onPaymentSettled = vi.fn();
 
       const paymentPayload = {
         x402Version: 2,
-        payload: { paymentToken: 'tok', transactionId: 'fab:aws:tx123' },
+        payload: { paymentToken: 'tok', paymentId: 'awsmp-123', transactionId: 'awsmp-123' },
         accepted: {
           scheme: 'fab',
           network: 'fab:aws',
@@ -370,7 +365,7 @@ describe('fabPaymentMiddleware', () => {
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
-      const middleware = fabPaymentMiddleware(baseConfig);
+      const middleware = fabPaymentMiddleware({ ...baseConfig, onPaymentSettled });
       const req = createMockReq({
         path: '/api/premium',
         method: 'GET',
@@ -382,10 +377,12 @@ describe('fabPaymentMiddleware', () => {
       middleware(req, res, next);
 
       await vi.waitFor(() => {
-        expect(res._status).toBe(500);
+        expect(next).toHaveBeenCalledOnce();
       });
 
-      expect(next).not.toHaveBeenCalled();
+      // Hook is called even though no HTTP settle was made
+      expect(onPaymentSettled).toHaveBeenCalledOnce();
+      expect(mockSettlePayment).not.toHaveBeenCalled();
     });
   });
 

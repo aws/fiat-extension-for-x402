@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { x402Client } from '@x402/core/client';
 import { x402Facilitator } from '@x402/core/facilitator';
 import {
@@ -24,6 +24,7 @@ import { registerFABNetworks } from '../../src/builders/register';
 import { FAB_SCHEME, FAB_SENTINEL_PAY_TO } from '../../src/constants';
 import { createMockAgenticPayClient } from '../helpers/mock-agentic-pay-client';
 import { createMockServiceSigner } from '../helpers/mock-service-signer';
+import { clearServiceJWKSCache } from '../../src/utils';
 
 /**
  * Multi-Facilitator Integration Tests
@@ -50,6 +51,17 @@ class FABFacilitatorClient implements FacilitatorClient {
 describe('Multi-Facilitator Integration Tests', () => {
   const serviceUrl = 'https://api.example.com';
   const agenticPayId = 'agentic-pay-test-123';
+  const mockFetch = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', mockFetch);
+    clearServiceJWKSCache();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    clearServiceJWKSCache();
+  });
 
   describe('FAB facilitator handles registered networks', () => {
     let client: x402Client;
@@ -58,6 +70,18 @@ describe('Multi-Facilitator Integration Tests', () => {
     beforeEach(async () => {
       const agenticPayMock = await createMockAgenticPayClient(agenticPayId);
       const serviceMock = await createMockServiceSigner(serviceUrl);
+
+      // Mock fetch to serve service JWKS for quote token verification
+      const servicePublicJWK = await jose.exportJWK(serviceMock.publicKey);
+      servicePublicJWK.kid = 'test-service-key';
+      servicePublicJWK.alg = 'RS256';
+      servicePublicJWK.use = 'sig';
+      mockFetch.mockImplementation(async (url: string) => {
+        if (typeof url === 'string' && url.includes('/.well-known/jwks.json')) {
+          return { ok: true, json: async () => ({ keys: [servicePublicJWK] }) };
+        }
+        return { ok: false, statusText: 'Not Found' };
+      });
 
       // Build client using the builder for two networks
       client = new x402Client();
@@ -196,6 +220,19 @@ describe('Multi-Facilitator Integration Tests', () => {
     it('should work with registerNetwork for payment flow', async () => {
       const agenticPayMock = await createMockAgenticPayClient(agenticPayId);
       const serviceMock = await createMockServiceSigner(serviceUrl);
+
+      // Update mock fetch to serve this test's service JWKS
+      const servicePublicJWK = await jose.exportJWK(serviceMock.publicKey);
+      servicePublicJWK.kid = 'test-service-key';
+      servicePublicJWK.alg = 'RS256';
+      servicePublicJWK.use = 'sig';
+      mockFetch.mockImplementation(async (url: string) => {
+        if (typeof url === 'string' && url.includes('/.well-known/jwks.json')) {
+          return { ok: true, json: async () => ({ keys: [servicePublicJWK] }) };
+        }
+        return { ok: false, statusText: 'Not Found' };
+      });
+      clearServiceJWKSCache();
 
       // Two-phase client: create then register
       const fabClient = createFABClient({

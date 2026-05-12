@@ -21,11 +21,11 @@
  *   agenticPayId: 'my-agentic-pay',
  *   signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
  *   serviceUrl: 'https://api.example.com',
- *   networks: ['fab:aws'],
+ *   networks: ['aws:marketplace'],
  *   routes: {
  *     'GET /api/premium': {
  *       price: 0.15,
- *       network: 'fab:aws',
+ *       network: 'aws:marketplace',
  *       payTo: 'seller-agentic-pay-id',
  *       asset: 'iso4217:USD',
  *     },
@@ -54,16 +54,16 @@ import { ValidationError } from '../types';
 export interface FABRouteConfig {
   /** Price for this route (e.g., 0.15) */
   price: number | string;
-  /** Network to use (e.g., 'fab:aws') */
+  /** Network to use (e.g., 'aws:marketplace') */
   network: Network;
   /** Recipient Agentic Pay ID */
   payTo: string;
   /** Asset identifier (e.g., 'iso4217:USD'). Used in PaymentInfo only; the scheme derives the asset from the price. */
   asset?: string;
-  /** Capture mode. Defaults to 'manual'. */
-  capture?: 'manual' | 'auto';
-  /** Resource description for the 402 response */
+  /** Human-readable description of what is being charged for (included in quote token) */
   description?: string;
+  /** Key-value dimensions describing units consumed (included in quote token) */
+  dimensions?: Record<string, string | number>;
   /** MIME type of the protected resource */
   mimeType?: string;
   /** Extra fields to include in the quote token */
@@ -92,7 +92,7 @@ export interface FABMiddlewareConfig {
   signingKeys: SigningKeysConfig;
   /** Service URL (used as issuer in quote tokens) */
   serviceUrl: string;
-  /** Networks to register for FAB (e.g., ['fab:aws']) */
+  /** Networks to register for FAB (e.g., ['aws:marketplace']) */
   networks: Network[];
   /** Route payment configurations */
   routes: FABRoutesConfig;
@@ -301,7 +301,8 @@ export function fabPaymentMiddleware(
           payTo: routeConfig.payTo,
           price: routeConfig.price,
           extra: {
-            capture: routeConfig.capture || 'manual',
+            ...(routeConfig.description && { description: routeConfig.description }),
+            ...(routeConfig.dimensions && { dimensions: routeConfig.dimensions }),
             ...routeConfig.extra,
           },
         });
@@ -348,17 +349,9 @@ export function fabPaymentMiddleware(
         await config.onPaymentVerified(req, payment);
       }
 
-      // Settle if auto-capture, or always settle (the service can choose)
-      const capture = (accepted.extra as any)?.capture || 'manual';
-      if (capture === 'auto') {
-        const settleResult = await server.settlePayment(paymentPayload, accepted);
-        if (!settleResult.success) {
-          return sendError(res, 500, 'Settlement failed', settleResult.errorReason);
-        }
-
-        if (config.onPaymentSettled) {
-          await config.onPaymentSettled(req, payment, settleResult.transaction);
-        }
+      // Agent Pay auto-captures during CreateAgentPayment — no settle call needed.
+      if (config.onPaymentSettled) {
+        await config.onPaymentSettled(req, payment, payment.transactionId);
       }
 
       // Attach payment info to request and proceed

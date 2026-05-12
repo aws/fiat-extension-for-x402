@@ -76,10 +76,11 @@ describe('Agentic Pay Discovery', () => {
       );
     });
 
-    it('should throw error for unsupported scheme', () => {
-      expect(() => registerNetwork('evm:aws', 'https://pay.example.com')).toThrow(
-        'Unsupported scheme'
-      );
+    it('should accept any scheme (not just fab:)', () => {
+      // Network identifiers are no longer restricted to fab: prefix
+      // This supports aws:marketplace and other future schemes
+      registerNetwork('evm:aws', 'https://pay.example.com');
+      expect(getAgenticPayBaseUrl('evm:aws')).toBe('https://pay.example.com');
     });
 
     it('should throw error for missing provider', () => {
@@ -106,8 +107,8 @@ describe('Agentic Pay Discovery', () => {
       );
     });
 
-    it('should throw error for unsupported scheme', () => {
-      expect(() => getAgenticPayBaseUrl('evm:aws')).toThrow('Unsupported scheme');
+    it('should throw error for unregistered network (any scheme)', () => {
+      expect(() => getAgenticPayBaseUrl('evm:aws')).toThrow('Network not registered');
     });
 
     it('should throw error for missing provider', () => {
