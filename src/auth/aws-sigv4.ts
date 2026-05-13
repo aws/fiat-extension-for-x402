@@ -87,11 +87,10 @@ export class AwsSigV4Authenticator implements Authenticator {
 
       return credentials;
     } catch (error) {
-      if (error instanceof MissingCredentialsError) {
-        throw new InvalidCredentialsError(
-          'awsSigV4',
-          `Failed to fetch credentials: ${error.message}`
-        );
+      // Re-throw known credential errors as-is for consistent error types
+      // regardless of whether static credentials or a provider is used
+      if (error instanceof MissingCredentialsError || error instanceof InvalidCredentialsError) {
+        throw error;
       }
       throw new InvalidCredentialsError(
         'awsSigV4',

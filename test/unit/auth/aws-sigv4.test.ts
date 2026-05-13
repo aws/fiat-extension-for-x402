@@ -224,7 +224,7 @@ describe('AwsSigV4Authenticator', () => {
       await expect(auth.authenticate(request)).rejects.toThrow(InvalidCredentialsError);
     });
 
-    it('should throw when provider returns empty accessKeyId', async () => {
+    it('should throw MissingCredentialsError when provider returns empty accessKeyId', async () => {
       const provider = vi.fn().mockResolvedValue({
         accessKeyId: '',
         secretAccessKey: 'secret',
@@ -238,7 +238,7 @@ describe('AwsSigV4Authenticator', () => {
 
       const request = { url: 'https://example.com/api', method: 'POST', headers: {} };
 
-      await expect(auth.authenticate(request)).rejects.toThrow(InvalidCredentialsError);
+      await expect(auth.authenticate(request)).rejects.toThrow(MissingCredentialsError);
     });
   });
 
