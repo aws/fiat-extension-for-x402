@@ -4,6 +4,8 @@
  * Utilities for discovering Agent Pay provider endpoints via OIDC discovery.
  */
 
+import { WELL_KNOWN_OIDC_PATH } from './constants';
+
 /**
  * Agent Pay discovery metadata (OIDC Discovery response)
  */
@@ -210,7 +212,7 @@ export async function discoverAgentPayEndpoints(
   
   // Fetch discovery document
   const baseUrl = getAgentPayBaseUrl(network);
-  const discoveryUrl = `${baseUrl}/.well-known/openid-configuration`;
+  const discoveryUrl = `${baseUrl}${WELL_KNOWN_OIDC_PATH}`;
   
   const response = await fetchFn(discoveryUrl);
   if (!response.ok) {

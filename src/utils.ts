@@ -4,6 +4,7 @@
 
 import { webcrypto } from 'node:crypto';
 import * as jose from 'jose';
+import { WELL_KNOWN_JWKS_PATH } from './constants';
 import {
   QuoteTokenPayload,
   PaymentTokenPayload,
@@ -210,7 +211,7 @@ const SERVICE_JWKS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 export function fetchServiceJWKS(
   serviceUrl: string
 ): ReturnType<typeof jose.createRemoteJWKSet> {
-  const jwksUrl = `${serviceUrl.replace(/\/$/, '')}/.well-known/jwks.json`;
+  const jwksUrl = `${serviceUrl.replace(/\/$/, '')}${WELL_KNOWN_JWKS_PATH}`;
   const now = Date.now();
 
   const cached = serviceJWKSCache.get(jwksUrl);
@@ -234,7 +235,7 @@ export function fetchServiceJWKS(
  */
 export function clearServiceJWKSCache(serviceUrl?: string): void {
   if (serviceUrl) {
-    const jwksUrl = `${serviceUrl.replace(/\/$/, '')}/.well-known/jwks.json`;
+    const jwksUrl = `${serviceUrl.replace(/\/$/, '')}${WELL_KNOWN_JWKS_PATH}`;
     serviceJWKSCache.delete(jwksUrl);
   } else {
     serviceJWKSCache.clear();

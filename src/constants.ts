@@ -58,3 +58,25 @@ export const DEFAULT_NETWORK = 'aws:base';
  * for the real payment recipient.
  */
 export const AGENT_PAY_SENTINEL_PAY_TO = 'urn:x402:agent-pay:see-quote';
+
+// ============================================================================
+// Well-Known Paths
+// ============================================================================
+
+/**
+ * Path to the JWKS endpoint for public key discovery.
+ * Used to verify payment token and quote token signatures.
+ */
+export const WELL_KNOWN_JWKS_PATH = '/.well-known/jwks.json';
+
+/**
+ * Path to the x402 supported kinds endpoint.
+ * Used during facilitator routing to discover which schemes/networks are supported.
+ */
+export const WELL_KNOWN_X402_SUPPORTED_PATH = '/.well-known/x402-supported';
+
+/**
+ * Path to the OIDC discovery endpoint.
+ * Used for wallet/provider endpoint discovery (optional — not required by Agent Pay).
+ */
+export const WELL_KNOWN_OIDC_PATH = '/.well-known/openid-configuration';

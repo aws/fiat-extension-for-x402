@@ -4,6 +4,7 @@
 
 import * as jose from 'jose';
 import { ALLOWED_ALGORITHMS, secureCompare } from '../../security';
+import { WELL_KNOWN_JWKS_PATH } from '../../constants';
 import { PaymentPayload, PaymentRequirements, VerifyResponse } from '@x402/core/types';
 import type { AgentPayClientForFacilitator } from '../../config';
 import { AgentPayPayloadV2, AgentPayPaymentExtra, MismatchError } from '../../types';
@@ -91,7 +92,7 @@ export async function verifyPayment(
 
     try {
       const jwksBaseUrl = options?.serviceJWKSUrl || quotePayload.iss;
-      const jwksUrl = `${jwksBaseUrl.replace(/\/$/, '')}/.well-known/jwks.json`;
+      const jwksUrl = `${jwksBaseUrl.replace(/\/$/, '')}${WELL_KNOWN_JWKS_PATH}`;
       const jwksResponse = await fetch(jwksUrl);
       if (!jwksResponse.ok) {
         return {

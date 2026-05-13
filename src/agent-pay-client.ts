@@ -4,6 +4,7 @@
  */
 
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { WELL_KNOWN_JWKS_PATH } from './constants';
 import type {
   AgentPayClient,
   AgentPayConfig,
@@ -242,7 +243,7 @@ export class DefaultAgentPayClient implements AgentPayClient {
    * Get JWKS for signature verification (with caching)
    */
   private async getJWKS(): Promise<ReturnType<typeof createRemoteJWKSet>> {
-    const jwksUrl = `${this.baseUrl}/.well-known/jwks.json`;
+    const jwksUrl = `${this.baseUrl}${WELL_KNOWN_JWKS_PATH}`;
     const now = Date.now();
     
     const cached = this.jwksCache.get(jwksUrl);

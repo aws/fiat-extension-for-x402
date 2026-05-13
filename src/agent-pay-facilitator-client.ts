@@ -14,6 +14,7 @@
 
 import type { FacilitatorClient } from '@x402/core/http';
 import { ALLOWED_ALGORITHMS, secureCompare } from './security';
+import { WELL_KNOWN_JWKS_PATH, WELL_KNOWN_X402_SUPPORTED_PATH } from './constants';
 import type {
   Network,
   PaymentPayload,
@@ -76,7 +77,7 @@ export class AgentPayFacilitatorClient implements FacilitatorClient {
    * @returns Supported payment kinds and extensions
    */
   async getSupported(): Promise<SupportedResponse> {
-    const response = await fetch(`${this.agentPayBaseUrl}/.well-known/x402-supported`);
+    const response = await fetch(`${this.agentPayBaseUrl}${WELL_KNOWN_X402_SUPPORTED_PATH}`);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch supported kinds: ${response.statusText}`);
@@ -229,7 +230,7 @@ export class AgentPayFacilitatorClient implements FacilitatorClient {
    * @returns JWKS
    */
   private async fetchJWKS(baseUrl: string): Promise<jose.JSONWebKeySet> {
-    const url = `${baseUrl}/.well-known/jwks.json`;
+    const url = `${baseUrl}${WELL_KNOWN_JWKS_PATH}`;
     const now = Date.now();
 
     // Check cache
