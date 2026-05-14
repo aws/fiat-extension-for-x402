@@ -86,6 +86,7 @@ export {
   WELL_KNOWN_JWKS_PATH,
   WELL_KNOWN_X402_SUPPORTED_PATH,
   WELL_KNOWN_OIDC_PATH,
+  AGENT_PAY_AUDIENCE,
 } from './constants';
 
 // Utilities

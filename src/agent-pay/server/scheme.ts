@@ -17,7 +17,7 @@ import type { AgentPayServerSchemeConfig, SigningKeysConfig, ServiceAgentPaySign
 import { toServiceAgentPaySigner } from '../../signer';
 import { QuoteTokenPayload, AgentPayPaymentExtra, ValidationError } from '../../types';
 import { parseMoneyToDecimal } from '../../utils';
-import { DEFAULT_QUOTE_VALIDITY_SECONDS, AGENT_PAY_SCHEME, AGENT_PAY_SENTINEL_PAY_TO } from '../../constants';
+import { DEFAULT_QUOTE_VALIDITY_SECONDS, AGENT_PAY_SCHEME, AGENT_PAY_SENTINEL_PAY_TO, AGENT_PAY_AUDIENCE } from '../../constants';
 
 // Use Node.js crypto for UUID generation
 const crypto = webcrypto;
@@ -99,7 +99,7 @@ export class AgentPayScheme implements SchemeNetworkServer {
     const now = Math.floor(Date.now() / 1000);
     const quotePayload: QuoteTokenPayload = {
       iss: this.signer.getServiceUrl(),
-      aud: supportedKind.network,
+      aud: AGENT_PAY_AUDIENCE,
       iat: now,
       exp: now + DEFAULT_QUOTE_VALIDITY_SECONDS,
       jti: crypto.randomUUID(),

@@ -82,7 +82,7 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     const now = Math.floor(Date.now() / 1000);
     const payload = {
       iss: serviceUrl,
-      aud: 'aws:base',
+      aud: 'aws-marketplace',
       iat: now,
       exp: now + 300,
       jti: 'quote-test-001',
@@ -146,7 +146,7 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     const wrongKeys = await jose.generateKeyPair('RS256');
     const quoteToken = await new jose.SignJWT({
       iss: serviceUrl,
-      aud: 'aws:base',
+      aud: 'aws-marketplace',
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 300,
       jti: 'quote-bad-sig',
@@ -191,7 +191,7 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     // Create quote token without iss
     const now = Math.floor(Date.now() / 1000);
     const quoteToken = await new jose.SignJWT({
-      aud: 'aws:base',
+      aud: 'aws-marketplace',
       iat: now,
       exp: now + 300,
       jti: 'quote-no-iss',

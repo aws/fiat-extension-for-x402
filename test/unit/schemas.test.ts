@@ -77,7 +77,7 @@ describe('Zod Schemas', () => {
   describe('QuoteTokenPayloadSchema', () => {
     const validPayload = {
       iss: 'https://api.example.com',
-      aud: 'aws:base',
+      aud: 'aws-marketplace',
       iat: 1700000000,
       exp: 1700000300,
       jti: 'quote-001',
@@ -233,7 +233,7 @@ describe('Zod Schemas', () => {
       const { privateKey } = await jose.generateKeyPair('RS256');
       const token = await new jose.SignJWT({
         iss: 'https://api.example.com',
-        aud: 'aws:base',
+        aud: 'aws-marketplace',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'q-123',
@@ -264,7 +264,7 @@ describe('Zod Schemas', () => {
       const { privateKey } = await jose.generateKeyPair('RS256');
       const token = await new jose.SignJWT({
         iss: 'https://api.example.com',
-        aud: 'aws:base',
+        aud: 'aws-marketplace',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'q-456',

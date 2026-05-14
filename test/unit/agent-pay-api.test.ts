@@ -37,7 +37,7 @@ describe('Agent Pay API Integration', () => {
 
       const quoteToken = await new jose.SignJWT({
         iss: 'https://api.example.com',
-        aud: 'aws:base',
+        aud: 'aws-marketplace',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'q1',
@@ -199,7 +199,7 @@ describe('Agent Pay API Integration', () => {
       });
 
       const quoteToken = await new jose.SignJWT({
-        iss: 'https://api.example.com', aud: 'aws:base',
+        iss: 'https://api.example.com', aud: 'aws-marketplace',
         iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'q1', price: { amount: '0.01', currency: 'USD' },
         payTo: 'seller', capture: 'auto', reference: 'TEST',

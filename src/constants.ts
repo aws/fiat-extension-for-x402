@@ -80,3 +80,11 @@ export const WELL_KNOWN_X402_SUPPORTED_PATH = '/.well-known/x402-supported';
  * Used for wallet/provider endpoint discovery (optional — not required by Agent Pay).
  */
 export const WELL_KNOWN_OIDC_PATH = '/.well-known/openid-configuration';
+
+/**
+ * The audience identifier for the AWS Marketplace Agent Pay Service.
+ * This is the `aud` claim in quote tokens — it identifies WHO processes the token,
+ * not which network/rail is used. A single audience (the Agent Pay service) can
+ * support multiple networks.
+ */
+export const AGENT_PAY_AUDIENCE = 'aws-marketplace';
