@@ -70,7 +70,7 @@ describe('Agent Pay Client Scheme', () => {
 
     // Verify payment token structure (Agent Pay format)
     const decoded = jose.decodeJwt(result.payload.paymentToken as string);
-    expect(decoded.iss).toBe('aws-marketplace');
+    expect(decoded.iss).toBe('awsmp-agentpay.amazonaws.com');
     expect(decoded.sub).toBe(agentPayId);
     expect(decoded.payment_id).toBeDefined();
   });
@@ -155,7 +155,7 @@ describe('Agent Pay Client Scheme', () => {
 
     // Verify token can be verified with Agent Pay's public key
     const verified = await jose.jwtVerify(paymentToken, publicKey);
-    expect(verified.payload.iss).toBe('aws-marketplace');
+    expect(verified.payload.iss).toBe('awsmp-agentpay.amazonaws.com');
     expect(verified.payload.sub).toBe(agentPayId);
     expect(verified.payload.payment_context).toBeDefined();
     expect((verified.payload.payment_context as any).quote_token).toBe(quoteToken);
@@ -197,7 +197,7 @@ describe('Agent Pay Client Scheme', () => {
 
       // Client sends only the quoteToken to Agent Pay — sentinel payTo is irrelevant
       const decoded = jose.decodeJwt(result.payload.paymentToken as string);
-      expect(decoded.iss).toBe('aws-marketplace');
+      expect(decoded.iss).toBe('awsmp-agentpay.amazonaws.com');
     });
 
     it('should not pass sentinel value to Agent Pay — only sends quoteToken', async () => {

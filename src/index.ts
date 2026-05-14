@@ -40,6 +40,7 @@ export type { AgentPayFacilitatorAuthConfig } from './agent-pay-facilitator-clie
 
 // Signers
 export { toServiceAgentPaySigner, toAgentPaySigner } from './signer';
+export { createKmsSigner, type KmsSignerConfig } from './signers';
 export type { ServiceAgentPaySigner, AgentPaySigner } from './signer';
 
 // Types
@@ -83,10 +84,12 @@ export {
   AGENT_PAY_CAIP_FAMILY,
   AGENT_PAY_SENTINEL_PAY_TO,
   DEFAULT_NETWORK,
+  PAYMENT_JWT_ISSUER,
   WELL_KNOWN_JWKS_PATH,
   WELL_KNOWN_X402_SUPPORTED_PATH,
   WELL_KNOWN_OIDC_PATH,
   AGENT_PAY_AUDIENCE,
+  AGENT_PAY_JWKS_BASE_URL,
 } from './constants';
 
 // Utilities

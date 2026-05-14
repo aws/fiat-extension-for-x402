@@ -65,7 +65,7 @@ describe('Agent Pay API Integration', () => {
       expect(result.payload.transactionId).toBe(result.payload.paymentId);
       // Payment token is a valid JWT
       const decoded = jose.decodeJwt(result.payload.paymentToken as string);
-      expect(decoded.iss).toBe('aws-marketplace');
+      expect(decoded.iss).toBe('awsmp-agentpay.amazonaws.com');
       expect(decoded.payment_id).toBe(result.payload.paymentId);
     });
 

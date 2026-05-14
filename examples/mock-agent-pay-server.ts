@@ -34,7 +34,7 @@ app.use(express.json());
 // ============================================================================
 
 const PORT = 3001;
-const ISSUER = 'aws-marketplace';
+const ISSUER = 'awsmp-agentpay.amazonaws.com';
 
 // ============================================================================
 // Key Management (ES384 to match production Agent Pay)

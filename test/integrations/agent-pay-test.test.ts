@@ -209,7 +209,7 @@ describe('Agent Pay Integration Tests', () => {
 
       // Decode and verify payment token structure (Agent Pay format)
       const decodedPayment = jose.decodeJwt(apPayload.paymentToken);
-      expect(decodedPayment.iss).toBe('aws-marketplace');
+      expect(decodedPayment.iss).toBe('awsmp-agentpay.amazonaws.com');
       expect(decodedPayment.sub).toBe(agentPayId);
       expect((decodedPayment as any).payment_context).toBeDefined();
       expect((decodedPayment as any).payment_context.transaction_id).toBe(apPayload.transactionId);
@@ -559,7 +559,7 @@ describe('Agent Pay Integration Tests', () => {
 
       // Verify token can be decoded
       const decoded = jose.decodeJwt(result.paymentToken);
-      expect(decoded.iss).toBe('aws-marketplace');
+      expect(decoded.iss).toBe('awsmp-agentpay.amazonaws.com');
       expect(decoded.sub).toBe(agentPayId);
       expect((decoded as any).payment_context.quote_token).toBe(quoteToken);
     });

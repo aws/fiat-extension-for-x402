@@ -87,7 +87,8 @@ export async function verifyPaymentToken(
  * @returns Quote token JWT string
  */
 export function extractQuoteFromPayment(payment: PaymentTokenPayload): string {
-  return payment.payment_context.quote_token;
+  // Agent Pay returns quote_token at top level; fallback to payment_context for backward compat
+  return (payment as any).quote_token || payment.payment_context?.quote_token;
 }
 
 /**

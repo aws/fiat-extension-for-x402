@@ -100,7 +100,7 @@ describe('Quote Token Signature Verification (Task 27)', () => {
   async function createPaymentToken(quoteToken: string, paymentId: string): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
     return new jose.SignJWT({
-      iss: 'aws-marketplace',
+      iss: 'awsmp-agentpay.amazonaws.com',
       sub: 'buyer-123',
       iat: now,
       exp: now + 3600,

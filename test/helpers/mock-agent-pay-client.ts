@@ -36,7 +36,7 @@ export async function createMockAgentPayClient(agentPayId: string = 'test-agent-
       // Create payment token (simulating Agent Pay Service signing)
       const now = Math.floor(Date.now() / 1000);
       const paymentTokenPayload: Record<string, unknown> = {
-        iss: 'aws-marketplace',
+        iss: 'awsmp-agentpay.amazonaws.com',
         sub: agentPayId,
         iat: now,
         exp: now + 3600,

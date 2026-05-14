@@ -14,7 +14,7 @@
 
 import type { FacilitatorClient } from '@x402/core/http';
 import { ALLOWED_ALGORITHMS, secureCompare } from './security';
-import { WELL_KNOWN_JWKS_PATH, WELL_KNOWN_X402_SUPPORTED_PATH } from './constants';
+import { WELL_KNOWN_JWKS_PATH, WELL_KNOWN_X402_SUPPORTED_PATH, AGENT_PAY_JWKS_BASE_URL } from './constants';
 import type {
   Network,
   PaymentPayload,
@@ -49,26 +49,31 @@ export class AgentPayFacilitatorClient implements FacilitatorClient {
   private readonly JWKS_CACHE_TTL = 3600000; // 1 hour
   private readonly authConfig?: AgentPayFacilitatorAuthConfig;
   private readonly networkFilter?: Set<Network>;
+  private readonly jwksBaseUrl?: string;
 
   /**
    * Create a new Agent Pay facilitator client
    * 
-   * @param agentPayBaseUrl - Base URL of the Agent Pay provider (e.g., 'https://pay.aws.amazon.com')
+   * @param agentPayBaseUrl - Base URL of the Agent Pay provider (e.g., 'https://agentpay.marketplace.aws.dev')
    * @param authConfig - Optional authentication configuration
    * @param networkFilter - Optional set of networks to claim. When set, getSupported()
    *   filters the Agent Pay's response to only include kinds whose network is in this set.
    *   This prevents the Agent Pay facilitator from shadowing the default facilitator for
    *   networks the integrator didn't intend to handle via Agent Pay.
+   * @param jwksBaseUrl - Base URL for fetching Agent Pay's JWKS (signing keys).
+   *   Defaults to the production CDN. Override only for beta/testing.
    */
   constructor(
     private readonly agentPayBaseUrl: string,
     authConfig?: AgentPayFacilitatorAuthConfig,
-    networkFilter?: Set<Network>
+    networkFilter?: Set<Network>,
+    jwksBaseUrl?: string
   ) {
     // Remove trailing slash if present
     this.agentPayBaseUrl = agentPayBaseUrl.replace(/\/$/, '');
     this.authConfig = authConfig;
     this.networkFilter = networkFilter;
+    this.jwksBaseUrl = (jwksBaseUrl ?? AGENT_PAY_JWKS_BASE_URL).replace(/\/$/, '');
   }
 
   /**
@@ -140,13 +145,15 @@ export class AgentPayFacilitatorClient implements FacilitatorClient {
         };
       }
 
-      // 4. Extract quote token from payment context
-      const quoteToken = (paymentTokenPayload.payment_context as any)?.quote_token;
+      // 4. Extract quote token — Agent Pay puts it at top level (quote_token),
+      //    with fallback to payment_context.quote_token for backward compatibility
+      const quoteToken = (paymentTokenPayload as any).quote_token
+        || (paymentTokenPayload.payment_context as any)?.quote_token;
       if (!quoteToken) {
         return {
           isValid: false,
           invalidReason: 'invalid_payment',
-          invalidMessage: 'Missing quote token in payment context'
+          invalidMessage: 'Missing quote token in payment JWT'
         };
       }
 
@@ -230,7 +237,9 @@ export class AgentPayFacilitatorClient implements FacilitatorClient {
    * @returns JWKS
    */
   private async fetchJWKS(baseUrl: string): Promise<jose.JSONWebKeySet> {
-    const url = `${baseUrl}${WELL_KNOWN_JWKS_PATH}`;
+    // For Agent Pay's own keys, use the dedicated JWKS CDN URL
+    const effectiveBase = baseUrl === this.agentPayBaseUrl ? this.jwksBaseUrl! : baseUrl;
+    const url = `${effectiveBase}${WELL_KNOWN_JWKS_PATH}`;
     const now = Date.now();
 
     // Check cache

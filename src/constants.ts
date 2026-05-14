@@ -47,6 +47,12 @@ export const AGENT_PAY_CAIP_FAMILY = 'aws:*';
 export const DEFAULT_NETWORK = 'aws:base';
 
 /**
+ * Payment JWT issuer claim value used by the AWS Marketplace Agent Pay Service.
+ * This is the `iss` field in Payment JWTs signed by Agent Pay.
+ */
+export const PAYMENT_JWT_ISSUER = 'awsmp-agentpay.amazonaws.com';
+
+/**
  * Sentinel value for PaymentRequirements.payTo in Agent Pay.
  * 
  * In Agent Pay, the signed quote token is the authoritative source for the payment
@@ -88,3 +94,13 @@ export const WELL_KNOWN_OIDC_PATH = '/.well-known/openid-configuration';
  * support multiple networks.
  */
 export const AGENT_PAY_AUDIENCE = 'aws-marketplace';
+
+/**
+ * Default base URL for Agent Pay's JWKS (signing key) endpoint.
+ * The SDK appends /.well-known/jwks.json to this automatically.
+ * Override via the jwksBaseUrl constructor parameter for testing only.
+ *
+ * TODO: Update to production DNS name (e.g., https://keys.agentpay.marketplace.aws.dev)
+ *       once the prod JWKS endpoint is provisioned.
+ */
+export const AGENT_PAY_JWKS_BASE_URL = 'https://d3aeb2cjjowogc.cloudfront.net';

@@ -138,18 +138,24 @@ export interface PaymentContext {
  * This is the structure of the signed JWT from Agent Pay
  */
 export interface PaymentTokenPayload {
-  /** Issuer - Agent Pay provider identity */
+  /** Issuer - Agent Pay provider identity (awsmp-agentpay.amazonaws.com) */
   iss: string;
-  /** Subject - client/buyer identity */
-  sub: string;
-  /** Audience - service identity */
+  /** Subject - client/buyer identity (optional — Agent Pay may not include) */
+  sub?: string;
+  /** Audience - seller service URL */
   aud: string;
   /** Issued at timestamp */
   iat: number;
   /** Expiry timestamp */
   exp: number;
-  /** Payment context (transaction ID and quote token) */
-  payment_context: PaymentContext;
+  /** Payment ID (top-level, format: awsmp-{UUID}) */
+  payment_id?: string;
+  /** Quote token (top-level — the original seller-signed quote) */
+  quote_token?: string;
+  /** JWT ID (same as payment_id) */
+  jti?: string;
+  /** @deprecated Legacy payment context — Agent Pay now uses top-level fields */
+  payment_context?: PaymentContext;
   /** Confirmation claim for DPoP (optional) */
   cnf?: {
     /** JWK thumbprint of DPoP public key */
