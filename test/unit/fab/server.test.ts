@@ -81,7 +81,7 @@ describe('Agent Pay Server Scheme', () => {
     // Verify quote token structure
     const decoded = jose.decodeJwt((result.extra as any).quoteToken);
     expect(decoded.iss).toBe(serviceUrl);
-    expect(decoded.aud).toBe('aws-marketplace');
+    expect(decoded.aud).toBe('aws:marketplace');
     expect((decoded as any).price).toEqual({
       amount: '1.50',
       currency: 'USD'
@@ -117,7 +117,7 @@ describe('Agent Pay Server Scheme', () => {
     // Verify token can be verified with public key
     const verified = await jose.jwtVerify(quoteToken, publicKey);
     expect(verified.payload.iss).toBe(serviceUrl);
-    expect(verified.payload.aud).toBe('aws-marketplace');
+    expect(verified.payload.aud).toBe('aws:marketplace');
   });
 
   it('should handle multiple price currencies', async () => {

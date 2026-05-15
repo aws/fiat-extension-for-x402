@@ -93,7 +93,7 @@ export const WELL_KNOWN_OIDC_PATH = '/.well-known/openid-configuration';
  * not which network/rail is used. A single audience (the Agent Pay service) can
  * support multiple networks.
  */
-export const AGENT_PAY_AUDIENCE = 'aws-marketplace';
+export const AGENT_PAY_AUDIENCE = 'aws:marketplace';
 
 /**
  * Default base URL for Agent Pay's JWKS (signing key) endpoint.
@@ -103,4 +103,4 @@ export const AGENT_PAY_AUDIENCE = 'aws-marketplace';
  * TODO: Update to production DNS name (e.g., https://keys.agentpay.marketplace.aws.dev)
  *       once the prod JWKS endpoint is provisioned.
  */
-export const AGENT_PAY_JWKS_BASE_URL = 'https://d3aeb2cjjowogc.cloudfront.net';
+export const AGENT_PAY_JWKS_BASE_URL = 'https://d1u1mq97msy1aj.cloudfront.net';

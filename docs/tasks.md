@@ -97,6 +97,36 @@ Breakdown by Module:
 
 Currently no tasks in progress.
 
+#### ✅ Recently Completed (Beta Integration)
+
+**Task 28: KMS Signer (`createKmsSigner`)**
+- Factory function for sellers to sign quote tokens with AWS KMS (ECDSA_SHA_384)
+- Calls KMS `Sign` with digest mode, converts DER→JWS signature format
+- Calls `GetPublicKey` for the `getPublicKey()` method
+- File: `src/signers/kms-signer.ts`
+- Tests: e2e validated against real KMS key in beta
+
+**Task 29: Payment Token Contract Alignment**
+- `AGENT_PAY_AUDIENCE` corrected to `'aws:marketplace'` (matches wallet service)
+- `PAYMENT_JWT_ISSUER` set to `'awsmp-agentpay.amazonaws.com'`
+- `PaymentTokenPayload` updated: `payment_id`, `quote_token` at top level, `payment_context` deprecated
+- `AgentPayPayloadV2`: added `paymentId` field, `transactionId` kept as deprecated alias
+- File: `src/constants.ts`, `src/types.ts`
+
+**Task 30: SellerKeyResolver for Payment Verification**
+- `AgentPayFacilitatorClient.verify()` now supports three seller key resolution strategies:
+  - `{ type: 'kms' }`: calls `kms:GetPublicKey` with seller's credentials
+  - `{ type: 'jwks' }`: fetches from explicit JWKS URL
+  - Fallback: fetches from quote token's `iss` claim (original behavior)
+- File: `src/agent-pay-facilitator-client.ts`
+- Tests: `test/unit/seller-key-resolver.test.ts` (6 tests)
+
+**Task 31: Agent Pay JWKS CDN URL**
+- Hardcoded `AGENT_PAY_JWKS_BASE_URL` so sellers don't configure it
+- `fetchJWKS()` passes `authConfig.getAuthHeaders()` (needed for WAF-gated endpoints)
+- Optional `jwksBaseUrl` constructor param for beta/testing override
+- File: `src/constants.ts`, `src/agent-pay-facilitator-client.ts`
+
 #### 📋 Planned / TODO
 
 **Short Term:**

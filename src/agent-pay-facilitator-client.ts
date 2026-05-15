@@ -39,6 +39,19 @@ export interface AgentPayFacilitatorAuthConfig {
 }
 
 /**
+ * Resolves the seller's public key for quote token verification.
+ *
+ * Two strategies:
+ * - KMS: provide `kmsKeyArn` + `credentials` — SDK calls `kms:GetPublicKey`
+ * - JWKS: provide `jwksUrl` — SDK fetches `{jwksUrl}/.well-known/jwks.json`
+ *
+ * If omitted, the SDK falls back to fetching JWKS from the quote token's `iss` claim.
+ */
+export type SellerKeyResolver =
+  | { type: 'kms'; kmsKeyArn: string; region: string; credentials: () => Promise<{ accessKeyId: string; secretAccessKey: string; sessionToken?: string }> }
+  | { type: 'jwks'; jwksUrl: string };
+
+/**
  * Agent Pay Facilitator Client
  * 
  * Calls Agent Pay provider's API to verify and settle payments.
@@ -46,10 +59,12 @@ export interface AgentPayFacilitatorAuthConfig {
  */
 export class AgentPayFacilitatorClient implements FacilitatorClient {
   private jwksCache: Map<string, { jwks: jose.JSONWebKeySet; timestamp: number }> = new Map();
+  private kmsKeyCache: Map<string, { key: jose.KeyLike; timestamp: number }> = new Map();
   private readonly JWKS_CACHE_TTL = 3600000; // 1 hour
   private readonly authConfig?: AgentPayFacilitatorAuthConfig;
   private readonly networkFilter?: Set<Network>;
   private readonly jwksBaseUrl?: string;
+  private readonly sellerKeyResolver?: SellerKeyResolver;
 
   /**
    * Create a new Agent Pay facilitator client
@@ -58,22 +73,24 @@ export class AgentPayFacilitatorClient implements FacilitatorClient {
    * @param authConfig - Optional authentication configuration
    * @param networkFilter - Optional set of networks to claim. When set, getSupported()
    *   filters the Agent Pay's response to only include kinds whose network is in this set.
-   *   This prevents the Agent Pay facilitator from shadowing the default facilitator for
-   *   networks the integrator didn't intend to handle via Agent Pay.
    * @param jwksBaseUrl - Base URL for fetching Agent Pay's JWKS (signing keys).
    *   Defaults to the production CDN. Override only for beta/testing.
+   * @param sellerKeyResolver - How to resolve the seller's public key for quote token
+   *   verification. If omitted, fetches JWKS from the quote token's `iss` claim.
    */
   constructor(
     private readonly agentPayBaseUrl: string,
     authConfig?: AgentPayFacilitatorAuthConfig,
     networkFilter?: Set<Network>,
-    jwksBaseUrl?: string
+    jwksBaseUrl?: string,
+    sellerKeyResolver?: SellerKeyResolver
   ) {
     // Remove trailing slash if present
     this.agentPayBaseUrl = agentPayBaseUrl.replace(/\/$/, '');
     this.authConfig = authConfig;
     this.networkFilter = networkFilter;
     this.jwksBaseUrl = (jwksBaseUrl ?? AGENT_PAY_JWKS_BASE_URL).replace(/\/$/, '');
+    this.sellerKeyResolver = sellerKeyResolver;
   }
 
   /**
@@ -169,11 +186,9 @@ export class AgentPayFacilitatorClient implements FacilitatorClient {
       // 6. Decode and verify quote token
       const quote = decodeQuoteToken(quoteToken);
       
-      // 7. Fetch service's JWKS
-      const serviceJWKS = await this.fetchJWKS(quote.iss);
-
-      // 8. Verify quote token signature (algorithm allowlist enforced)
-      await jose.jwtVerify(quoteToken, jose.createLocalJWKSet(serviceJWKS), {
+      // 7. Resolve seller's public key and verify quote token signature
+      const sellerKey = await this.resolveSellerKey(quote.iss, quoteToken);
+      await jose.jwtVerify(quoteToken, sellerKey as any, {
         algorithms: ALLOWED_ALGORITHMS
       });
 
@@ -231,6 +246,50 @@ export class AgentPayFacilitatorClient implements FacilitatorClient {
   }
 
   /**
+   * Resolve the seller's public key for quote token signature verification.
+   *
+   * Resolution order:
+   * 1. If sellerKeyResolver is configured (KMS or JWKS), use it
+   * 2. Otherwise, fall back to fetching JWKS from the quote token's `iss` claim
+   */
+  private async resolveSellerKey(issuer: string, quoteToken: string): Promise<jose.KeyLike | jose.JWTVerifyGetKey> {
+    if (!this.sellerKeyResolver) {
+      // Default: fetch JWKS from issuer URL
+      const jwks = await this.fetchJWKS(issuer);
+      return jose.createLocalJWKSet(jwks) as jose.JWTVerifyGetKey;
+    }
+
+    if (this.sellerKeyResolver.type === 'jwks') {
+      const jwks = await this.fetchJWKS(this.sellerKeyResolver.jwksUrl);
+      return jose.createLocalJWKSet(jwks) as jose.JWTVerifyGetKey;
+    }
+
+    // KMS path: call GetPublicKey and import as KeyLike (cached)
+    const arn = this.sellerKeyResolver.kmsKeyArn;
+    const cached = this.kmsKeyCache.get(arn);
+    if (cached && Date.now() - cached.timestamp < this.JWKS_CACHE_TTL) {
+      return cached.key;
+    }
+
+    const { KMSClient, GetPublicKeyCommand } = await import('@aws-sdk/client-kms');
+    const creds = await this.sellerKeyResolver.credentials();
+    const kms = new KMSClient({
+      region: this.sellerKeyResolver.region,
+      credentials: creds,
+    });
+    const resp = await kms.send(new GetPublicKeyCommand({ KeyId: arn }));
+    if (!resp.PublicKey) {
+      throw new Error('KMS GetPublicKey returned no key material');
+    }
+    const key = await jose.importSPKI(
+      `-----BEGIN PUBLIC KEY-----\n${Buffer.from(resp.PublicKey).toString('base64')}\n-----END PUBLIC KEY-----`,
+      'ES384'
+    );
+    this.kmsKeyCache.set(arn, { key, timestamp: Date.now() });
+    return key;
+  }
+
+  /**
    * Fetch JWKS from a URL with caching
    * 
    * @param baseUrl - Base URL to fetch JWKS from
@@ -249,7 +308,11 @@ export class AgentPayFacilitatorClient implements FacilitatorClient {
     }
 
     // Fetch fresh JWKS
-    const response = await fetch(url);
+    const headers: Record<string, string> = {};
+    if (this.authConfig?.getAuthHeaders) {
+      Object.assign(headers, await this.authConfig.getAuthHeaders());
+    }
+    const response = await fetch(url, { headers });
     if (!response.ok) {
       throw new Error(`Failed to fetch JWKS from ${url}: ${response.statusText}`);
     }

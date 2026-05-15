@@ -381,6 +381,39 @@ This means you can integrate with:
 
 The SDK doesn't care about the Agent Pay provider's internal implementation - only that it exposes the required HTTP interface and issues JWT tokens signed with published keys.
 
+### Seller Key Resolution for Payment Verification
+
+When verifying payments, the SDK needs the seller's public key to confirm the quote token signature. Three options:
+
+```typescript
+import { AgentPayFacilitatorClient } from 'aws-agent-pay-x402';
+import { fromIni } from '@aws-sdk/credential-providers';
+
+// Option 1: KMS-hosted key (seller uses AWS KMS for signing)
+const facilitator = new AgentPayFacilitatorClient(
+  'https://agentpay.marketplace.aws.dev',
+  undefined, undefined, undefined,
+  {
+    type: 'kms',
+    kmsKeyArn: 'arn:aws:kms:us-east-1:123456789:alias/my-signing-key',
+    region: 'us-east-1',
+    credentials: () => fromIni({ profile: 'seller' })(),
+  }
+);
+
+// Option 2: Self-hosted JWKS at a specific URL
+const facilitator2 = new AgentPayFacilitatorClient(
+  'https://agentpay.marketplace.aws.dev',
+  undefined, undefined, undefined,
+  // Base URL only — SDK appends /.well-known/jwks.json automatically
+  { type: 'jwks', jwksUrl: 'https://keys.my-service.com' }
+);
+
+// Option 3: No config (auto-discovers from quote token's `iss` claim)
+// SDK fetches {iss}/.well-known/jwks.json automatically
+const facilitator3 = new AgentPayFacilitatorClient('https://agentpay.marketplace.aws.dev');
+```
+
 ## Express Middleware
 
 For the simplest server-side integration, use the Express middleware:

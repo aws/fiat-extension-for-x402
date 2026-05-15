@@ -150,7 +150,7 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 | APAY-TYP-004 | The system shall define a `AgentPayPaymentExtra` interface containing a required `quoteToken` string field and optional `capture`, `reference`, `settlement`, `support`, and `terms` fields. |
 | APAY-TYP-005 | The system shall define a `QuoteTokenPayload` interface containing the JWT claims `iss`, `aud`, `iat`, `exp`, `jti`, `price`, `payTo`, `capture`, `reference`, and optional `settlement`, `support`, `terms`, `description` (string), and `dimensions` (Record<string, string \| number>). |
 | APAY-TYP-006 | The system shall define a `PaymentTokenPayload` interface containing the JWT claims `iss`, `sub`, `aud`, `iat`, `exp`, `payment_context` (with `transaction_id` and `quote_token`), and optional `cnf.jkt` for DPoP binding. |
-| APAY-TYP-007 | The system shall define a `AgentPayPayloadV2` interface containing `paymentToken` and `transactionId` string fields for x402 payload transport. |
+| APAY-TYP-007 | The system shall define a `AgentPayPayloadV2` interface containing `paymentToken`, `paymentId`, and `transactionId` (deprecated alias for `paymentId`) string fields for x402 payload transport. |
 
 ### 3.3 Error Handling
 
@@ -224,10 +224,13 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 
 | ID | Requirement |
 |----|-------------|
-| APAY-SGN-001 | The system shall define a `ServiceFABSigner` interface with methods `signQuote(payload): Promise<string>`, `getPublicKey(): JWK`, and `getServiceUrl(): string`. |
+| APAY-SGN-001 | The system shall define a `ServiceAgentPaySigner` interface with methods `signQuote(payload): Promise<string>`, `getPublicKey(): JWK`, and `getServiceUrl(): string`. |
 | APAY-SGN-002 | The system shall define a `AgentPaySigner` interface with methods `signPayment(payload): Promise<string>`, `getPublicKey(): JWK`, and `getAddresses(): string[]`. |
-| APAY-SGN-003 | When `toServiceAgentPaySigner` is called with a private key, public JWK, and service URL, the system shall return a `ServiceFABSigner` that signs JWTs with the `RS256` algorithm and `typ: "JWT"` header. |
+| APAY-SGN-003 | When `toServiceAgentPaySigner` is called with a private key, public JWK, and service URL, the system shall return a `ServiceAgentPaySigner` that signs JWTs with the `RS256` algorithm and `typ: "JWT"` header. |
 | APAY-SGN-004 | When `toAgentPaySigner` is called with a private key, public JWK, and Agent Pay ID, the system shall return a `AgentPaySigner` that signs JWTs with the `RS256` algorithm and `typ: "JWT"` header. |
+| APAY-SGN-005 | The system shall provide a `createKmsSigner(config)` factory that returns a `ServiceAgentPaySigner` backed by AWS KMS. Config accepts: `keyArn`, `region`, `serviceUrl`, `credentials` (AWS credential provider), and `algorithm` (default `ECDSA_SHA_384`). |
+| APAY-SGN-006 | When `createKmsSigner` signs a quote token, it shall call KMS `Sign` with `MessageType.DIGEST` and the SHA-384 hash of the JWT signing input, then convert the DER signature to JWS (r‖s) format. |
+| APAY-SGN-007 | The `createKmsSigner` shall call KMS `GetPublicKey` to retrieve the public key material and export it as a JWK for the `getPublicKey()` method. |
 
 ### 3.8 Utility Functions
 
@@ -261,6 +264,9 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 | APAY-CON-006 | The system shall define `AGENT_PAY_CAIP_FAMILY` as the string `"fab:*"`. |
 | APAY-CON-007 | The system shall define a sentinel constant `AGENT_PAY_SENTINEL_PAY_TO` with value `"urn:x402:agent-pay:see-quote"` to indicate that the `payTo` field in `PaymentRequirements` is not authoritative and the quote token shall be consulted instead. |
 | APAY-CON-008 | The system shall define `DEFAULT_NETWORK` as the string `"aws:base"`. |
+| APAY-CON-009 | The system shall define `AGENT_PAY_AUDIENCE` as `"aws:marketplace"` — the required `aud` claim in quote tokens sent to the Agent Pay service. |
+| APAY-CON-010 | The system shall define `PAYMENT_JWT_ISSUER` as `"awsmp-agentpay.amazonaws.com"` — the `iss` claim in payment tokens signed by the Agent Pay service. |
+| APAY-CON-011 | The system shall define `AGENT_PAY_JWKS_BASE_URL` as the default CDN URL for Agent Pay's public signing keys. The SDK appends `/.well-known/jwks.json` automatically. |
 
 ---
 
@@ -324,13 +330,17 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 | APAY-FCL-001 | The system shall provide an `InProcessFacilitatorClient` that implements the `FacilitatorClient` interface from `@x402/core/http` by wrapping an in-process `x402Facilitator` instance. |
 | APAY-FCL-002 | The `InProcessFacilitatorClient` shall delegate `verify`, `settle`, and `getSupported` calls directly to the wrapped `x402Facilitator`. |
 | APAY-FCL-003 | The system shall provide a `AgentPayFacilitatorClient` that implements the `FacilitatorClient` interface from `@x402/core/http` by communicating with the Agent Pay provider's HTTP API. |
-| APAY-FCL-004 | The `AgentPayFacilitatorClient` constructor shall accept a `agentPayBaseUrl` string and an optional `AgentPayFacilitatorAuthConfig` object. |
+| APAY-FCL-004 | The `AgentPayFacilitatorClient` constructor shall accept: `agentPayBaseUrl` (string), optional `AgentPayFacilitatorAuthConfig`, optional `networkFilter` (Set<Network>), optional `jwksBaseUrl` (defaults to `AGENT_PAY_JWKS_BASE_URL` CDN), and optional `SellerKeyResolver`. |
 | APAY-FCL-005 | The system shall define a `AgentPayFacilitatorAuthConfig` interface with an optional `getAuthHeaders(): Promise<Record<string, string>>` method. |
+| APAY-FCL-005a | The system shall define a `SellerKeyResolver` discriminated union type with two variants: `{ type: 'kms'; kmsKeyArn; region; credentials }` for KMS-hosted seller keys, and `{ type: 'jwks'; jwksUrl }` for explicit JWKS URL resolution. |
 | APAY-FCL-006 | When `getSupported` is called on the `AgentPayFacilitatorClient`, the system shall fetch from `{agentPayBaseUrl}/.well-known/x402-supported` and return the supported payment kinds. |
-| APAY-FCL-007 | When `verify` is called on the `AgentPayFacilitatorClient`, the system shall: (a) fetch the Agent Pay's JWKS from `{agentPayBaseUrl}/.well-known/jwks.json`, (b) verify the payment token signature, (c) check payment token expiry, (d) extract and match the quote token against requirements, (e) fetch the service's JWKS from `{quote.iss}/.well-known/jwks.json`, (f) verify the quote token signature, and (g) verify amounts match. |
+| APAY-FCL-007 | When `verify` is called on the `AgentPayFacilitatorClient`, the system shall: (a) fetch the Agent Pay's JWKS from `{jwksBaseUrl}/.well-known/jwks.json`, (b) verify the payment token signature, (c) check payment token expiry, (d) extract and match the quote token against requirements (constant-time compare), (e) resolve the seller's public key via `SellerKeyResolver` (KMS, explicit JWKS URL, or fallback to `{quote.iss}/.well-known/jwks.json`), (f) verify the quote token signature, and (g) verify amounts match. |
+| APAY-FCL-007a | When `SellerKeyResolver` is `{ type: 'kms' }`, the system shall call `kms:GetPublicKey` with the provided ARN and credentials, then import the DER-encoded public key for signature verification. |
+| APAY-FCL-007b | When `SellerKeyResolver` is `{ type: 'jwks' }`, the system shall fetch JWKS from the provided `jwksUrl` instead of the quote token's `iss` claim. |
+| APAY-FCL-007c | When `SellerKeyResolver` is omitted, the system shall fall back to fetching JWKS from `{quote.iss}/.well-known/jwks.json` (original behavior). |
 | APAY-FCL-008 | When `settle` is called on the `AgentPayFacilitatorClient`, the system shall return `{ success: true }` immediately without making an HTTP call. Agent Pay auto-captures during `CreateAgentPayment` — there is no `/capture` endpoint. |
 | APAY-FCL-009 | The `AgentPayFacilitatorClient` shall cache JWKS responses with a TTL of 1 hour. |
-| APAY-FCL-010 | Where `AgentPayFacilitatorAuthConfig` is provided, the `AgentPayFacilitatorClient` shall include the auth headers in capture requests. |
+| APAY-FCL-010 | Where `AgentPayFacilitatorAuthConfig` is provided, the `AgentPayFacilitatorClient` shall include the auth headers in JWKS fetch requests. |
 
 ### 3.13a Builders (Network-Aware Facilitator Routing)
 

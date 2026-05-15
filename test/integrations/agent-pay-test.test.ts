@@ -493,7 +493,7 @@ describe('Agent Pay Integration Tests', () => {
       const quoteToken = (requirements[0].extra as any).quoteToken;
       const decoded = jose.decodeJwt(quoteToken);
       expect(decoded.iss).toBe(serviceUrl);
-      expect(decoded.aud).toBe('aws-marketplace');
+      expect(decoded.aud).toBe('aws:marketplace');
       expect((decoded as any).price).toEqual({
         amount: '0.15',
         currency: 'USD',
@@ -510,7 +510,7 @@ describe('Agent Pay Integration Tests', () => {
 
       const quoteToken = await serviceMock.signer.signQuote({
         iss: serviceUrl,
-        aud: 'aws-marketplace',
+        aud: 'aws:marketplace',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_123',
@@ -526,7 +526,7 @@ describe('Agent Pay Integration Tests', () => {
       // Verify token can be decoded
       const decoded = jose.decodeJwt(quoteToken);
       expect(decoded.iss).toBe(serviceUrl);
-      expect(decoded.aud).toBe('aws-marketplace');
+      expect(decoded.aud).toBe('aws:marketplace');
       expect((decoded as any).price).toEqual({ amount: '1.50', currency: 'USD' });
     });
 
@@ -538,7 +538,7 @@ describe('Agent Pay Integration Tests', () => {
       // First create quote token
       const quoteToken = await serviceMock.signer.signQuote({
         iss: serviceUrl,
-        aud: 'aws-marketplace',
+        aud: 'aws:marketplace',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_123',
