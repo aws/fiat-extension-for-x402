@@ -36,6 +36,8 @@ export interface KmsSignerConfig {
   credentials?: AwsCredentialIdentityProvider;
   /** Optional: Signing algorithm. Defaults to ECDSA_SHA_384 (for P-384 keys). */
   algorithm?: 'ECDSA_SHA_256' | 'ECDSA_SHA_384' | 'ECDSA_SHA_512';
+  /** Optional: Key ID to include in the JWT `kid` header. Defaults to the alias or key ID from the ARN. */
+  kid?: string;
 }
 
 /** Maps KMS algorithm to JWT alg header */
@@ -73,12 +75,17 @@ const COMPONENT_LENGTH: Record<string, number> = {
  * ```
  */
 export function createKmsSigner(config: KmsSignerConfig): ServiceAgentPaySigner {
-  const { keyArn, region, serviceUrl, credentials, algorithm = 'ECDSA_SHA_384' } = config;
+  const { keyArn, region, serviceUrl, credentials, algorithm = 'ECDSA_SHA_384', kid } = config;
 
   const jwtAlg = ALG_MAP[algorithm];
   if (!jwtAlg) throw new Error(`Unsupported algorithm: ${algorithm}`);
 
   const componentLength = COMPONENT_LENGTH[algorithm]!;
+
+  // Derive kid from ARN if not explicitly provided
+  // e.g., 'arn:aws:kms:us-east-1:123:alias/my-key' → 'alias/my-key'
+  // e.g., 'arn:aws:kms:us-east-1:123:key/abc-123'  → 'key/abc-123'
+  const resolvedKid = kid ?? keyArn.split(':').pop() ?? keyArn;
 
   const kmsClient = new KMSClient({
     region,
@@ -87,7 +94,7 @@ export function createKmsSigner(config: KmsSignerConfig): ServiceAgentPaySigner 
 
   return {
     signQuote: async (payload: unknown): Promise<string> => {
-      const header = Buffer.from(JSON.stringify({ alg: jwtAlg, typ: 'JWT' })).toString('base64url');
+      const header = Buffer.from(JSON.stringify({ alg: jwtAlg, typ: 'JWT', kid: resolvedKid })).toString('base64url');
       const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
       const message = Buffer.from(`${header}.${body}`);
 
