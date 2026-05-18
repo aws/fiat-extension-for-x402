@@ -170,7 +170,7 @@ describe('Agent Pay Server Scheme', () => {
         []
       );
 
-      expect(result.maxTimeoutSeconds).toBe(DEFAULT_QUOTE_VALIDITY_SECONDS);
+      expect(result.maxTimeoutSeconds).toBe(3600);
     });
 
     it('should preserve real payTo inside the signed quote token', async () => {

@@ -83,9 +83,10 @@ export function createKmsSigner(config: KmsSignerConfig): ServiceAgentPaySigner 
   const componentLength = COMPONENT_LENGTH[algorithm]!;
 
   // Derive kid from ARN if not explicitly provided
-  // e.g., 'arn:aws:kms:us-east-1:123:alias/my-key' → 'alias/my-key'
+  // e.g., 'arn:aws:kms:us-east-1:123:alias/my-key' → 'my-key'
   // e.g., 'arn:aws:kms:us-east-1:123:key/abc-123'  → 'key/abc-123'
-  const resolvedKid = kid ?? keyArn.split(':').pop() ?? keyArn;
+  const arnLastSegment = keyArn.split(':').pop() ?? keyArn;
+  const resolvedKid = kid ?? (arnLastSegment.startsWith('alias/') ? arnLastSegment.slice(6) : arnLastSegment);
 
   const kmsClient = new KMSClient({
     region,

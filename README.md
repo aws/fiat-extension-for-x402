@@ -381,6 +381,102 @@ This means you can integrate with:
 
 The SDK doesn't care about the Agent Pay provider's internal implementation - only that it exposes the required HTTP interface and issues JWT tokens signed with published keys.
 
+### Production Examples: Seller and Buyer Flows
+
+#### Seller: Generate a Quote Token (402 Response)
+
+When a buyer hits your API without payment, return a signed quote:
+
+```typescript
+import { createKmsSigner, AgentPayScheme } from 'aws-agent-pay-x402';
+import { fromIni } from '@aws-sdk/credential-providers';
+
+// 1. Create a signer (once at startup)
+const signer = createKmsSigner({
+  keyArn: 'arn:aws:kms:us-east-1:YOUR_ACCOUNT:alias/your-signing-key',
+  region: 'us-east-1',
+  serviceUrl: 'https://api.your-service.com',
+  credentials: fromIni({ profile: 'seller' }),
+});
+const server = new AgentPayScheme({ signer });
+
+// 2. When buyer requests a paid resource without payment:
+const requirements = await server.enhancePaymentRequirements({
+  scheme: 'agent-pay',
+  network: 'aws:base',
+  amount: '0.50',                              // price in USD
+  asset: 'iso4217:USD',                        // currency
+  payTo: 'your-seller-id',                     // your identifier
+  maxTimeoutSeconds: 3600,                     // quote valid for 1 hour
+  extra: { settlement: { listing_id: 'prod-YOUR_LISTING_ID' } },
+});
+
+// 3. Return HTTP 402 with this body:
+res.status(402).json({ x402Version: 2, accepts: [requirements] });
+```
+
+**Output** — the 402 response body contains a signed quote token (ES384 JWT) with your price, terms, and listing ID sealed inside. The `kid` in the JWT header matches your KMS alias name.
+
+#### Buyer (AI Agent): Authorize Payment
+
+When your agent gets a 402, the SDK handles payment automatically:
+
+```typescript
+import { createAgentPayClient } from 'aws-agent-pay-x402';
+import { fromIni } from '@aws-sdk/credential-providers';
+
+// 1. Create client (once at startup)
+const client = createAgentPayClient({
+  agentPayBaseUrl: 'https://agentpay.marketplace.aws.dev',
+  agentPayId: 'YOUR_BUYER_ACCOUNT_ID',
+  agentPayAuth: {
+    type: 'awsSigV4',
+    region: 'us-east-1',
+    service: 'aws-marketplace',
+    credentialProvider: () => fromIni({ profile: 'buyer' })(),
+  },
+});
+client.registerNetwork('aws:base');
+
+// 2. Pass the 402 response body — SDK calls CreateAgentPayment automatically
+const payment = await client.createPaymentPayload(response402Body);
+// payment.payload = { paymentId: "awsmp-...", paymentToken: "eyJ..." }
+
+// 3. Retry the original request with the payment token
+const result = await fetch(originalUrl, {
+  headers: { 'X-Payment': JSON.stringify(payment) },
+});
+```
+
+#### Seller: Verify Payment and Deliver Resource
+
+When the buyer retries with a payment token:
+
+```typescript
+import { AgentPayFacilitatorClient } from 'aws-agent-pay-x402';
+
+// 1. Create verifier (once at startup)
+const facilitator = new AgentPayFacilitatorClient(
+  'https://agentpay.marketplace.aws.dev',
+  undefined, undefined, undefined,
+  {
+    type: 'kms',
+    kmsKeyArn: 'arn:aws:kms:us-east-1:YOUR_ACCOUNT:alias/your-signing-key',
+    region: 'us-east-1',
+    credentials: () => fromIni({ profile: 'seller' })(),
+  }
+);
+
+// 2. Verify the payment
+const result = await facilitator.verify(paymentPayload, originalRequirements);
+if (result.isValid) {
+  // Deliver the resource — payment is confirmed
+  res.json({ data: 'premium content' });
+} else {
+  res.status(402).json({ error: result.invalidMessage });
+}
+```
+
 ### Seller Key Resolution for Payment Verification
 
 When verifying payments, the SDK needs the seller's public key to confirm the quote token signature. Three options:

@@ -101,7 +101,7 @@ export class AgentPayScheme implements SchemeNetworkServer {
       iss: this.signer.getServiceUrl(),
       aud: AGENT_PAY_AUDIENCE,
       iat: now,
-      exp: now + DEFAULT_QUOTE_VALIDITY_SECONDS,
+      exp: now + (paymentRequirements.maxTimeoutSeconds || DEFAULT_QUOTE_VALIDITY_SECONDS),
       jti: crypto.randomUUID(),
       price: {
         amount,
