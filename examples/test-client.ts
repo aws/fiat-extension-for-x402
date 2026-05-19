@@ -137,7 +137,7 @@ async function main() {
     logFlowObject('CLIENT', 'Created Payment Payload', paymentPayload);
     
     console.log('   ✓ Payment created');
-    console.log(`   Transaction: ${(paymentPayload.payload as any).transactionId}`);
+    console.log(`   Payment: ${(paymentPayload.payload as any).paymentId}`);
     console.log('');
     
     // Step 5: Make request with payment
@@ -227,7 +227,7 @@ async function main() {
     logFlowObject('CLIENT', 'Created Payment Payload for /bar', paymentPayload2);
     
     console.log('   ✓ Payment created');
-    console.log(`   Transaction: ${(paymentPayload2.payload as any).transactionId}`);
+    console.log(`   Payment: ${(paymentPayload2.payload as any).paymentId}`);
     
     // Access /bar with payment
     const authHeader2 = `x402 ${Buffer.from(JSON.stringify(paymentPayload2)).toString('base64')}`;
@@ -289,7 +289,7 @@ async function main() {
     logFlowObject('CLIENT', 'Created Payment Payload for /baz (eip155:8453)', paymentPayload3);
     
     console.log('   ✓ Payment created');
-    console.log(`   Transaction: ${(paymentPayload3.payload as any).transactionId}`);
+    console.log(`   Payment: ${(paymentPayload3.payload as any).paymentId}`);
     
     // Access /baz with payment
     const authHeader3 = `x402 ${Buffer.from(JSON.stringify(paymentPayload3)).toString('base64')}`;

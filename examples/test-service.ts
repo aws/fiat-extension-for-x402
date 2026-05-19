@@ -154,7 +154,7 @@ app.get('/foo', async (req, res) => {
     logFlowObject('SERVICE', 'Received Payment Payload', paymentPayload);
     
     console.log('💳 Payment received for /foo');
-    console.log(`   Transaction: ${paymentPayload.payload.transactionId}`);
+    console.log(`   Payment: ${paymentPayload.payload.paymentId}`);
 
     // The payment payload contains the accepted requirements that were used
     // We should use those instead of generating new ones
@@ -275,7 +275,7 @@ app.get('/bar', async (req, res) => {
     logFlowObject('SERVICE', 'Received Payment Payload (AUTO CAPTURE)', paymentPayload);
     
     console.log('💳 Payment received for /bar (payment required)');
-    console.log(`   Transaction: ${paymentPayload.payload.transactionId}`);
+    console.log(`   Payment: ${paymentPayload.payload.paymentId}`);
 
     const accepted = paymentPayload.accepted;
     
@@ -391,7 +391,7 @@ app.get('/baz', async (req, res) => {
     logFlowObject('SERVICE', 'Received Payment Payload (eip155:8453)', paymentPayload);
     
     console.log('💳 Payment received for /baz (EVM Base via Agent Pay)');
-    console.log(`   Transaction: ${paymentPayload.payload.transactionId}`);
+    console.log(`   Payment: ${paymentPayload.payload.paymentId}`);
 
     const accepted = paymentPayload.accepted;
     
