@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 /**
  * Default Agent Pay client implementation
  * Handles HTTP communication with the AWS Marketplace Agent Pay Service

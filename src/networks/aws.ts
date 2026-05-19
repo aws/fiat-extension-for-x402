@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 /**
  * AWS-specific Agent Pay scheme implementations
  * Pre-configured for AWS Agent Pay with sensible defaults

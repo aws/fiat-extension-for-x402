@@ -241,4 +241,4 @@ See [docs/tasks.md](./docs/tasks.md) for full status and [docs/spec.md](./docs/s
 
 ## License
 
-MIT
+Apache-2.0
