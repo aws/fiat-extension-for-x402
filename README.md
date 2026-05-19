@@ -65,7 +65,9 @@ const agentPay = new AgentPayScheme({
 });
 
 // Same enhancePaymentRequirements() call as Option A
-// Host your public key at: https://api.your-service.com/.well-known/jwks.json
+// Host your public key at: {serviceUrl}/.well-known/jwks.json
+// The serviceUrl you pass becomes the quote token's `iss` claim.
+// Agent Pay and the SDK fetch your key from: {iss}/.well-known/jwks.json
 ```
 
 ---
@@ -103,20 +105,43 @@ const result = await fetch(url, {
 
 ## Seller: Verify Payment Token
 
-When the buyer retries with a payment token, verify it before delivering the resource:
+When the buyer retries with a payment token, verify it before delivering the resource.
+
+**Important:** For JWKS URLs, pass only the **base URL** — the SDK automatically appends `/.well-known/jwks.json`.
 
 ```typescript
 import { AgentPayFacilitatorClient } from 'aws-agent-pay-x402';
 
+// Option 1: KMS-hosted key
 const verifier = new AgentPayFacilitatorClient(
   'https://agentpay.marketplace.aws.dev',
   undefined, undefined, undefined,
-  // Choose ONE seller key resolution strategy:
-  { type: 'kms', kmsKeyArn: 'arn:aws:kms:...:alias/your-key', region: 'us-east-1', credentials: () => getCreds() }
-  // OR: { type: 'jwks', jwksUrl: 'https://keys.your-service.com' }
-  // OR: omit — auto-fetches from quote token's iss URL
+  {
+    type: 'kms',
+    kmsKeyArn: 'arn:aws:kms:us-east-1:YOUR_ACCOUNT:alias/your-key',
+    region: 'us-east-1',
+    credentials: () => getAwsCredentials(),
+  }
 );
 
+// Option 2: Self-hosted JWKS endpoint
+const verifier2 = new AgentPayFacilitatorClient(
+  'https://agentpay.marketplace.aws.dev',
+  undefined, undefined, undefined,
+  {
+    type: 'jwks',
+    jwksUrl: 'https://keys.your-service.com'  // BASE URL only!
+    // SDK fetches: https://keys.your-service.com/.well-known/jwks.json
+  }
+);
+
+// Option 3: No config — auto-discovers from quote token's iss claim
+// SDK fetches: {iss}/.well-known/jwks.json
+const verifier3 = new AgentPayFacilitatorClient('https://agentpay.marketplace.aws.dev');
+```
+
+```typescript
+// Verify the payment
 const result = await verifier.verify(paymentPayload, originalRequirements);
 if (result.isValid) {
   res.json({ data: 'premium content' });
