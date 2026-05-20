@@ -40,7 +40,8 @@ describe('createAgentPayClient', () => {
     expect(() => createAgentPayClient({ agentPayBaseUrl: 'bad', agentPayId: 'w' })).toThrow(ValidationError);
   });
 
-  it('should throw on missing agentPayBaseUrl', () => {
-    expect(() => createAgentPayClient({ agentPayBaseUrl: '', agentPayId: 'w' })).toThrow(ValidationError);
+  it('should use default agentPayBaseUrl when not provided', () => {
+    const client = createAgentPayClient({ agentPayId: 'w' });
+    expect(client).toBeDefined();
   });
 });

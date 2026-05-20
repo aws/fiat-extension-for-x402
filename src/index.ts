@@ -92,6 +92,7 @@ export {
   WELL_KNOWN_OIDC_PATH,
   AGENT_PAY_AUDIENCE,
   AGENT_PAY_JWKS_BASE_URL,
+  DEFAULT_AGENT_PAY_BASE_URL,
 } from './constants';
 
 // Utilities

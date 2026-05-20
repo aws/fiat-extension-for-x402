@@ -106,3 +106,11 @@ export const AGENT_PAY_AUDIENCE = 'aws:marketplace';
  *       once the prod JWKS endpoint is provisioned.
  */
 export const AGENT_PAY_JWKS_BASE_URL = 'https://d1u1mq97msy1aj.cloudfront.net';
+
+/**
+ * Default base URL for the Agent Pay service endpoint.
+ * Used when `agentPayBaseUrl` is not provided in client options.
+ *
+ * TODO: Update to production URL once GA (e.g., https://agentpay.marketplace.aws)
+ */
+export const DEFAULT_AGENT_PAY_BASE_URL = 'https://agentpay.marketplace.aws';

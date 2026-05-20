@@ -20,6 +20,7 @@ import { AgentPayScheme as AgentPayClientSchemeImpl } from '../agent-pay/client/
 import type { AuthConfig } from '../auth/types';
 import type { DPoPKeyPair } from '../types';
 import { ValidationError } from '../types';
+import { DEFAULT_AGENT_PAY_BASE_URL } from '../constants';
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -28,8 +29,8 @@ import { ValidationError } from '../types';
  * Does not include networks — those are added via `registerNetwork`.
  */
 export interface AgentPayClientOptions {
-  /** Agent Pay base URL */
-  agentPayBaseUrl: string;
+  /** Agent Pay base URL (defaults to https://agentpay.marketplace.aws) */
+  agentPayBaseUrl?: string;
   /** Agent Pay ID */
   agentPayId: string;
   /** Optional: Agent Pay auth config */
@@ -68,7 +69,7 @@ export interface AgentPayClientConfig {
 
 function validateClientConfig(config: AgentPayClientOptions): void {
   if (!config.agentPayBaseUrl) {
-    throw new ValidationError('agentPayBaseUrl is required');
+    config.agentPayBaseUrl = DEFAULT_AGENT_PAY_BASE_URL;
   }
   try {
     new URL(config.agentPayBaseUrl);
@@ -105,7 +106,7 @@ export function createAgentPayClient(config: AgentPayClientOptions): AgentPayCli
   const apClientScheme = new AgentPayClientSchemeImpl({
     agentPayId: config.agentPayId,
     agentPay: {
-      baseUrl: config.agentPayBaseUrl,
+      baseUrl: config.agentPayBaseUrl!,
       auth: config.agentPayAuth,
     },
   });
