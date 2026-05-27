@@ -89,7 +89,7 @@ export interface GetAgentPaymentResponse {
       sellerProfileId: string;
       displayName: string;
     };
-    listingId: string;
+    productId: string;
     quoteToken: string;
     paymentToken: string;
     createdAt: string;
@@ -124,7 +124,7 @@ export interface ListAgentPaymentsResponse {
       sellerProfileId: string;
       displayName: string;
     };
-    listingId: string;
+    productId: string;
     createdAt: string;
     agreementId?: string;
   }>;

@@ -39,7 +39,7 @@ const requirements = await agentPay.enhancePaymentRequirements({
   asset: 'iso4217:USD',
   payTo: 'your-seller-id',
   maxTimeoutSeconds: 3600,
-  extra: { settlement: { listing_id: 'YOUR_LISTING_ID' } },
+  extra: { settlement: { product_id: 'YOUR_PRODUCT_ID' } },
 });
 
 res.status(402).json({ x402Version: 2, accepts: [requirements] });
@@ -167,7 +167,7 @@ app.use(agentPayMiddleware({
   signer: createKmsSigner({ keyArn: '...', region: 'us-east-1', serviceUrl: 'https://api.example.com' }),
   networks: ['aws:base'],
   routes: {
-    'GET /api/premium': { amount: '0.50', asset: 'iso4217:USD', listingId: 'YOUR_LISTING_ID' },
+    'GET /api/premium': { amount: '0.50', asset: 'iso4217:USD', productId: 'YOUR_PRODUCT_ID' },
   },
 }));
 ```

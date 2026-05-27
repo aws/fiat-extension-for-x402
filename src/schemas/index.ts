@@ -132,7 +132,7 @@ export const PaymentDetailSchema = z.object({
   paymentId: z.string().min(1),
   buyerAccountId: z.string().regex(/^\d{12}$/),
   sellerInformation: SellerInformationSchema,
-  listingId: z.string().min(1),
+  productId: z.string().min(1),
   quoteToken: z.string().min(1),
   paymentToken: z.string().min(1),
   createdAt: z.string().datetime(),
@@ -148,7 +148,7 @@ export const PaymentSummarySchema = z.object({
   paymentId: z.string().min(1),
   buyerAccountId: z.string().regex(/^\d{12}$/),
   sellerInformation: SellerInformationSchema,
-  listingId: z.string().min(1),
+  productId: z.string().min(1),
   createdAt: z.string().datetime(),
   agreementId: z.string().optional(),
 });

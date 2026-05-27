@@ -64,7 +64,7 @@ interface PaymentRecord {
   paymentId: string;
   buyerAccountId: string;
   sellerInformation: { sellerProfileId: string; displayName: string };
-  listingId: string;
+  productId: string;
   quoteToken: string;
   paymentToken: string;
   createdAt: string;
@@ -163,8 +163,8 @@ app.post('/CreateAgentPayment', async (req, res) => {
       return res.status(400).json({ message: 'The price.currency in the quote token is not USD. Only USD is supported.' });
     }
 
-    // Extract listing_id from settlement or use a default
-    const listingId = quotePayload.settlement?.listing_id || quotePayload.reference || 'lst-default';
+    // Extract product_id from settlement or use a default
+    const productId = quotePayload.settlement?.product_id || quotePayload.reference || 'lst-default';
 
     // --- Generate payment ID (awsmp-{UUIDv7 format}) ---
     paymentCounter++;
@@ -212,7 +212,7 @@ app.post('/CreateAgentPayment', async (req, res) => {
         sellerProfileId: quotePayload.iss || 'unknown-seller',
         displayName: quotePayload.iss || 'Unknown Seller',
       },
-      listingId,
+      productId,
       quoteToken,
       paymentToken,
       createdAt,
@@ -271,7 +271,7 @@ app.get('/GetAgentPayment/:paymentId', (req, res) => {
       paymentId: record.paymentId,
       buyerAccountId: record.buyerAccountId,
       sellerInformation: record.sellerInformation,
-      listingId: record.listingId,
+      productId: record.productId,
       quoteToken: record.quoteToken,
       paymentToken: record.paymentToken,
       createdAt: record.createdAt,
@@ -315,7 +315,7 @@ app.post('/ListAgentPayments', (req, res) => {
       paymentId: p.paymentId,
       buyerAccountId: p.buyerAccountId,
       sellerInformation: p.sellerInformation,
-      listingId: p.listingId,
+      productId: p.productId,
       createdAt: p.createdAt,
       ...(p.agreementId && { agreementId: p.agreementId }),
     })),

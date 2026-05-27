@@ -2719,7 +2719,7 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
   5. Auth is always AWS SigV4 (no API key, no OAuth2 for this endpoint)
   6. Signing algorithm is ES384 (not RS256)
   7. Quote token `aud` is `aws:base`
-  8. Quote token `settlement.listing_id` replaces `payTo` as the seller identifier
+  8. Quote token `settlement.product_id` replaces `payTo` as the seller identifier
 
   **Payment Token Structure (from Agent Pay):**
   ```json
@@ -2733,7 +2733,7 @@ _Added: 2026-05-11. These tasks prepare the SDK for production release against t
   **Error Responses:**
   - 400: `InvalidQuoteTokenException`, `QuoteExpiredException`, `QuoteSignatureInvalidException`, `UnsupportedCurrencyException`, `ValidationException`
   - 403: `SpendingLimitExceededException`, `AccessDeniedException`
-  - 404: `ListingNotFoundException`
+  - 404: `ProductNotFoundException`
   - 409: `ConflictException` (clientToken reuse with different params)
   - 429: `ThrottlingException`
   - 500: `InternalServerException`
