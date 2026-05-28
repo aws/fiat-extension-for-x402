@@ -21,22 +21,13 @@ import type { Authenticator, AuthenticatedRequest } from './auth/types';
 import { createAuthenticator } from './auth/factory';
 
 /**
- * JWKS cache entry
- */
-interface JWKSCacheEntry {
-  jwks: ReturnType<typeof createRemoteJWKSet>;
-  expiresAt: number;
-}
-
-/**
  * Default Agent Pay client implementation
  * Communicates with the AWS Marketplace Agent Pay Service API
  */
 export class DefaultAgentPayClient implements AgentPayClient {
   private readonly baseUrl: string;
   private readonly authenticator?: Authenticator;
-  private jwksCache: Map<string, JWKSCacheEntry> = new Map();
-  private readonly JWKS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+  private readonly jwks: ReturnType<typeof createRemoteJWKSet>;
 
   /**
    * Create a new default Agent Pay client
@@ -45,6 +36,7 @@ export class DefaultAgentPayClient implements AgentPayClient {
    */
   constructor(config: AgentPayConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, ''); // Remove trailing slash
+    this.jwks = createRemoteJWKSet(new URL(`${this.baseUrl}${WELL_KNOWN_JWKS_PATH}`));
     
     // Create authenticator if auth config provided
     if (config.auth) {
@@ -242,23 +234,11 @@ export class DefaultAgentPayClient implements AgentPayClient {
   }
 
   /**
-   * Get JWKS for signature verification (with caching)
+   * Get JWKS for Agent Pay payment token signature verification.
+   * Uses a single jose RemoteJWKSet instance — jose handles refetch on kid miss
+   * and coalesces concurrent requests internally.
    */
   private async getJWKS(): Promise<ReturnType<typeof createRemoteJWKSet>> {
-    const jwksUrl = `${this.baseUrl}${WELL_KNOWN_JWKS_PATH}`;
-    const now = Date.now();
-    
-    const cached = this.jwksCache.get(jwksUrl);
-    if (cached && cached.expiresAt > now) {
-      return cached.jwks;
-    }
-    
-    const jwks = createRemoteJWKSet(new URL(jwksUrl));
-    this.jwksCache.set(jwksUrl, {
-      jwks,
-      expiresAt: now + this.JWKS_CACHE_TTL_MS,
-    });
-    
-    return jwks;
+    return this.jwks;
   }
 }

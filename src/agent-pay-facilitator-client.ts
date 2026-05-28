@@ -299,14 +299,18 @@ export class AgentPayFacilitatorClient implements FacilitatorClient {
    */
   private async fetchJWKS(baseUrl: string): Promise<jose.JSONWebKeySet> {
     // For Agent Pay's own keys, use the dedicated JWKS CDN URL
-    const effectiveBase = baseUrl === this.agentPayBaseUrl ? this.jwksBaseUrl! : baseUrl;
+    const isAgentPayKeys = baseUrl === this.agentPayBaseUrl;
+    const effectiveBase = isAgentPayKeys ? this.jwksBaseUrl! : baseUrl;
     const url = `${effectiveBase}${WELL_KNOWN_JWKS_PATH}`;
-    const now = Date.now();
 
-    // Check cache
-    const cached = this.jwksCache.get(url);
-    if (cached && now - cached.timestamp < this.JWKS_CACHE_TTL) {
-      return cached.jwks;
+    // Agent Pay enforces Cache-Control: no-store on their JWKS endpoint.
+    // Only cache seller keys (which are stable and fetched from seller's own JWKS).
+    if (!isAgentPayKeys) {
+      const now = Date.now();
+      const cached = this.jwksCache.get(url);
+      if (cached && now - cached.timestamp < this.JWKS_CACHE_TTL) {
+        return cached.jwks;
+      }
     }
 
     // Fetch fresh JWKS
@@ -321,8 +325,10 @@ export class AgentPayFacilitatorClient implements FacilitatorClient {
 
     const jwks = await response.json() as jose.JSONWebKeySet;
 
-    // Cache it
-    this.jwksCache.set(url, { jwks, timestamp: now });
+    // Cache seller keys only — Agent Pay keys are always fetched fresh
+    if (!isAgentPayKeys) {
+      this.jwksCache.set(url, { jwks, timestamp: Date.now() });
+    }
 
     return jwks;
   }

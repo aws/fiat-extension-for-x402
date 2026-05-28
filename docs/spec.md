@@ -317,7 +317,7 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 | APAY-WCL-003 | When `verifyPaymentToken` is called on Agent Pay client, the system shall fetch the Agent Pay's public keys from `{baseUrl}/.well-known/jwks.json` using `jose.createRemoteJWKSet` and verify the JWT signature. |
 | APAY-WCL-004 | The `DefaultAgentPayClient` shall NOT provide a `capturePayment` method. Agent Pay auto-captures on creation. |
 | APAY-WCL-005 | Where authentication is configured on Agent Pay client, the system shall apply the configured authenticator to all outgoing HTTP requests before sending. |
-| APAY-WCL-006 | Agent Pay client shall cache JWKS remote sets with a TTL of 1 hour to avoid redundant network requests. |
+| APAY-WCL-006 | Agent Pay client shall use a single `createRemoteJWKSet` instance for payment token verification. Jose's internal behavior handles key rotation via kid-miss refetch and coalesces concurrent requests. Client-side TTL caching is not applied — Agent Pay enforces `Cache-Control: no-store` on their JWKS endpoint. |
 | APAY-WCL-007 | If Agent Pay returns a non-OK HTTP response to `authorize`, then Agent Pay client shall throw a `ValidationError` containing the HTTP status code and response body. |
 | APAY-WCL-008 | If the Agent Pay response to `createPayment` is missing `paymentId` or `paymentToken`, then the Agent Pay client shall throw a `ValidationError`. |
 | APAY-WCL-010 | The `DefaultAgentPayClient` constructor shall strip trailing slashes from the `baseUrl`. |
