@@ -28,6 +28,20 @@ import type {
 import * as jose from 'jose';
 import { AgentPayPayloadV2, AgentPayPaymentExtra } from './types';
 import { decodeQuoteToken } from './utils';
+import { verifyDPoPProof, extractDPoPThumbprint } from './dpop';
+
+/**
+ * HTTP request context for DPoP verification.
+ * Pass this when verifying payments that may be DPoP-bound.
+ */
+export interface VerifyRequestContext {
+  /** HTTP method of the buyer's retry request (e.g. 'GET', 'POST') */
+  method: string;
+  /** Full URL of the buyer's retry request */
+  url: string;
+  /** DPoP proof JWT from the request's DPoP header */
+  dpopProof?: string;
+}
 
 /**
  * Optional authentication configuration for Agent Pay API calls
@@ -128,17 +142,22 @@ export class AgentPayFacilitatorClient implements FacilitatorClient {
    * 1. Verify payment token signature (proves Agent Pay authorized it)
    * 2. Verify quote token signature (proves service issued it)
    * 3. Verify amounts match (prevents tampering)
+   * 4. If payment token contains cnf.jkt (DPoP binding), verify the DPoP
+   *    proof in requestContext matches the bound key thumbprint
    * 
    * The signed payment token IS the proof of payment.
    * Services should track processed transaction IDs for idempotency.
    * 
    * @param payload - Payment payload to verify
    * @param requirements - Payment requirements
+   * @param requestContext - Optional HTTP request context for DPoP verification.
+   *   Required if the buyer used DPoP (payment token will contain cnf.jkt).
    * @returns Verification response
    */
   async verify(
     payload: PaymentPayload,
-    requirements: PaymentRequirements
+    requirements: PaymentRequirements,
+    requestContext?: VerifyRequestContext
   ): Promise<VerifyResponse> {
     try {
       const apPayload = payload.payload as unknown as AgentPayPayloadV2;
@@ -207,6 +226,30 @@ export class AgentPayFacilitatorClient implements FacilitatorClient {
           invalidReason: 'invalid_payment',
           invalidMessage: 'Amount or currency mismatch'
         };
+      }
+
+      // 10. DPoP verification (if buyer opted in)
+      const cnf = (paymentTokenPayload as any).cnf;
+      if (cnf?.jkt) {
+        if (!requestContext?.dpopProof) {
+          return {
+            isValid: false,
+            invalidReason: 'dpop_required',
+            invalidMessage: 'Payment token is DPoP-bound but no DPoP proof provided',
+          };
+        }
+        const thumbprint = await extractDPoPThumbprint(requestContext.dpopProof);
+        if (thumbprint !== cnf.jkt) {
+          return {
+            isValid: false,
+            invalidReason: 'dpop_invalid',
+            invalidMessage: 'DPoP proof thumbprint does not match payment token binding',
+          };
+        }
+        await verifyDPoPProof(requestContext.dpopProof, {
+          method: requestContext.method,
+          url: requestContext.url,
+        });
       }
 
       return {

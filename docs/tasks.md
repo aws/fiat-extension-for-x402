@@ -682,14 +682,14 @@ This document outlines the implementation tasks for building the Agent Pay x402 
     - Document DPoP usage in JSDoc
     - _Requirements: 15.13_
 
-  - [ ] 15.12 Update FABService to support DPoP verification
+  - [x] 15.12 Update FABService to support DPoP verification
     - Add optional dpopProof and request parameters to verifyPayment
     - Verify DPoP proof if provided
     - Check cnf claim in payment token matches DPoP key
     - Document when to require DPoP in JSDoc
     - _Requirements: 15.6, 15.7, 15.8_
 
-  - [ ]* 15.13 Write integration tests for DPoP flow
+  - [x] 15.13 Write integration tests for DPoP flow
     - Test complete flow: key generation → proof creation → verification
     - Test with access token binding
     - Test with nonce store

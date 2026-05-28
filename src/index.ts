@@ -38,7 +38,7 @@ export { DefaultAgentPayClient } from './agent-pay-client';
 // Facilitator client implementation
 export { InProcessFacilitatorClient } from './facilitator-client';
 export { AgentPayFacilitatorClient } from './agent-pay-facilitator-client';
-export type { AgentPayFacilitatorAuthConfig, SellerKeyResolver } from './agent-pay-facilitator-client';
+export type { AgentPayFacilitatorAuthConfig, SellerKeyResolver, VerifyRequestContext } from './agent-pay-facilitator-client';
 
 // Signers
 export { toServiceAgentPaySigner, toAgentPaySigner } from './signer';

@@ -11,6 +11,7 @@ import { PaymentPayload, PaymentRequirements, VerifyResponse } from '@x402/core/
 import type { AgentPayClientForFacilitator } from '../../config';
 import { AgentPayPayloadV2, AgentPayPaymentExtra, MismatchError } from '../../types';
 import { decodeQuoteToken } from '../../utils';
+import { verifyDPoPProof, extractDPoPThumbprint } from '../../dpop';
 
 /**
  * Options for payment verification
@@ -22,6 +23,8 @@ export interface VerifyPaymentOptions {
    * Useful when the service is behind a proxy or uses a different JWKS endpoint.
    */
   serviceJWKSUrl?: string;
+  /** HTTP request context for DPoP verification */
+  requestContext?: { method: string; url: string; dpopProof?: string };
 }
 
 /**
@@ -34,6 +37,7 @@ export interface VerifyPaymentOptions {
  * 4. Verify quote token signature (service's key via JWKS) — MANDATORY
  * 5. Verify quote token expiry
  * 6. Verify payment token expiry
+ * 7. If payment token contains cnf.jkt, verify DPoP proof (requestContext required)
  * 
  * Note: Agent Pay auto-captures on creation — there is no separate settlement step.
  * This function does NOT use requirements.payTo or requirements.maxTimeoutSeconds.
@@ -44,7 +48,7 @@ export interface VerifyPaymentOptions {
  * @param payload - Payment payload
  * @param requirements - Payment requirements
  * @param apPayload - Agent Pay-specific payload
- * @param options - Optional verification options (e.g., serviceJWKSUrl override)
+ * @param options - Optional verification options (serviceJWKSUrl override, requestContext for DPoP)
  * @returns Verification response
  */
 export async function verifyPayment(
@@ -135,6 +139,30 @@ export async function verifyPayment(
         invalidReason: 'payment_expired',
         invalidMessage: 'Payment token expired',
       };
+    }
+
+    // 7. DPoP verification (if buyer opted in)
+    const cnf = paymentJWT.cnf;
+    if (cnf?.jkt) {
+      if (!options?.requestContext?.dpopProof) {
+        return {
+          isValid: false,
+          invalidReason: 'dpop_required',
+          invalidMessage: 'Payment token is DPoP-bound but no DPoP proof provided',
+        };
+      }
+      const thumbprint = await extractDPoPThumbprint(options.requestContext.dpopProof);
+      if (thumbprint !== cnf.jkt) {
+        return {
+          isValid: false,
+          invalidReason: 'dpop_invalid',
+          invalidMessage: 'DPoP proof thumbprint does not match payment token binding',
+        };
+      }
+      await verifyDPoPProof(options.requestContext.dpopProof, {
+        method: options.requestContext.method,
+        url: options.requestContext.url,
+      });
     }
 
     return {
