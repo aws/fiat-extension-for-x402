@@ -3,6 +3,12 @@
   "version": "0.1.0",
   "description": "AWS Agent Pay extension for x402 protocol",
   "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",

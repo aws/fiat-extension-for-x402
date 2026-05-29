@@ -100,17 +100,14 @@ export const AGENT_PAY_AUDIENCE = 'aws:marketplace';
 /**
  * Default base URL for Agent Pay's JWKS (signing key) endpoint.
  * The SDK appends /.well-known/jwks.json to this automatically.
- * Override via the jwksBaseUrl constructor parameter for testing only.
- *
- * TODO: Update to production DNS name (e.g., https://keys.agentpay.marketplace.aws.dev)
- *       once the prod JWKS endpoint is provisioned.
+ * Override via the jwksBaseUrl constructor parameter for beta/testing.
  */
-export const AGENT_PAY_JWKS_BASE_URL = 'https://d1u1mq97msy1aj.cloudfront.net';
+export const AGENT_PAY_JWKS_BASE_URL = 'https://d3aeb2cjjowogc.cloudfront.net';
 
+/**
 /**
  * Default base URL for the Agent Pay service endpoint.
  * Used when `agentPayBaseUrl` is not provided in client options.
- *
- * TODO: Update to production URL once GA (e.g., https://agentpay.marketplace.aws)
+ * Override for beta testing: 'https://beta.agentpay.marketplace.aws.dev'
  */
-export const DEFAULT_AGENT_PAY_BASE_URL = 'https://agentpay.marketplace.aws';
+export const DEFAULT_AGENT_PAY_BASE_URL = 'https://prod.agentpay.marketplace.aws.dev';
