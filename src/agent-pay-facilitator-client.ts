@@ -16,7 +16,7 @@
 
 import type { FacilitatorClient } from '@x402/core/http';
 import { ALLOWED_ALGORITHMS, secureCompare } from './security';
-import { WELL_KNOWN_JWKS_PATH, WELL_KNOWN_X402_SUPPORTED_PATH, AGENT_PAY_JWKS_BASE_URL } from './constants';
+import { WELL_KNOWN_JWKS_PATH, WELL_KNOWN_X402_SUPPORTED_PATH, AGENT_PAY_JWKS_BASE_URL, AGENT_PAY_JWKS_ACCESS_KEY, DEFAULT_AGENT_PAY_BASE_URL } from './constants';
 import type {
   Network,
   PaymentPayload,
@@ -74,6 +74,7 @@ export type SellerKeyResolver =
  * The Agent Pay provider serves as the facilitator in Agent Pay.
  */
 export class AgentPayFacilitatorClient implements FacilitatorClient {
+  private readonly agentPayBaseUrl: string;
   private jwksCache: Map<string, { jwks: jose.JSONWebKeySet; timestamp: number }> = new Map();
   private kmsKeyCache: Map<string, { key: jose.KeyLike; timestamp: number }> = new Map();
   private readonly JWKS_CACHE_TTL = 3600000; // 1 hour
@@ -95,14 +96,14 @@ export class AgentPayFacilitatorClient implements FacilitatorClient {
    *   verification. If omitted, fetches JWKS from the quote token's `iss` claim.
    */
   constructor(
-    private readonly agentPayBaseUrl: string,
+    agentPayBaseUrl?: string,
     authConfig?: AgentPayFacilitatorAuthConfig,
     networkFilter?: Set<Network>,
     jwksBaseUrl?: string,
     sellerKeyResolver?: SellerKeyResolver
   ) {
     // Remove trailing slash if present
-    this.agentPayBaseUrl = agentPayBaseUrl.replace(/\/$/, '');
+    this.agentPayBaseUrl = (agentPayBaseUrl ?? DEFAULT_AGENT_PAY_BASE_URL).replace(/\/$/, '');
     this.authConfig = authConfig;
     this.networkFilter = networkFilter;
     this.jwksBaseUrl = (jwksBaseUrl ?? AGENT_PAY_JWKS_BASE_URL).replace(/\/$/, '');
@@ -360,6 +361,8 @@ export class AgentPayFacilitatorClient implements FacilitatorClient {
     const headers: Record<string, string> = {};
     if (this.authConfig?.getAuthHeaders) {
       Object.assign(headers, await this.authConfig.getAuthHeaders());
+    } else if (isAgentPayKeys) {
+      headers['x-agentpay-key'] = AGENT_PAY_JWKS_ACCESS_KEY;
     }
     const response = await fetch(url, { headers });
     if (!response.ok) {

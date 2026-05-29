@@ -105,6 +105,11 @@ export const AGENT_PAY_AUDIENCE = 'aws:marketplace';
 export const AGENT_PAY_JWKS_BASE_URL = 'https://d3aeb2cjjowogc.cloudfront.net';
 
 /**
+ * Default WAF access header for Agent Pay's JWKS endpoint.
+ * Required to fetch the public keys for payment token verification.
+ */
+export const AGENT_PAY_JWKS_ACCESS_KEY = 'agentpay-test-2026';
+
 /**
  * Default base URL for the Agent Pay service endpoint.
  * Used when `agentPayBaseUrl` is not provided in client options.
