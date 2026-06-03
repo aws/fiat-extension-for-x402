@@ -322,6 +322,7 @@ export function agentPayMiddleware(
         return res
           .status(402)
           .set('WWW-Authenticate', `x402 version=${paymentRequired.x402Version}, accepts="${acceptsBase64}"`)
+          .set('PAYMENT-REQUIRED', acceptsBase64)
           .json(paymentRequired);
       }
 
@@ -355,6 +356,10 @@ export function agentPayMiddleware(
       if (config.onPaymentSettled) {
         await config.onPaymentSettled(req, payment, payment.transactionId);
       }
+
+      // Set x402 V2 PAYMENT-RESPONSE header for downstream response
+      const settleResponse = { success: true, network: payment.network, transaction: payment.transactionId };
+      res.set('PAYMENT-RESPONSE', Buffer.from(JSON.stringify(settleResponse)).toString('base64'));
 
       // Attach payment info to request and proceed
       req.agentPayPayment = payment;

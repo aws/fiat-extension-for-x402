@@ -396,7 +396,7 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 |----|-------------|
 | APAY-MWR-001 | The system shall provide a `agentPayMiddleware` factory function that accepts a `FABMiddlewareConfig` and returns an Express middleware function `(req, res, next) => void`. |
 | APAY-MWR-002 | The middleware shall match incoming requests against a route map keyed by `"METHOD /path"` patterns, supporting exact paths, wildcard (`*`) segments, and method-agnostic patterns (path only, matching any HTTP method). |
-| APAY-MWR-003 | When a request matches a protected route and no payment header is present, the middleware shall return an HTTP 402 response with a `WWW-Authenticate` header containing the base64-encoded `PaymentRequired` payload. |
+| APAY-MWR-003 | When a request matches a protected route and no payment header is present, the middleware shall return an HTTP 402 response with a `WWW-Authenticate` header containing the base64-encoded `PaymentRequired` payload and a `PAYMENT-REQUIRED` header containing the same base64-encoded payload (x402 V2 protocol compliance). |
 | APAY-MWR-004 | When a request matches a protected route and a valid payment is present in the `Authorization: x402 <base64>`, `X-Payment`, or `payment-signature` header, the middleware shall verify the payment via `x402ResourceServer.verifyPayment`. |
 | APAY-MWR-005 | When payment verification succeeds, the middleware shall attach a `PaymentInfo` object to `req.fabPayment` containing `payer`, `transactionId`, `network`, `amount`, and `asset`, then call `next()`. |
 | APAY-MWR-006 | When payment verification fails, the middleware shall return an HTTP 402 response with a JSON body containing `error` and `details` fields. |
@@ -407,6 +407,7 @@ Requirements are organized by functional area and written in EARS syntax. Each r
 | APAY-MWR-012 | Where an `onPaymentVerified` hook is configured, the middleware shall call it after successful verification and before calling `next()`. |
 | APAY-MWR-013 | Where an `onPaymentSettled` hook is configured, the middleware shall call it after successful auto-capture settlement. |
 | APAY-MWR-014 | Where an `onError` hook is configured, the middleware shall call it instead of returning a default 500 JSON error response when an unhandled exception occurs. |
+| APAY-MWR-015 | When payment verification and settlement succeed, the middleware shall set a `PAYMENT-RESPONSE` header on the response containing a base64-encoded JSON object with `success`, `network`, and `transaction` fields before calling `next()` (x402 V2 protocol compliance). |
 
 ### 3.16 Agent Pay Provider Compatibility Contract
 

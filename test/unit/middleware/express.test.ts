@@ -445,4 +445,59 @@ describe('agentPayMiddleware', () => {
       expect(onError.mock.calls[0][0].message).toBe('boom');
     });
   });
+
+  describe('x402 V2 protocol header compliance', () => {
+    it('sets PAYMENT-REQUIRED header on 402 responses', async () => {
+      const mockPaymentRequired = {
+        x402Version: 2,
+        accepts: [{ scheme: 'agent-pay', network: 'aws:base' }],
+      };
+      mockBuildPaymentRequirements.mockResolvedValue([{ scheme: 'agent-pay' }]);
+      mockCreatePaymentRequiredResponse.mockResolvedValue(mockPaymentRequired);
+
+      const middleware = agentPayMiddleware(baseConfig);
+      const req = createMockReq({ path: '/api/premium', method: 'GET' });
+      const res = createMockRes();
+      const next = vi.fn();
+
+      middleware(req, res, next);
+
+      await vi.waitFor(() => {
+        expect(res._status).toBe(402);
+      });
+
+      const expectedBase64 = Buffer.from(JSON.stringify(mockPaymentRequired)).toString('base64');
+      expect(res._headers['PAYMENT-REQUIRED']).toBe(expectedBase64);
+    });
+
+    it('sets PAYMENT-RESPONSE header on successful payment', async () => {
+      mockVerifyPayment.mockResolvedValue({ isValid: true, payer: 'buyer-123' });
+
+      const paymentPayload = {
+        x402Version: 2,
+        payload: { paymentToken: 'tok', transactionId: 'awsmp-tx123' },
+        accepted: { scheme: 'agent-pay', network: 'aws:base', amount: '0.15', asset: 'iso4217:USD', extra: {} },
+      };
+      const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
+
+      const middleware = agentPayMiddleware(baseConfig);
+      const req = createMockReq({
+        path: '/api/premium',
+        method: 'GET',
+        headers: { authorization: `x402 ${encoded}` },
+      });
+      const res = createMockRes();
+      const next = vi.fn();
+
+      middleware(req, res, next);
+
+      await vi.waitFor(() => {
+        expect(next).toHaveBeenCalledOnce();
+      });
+
+      const expectedResponse = { success: true, network: 'aws:base', transaction: 'awsmp-tx123' };
+      const expectedBase64 = Buffer.from(JSON.stringify(expectedResponse)).toString('base64');
+      expect(res._headers['PAYMENT-RESPONSE']).toBe(expectedBase64);
+    });
+  });
 });
