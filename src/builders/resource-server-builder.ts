@@ -158,6 +158,7 @@ export function createAgentPayResourceServer(
   const self: AgentPayResourceServer = {
     // server is lazily built during initialize()
     get server() {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- pre-existing `any` fallback, tracked with the no-explicit-any cleanup
       return (self as any)._server;
     },
 

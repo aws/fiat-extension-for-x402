@@ -3,12 +3,10 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: [
     'src/index.ts',
-    'src/client.ts',
-    'src/server.ts',
-    'src/facilitator.ts',
     'src/agent-pay/client/index.ts',
     'src/agent-pay/server/index.ts',
     'src/agent-pay/facilitator/index.ts',
+    'src/middleware/express.ts',
   ],
   format: ['cjs', 'esm'],
   dts: true,

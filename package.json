@@ -11,47 +11,57 @@
   ],
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/index.d.cts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    },
-    "./client": {
-      "types": "./dist/client.d.ts",
-      "import": "./dist/client.js",
-      "require": "./dist/client.cjs"
-    },
-    "./server": {
-      "types": "./dist/server.d.ts",
-      "import": "./dist/server.js",
-      "require": "./dist/server.cjs"
-    },
-    "./facilitator": {
-      "types": "./dist/facilitator.d.ts",
-      "import": "./dist/facilitator.js",
-      "require": "./dist/facilitator.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./agent-pay/client": {
-      "types": "./dist/agent-pay/client/index.d.ts",
-      "import": "./dist/agent-pay/client/index.js",
-      "require": "./dist/agent-pay/client/index.cjs"
+      "import": {
+        "types": "./dist/agent-pay/client/index.d.ts",
+        "default": "./dist/agent-pay/client/index.js"
+      },
+      "require": {
+        "types": "./dist/agent-pay/client/index.d.cts",
+        "default": "./dist/agent-pay/client/index.cjs"
+      }
     },
     "./agent-pay/server": {
-      "types": "./dist/agent-pay/server/index.d.ts",
-      "import": "./dist/agent-pay/server/index.js",
-      "require": "./dist/agent-pay/server/index.cjs"
+      "import": {
+        "types": "./dist/agent-pay/server/index.d.ts",
+        "default": "./dist/agent-pay/server/index.js"
+      },
+      "require": {
+        "types": "./dist/agent-pay/server/index.d.cts",
+        "default": "./dist/agent-pay/server/index.cjs"
+      }
     },
     "./agent-pay/facilitator": {
-      "types": "./dist/agent-pay/facilitator/index.d.ts",
-      "import": "./dist/agent-pay/facilitator/index.js",
-      "require": "./dist/agent-pay/facilitator/index.cjs"
+      "import": {
+        "types": "./dist/agent-pay/facilitator/index.d.ts",
+        "default": "./dist/agent-pay/facilitator/index.js"
+      },
+      "require": {
+        "types": "./dist/agent-pay/facilitator/index.d.cts",
+        "default": "./dist/agent-pay/facilitator/index.cjs"
+      }
     },
     "./middleware/express": {
-      "types": "./dist/middleware/express.d.ts",
-      "import": "./dist/middleware/express.js",
-      "require": "./dist/middleware/express.cjs"
+      "import": {
+        "types": "./dist/middleware/express.d.ts",
+        "default": "./dist/middleware/express.js"
+      },
+      "require": {
+        "types": "./dist/middleware/express.d.cts",
+        "default": "./dist/middleware/express.cjs"
+      }
     }
   },
   "scripts": {
@@ -60,9 +70,13 @@
     "test:coverage": "vitest run --coverage",
     "test:coverage:open": "npm run test:coverage && open coverage/index.html",
     "build": "tsup",
+    "attw": "npm run build && attw --pack . --profile node16",
+    "publint": "npm run build && publint",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts",
+    "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
+    "lint": "eslint src --max-warnings 120",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "deps:list": "npx license-checker --production --csv | awk -F',' 'NR>1 {gsub(/\"/,\"\"); print $1\"-\"$2}' > deps.txt",
     "deps:licenses": "npx generate-license-file --input package.json --output licenses.txt"
   },
@@ -95,20 +109,22 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "0.18.5",
     "@aws-sdk/client-secrets-manager": "^3.1049.0",
+    "@eslint/js": "9.39.5",
     "@types/express": "^4.17.21",
-    "@types/node": "^20.11.0",
-    "@typescript-eslint/eslint-plugin": "^6.19.0",
-    "@typescript-eslint/parser": "^6.19.0",
-    "@vitest/coverage-v8": "^1.2.0",
+    "@types/node": "20.19.43",
+    "@vitest/coverage-v8": "3.2.7",
     "@x402/core": "^2.0.0",
-    "eslint": "^8.56.0",
+    "eslint": "9.39.5",
     "express": "^4.18.2",
     "prettier": "^3.2.4",
+    "publint": "0.3.25",
     "tsup": "^8.0.1",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",
-    "vitest": "^1.2.0"
+    "typescript-eslint": "8.71.1",
+    "vitest": "3.2.7"
   },
   "repository": {
     "type": "git",

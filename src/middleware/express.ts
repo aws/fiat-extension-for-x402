@@ -138,6 +138,7 @@ export interface PaymentInfo {
 
 // Extend Express Request to carry payment info
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace -- global augmentation of the Express namespace requires `namespace`
   namespace Express {
     interface Request {
       /** Agent Pay payment info, set by agentPayMiddleware after successful verification */
@@ -191,6 +192,7 @@ function matchRoute(compiledRoutes: CompiledRoute[], method: string, path: strin
 
 // ── Payment extraction ─────────────────────────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents -- pre-existing; this module is removed by the redesign
 function extractPaymentPayload(req: Request): any | null {
   // Check x402 Authorization header: "x402 <base64>"
   const authHeader = req.headers.authorization;

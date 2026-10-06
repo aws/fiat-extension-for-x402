@@ -63,6 +63,7 @@ export async function generateDPoPKeyPair(
       publicKey.alg = 'RS256';
       publicKey.use = 'sig';
     } else {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- reached only for an unsupported runtime value
       throw new DPoPError(`Unsupported algorithm: ${algorithm}`, { algorithm });
     }
 
