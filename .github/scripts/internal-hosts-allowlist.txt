@@ -1,0 +1,36 @@
+# Internal hosts and identifiers that check-oss-hygiene.mjs tolerates for now.
+#
+# Format: <path> <token> # PR <n>: <reason>
+# - <token> is the whole host or identifier as the check reports it
+#   (case-insensitive). One entry covers every occurrence in that file.
+# - Every entry must name the PR that removes it.
+# - An entry that no longer matches anything fails the check, so the PR that
+#   removes a token (or moves its file) must delete or update the entry.
+# Do not add entries for new code: use example.com or a placeholder instead.
+
+# Buyer side (client, auth, network registry, base URLs), deleted by PR 5.
+src/builders/client-builder.ts pay.aws.amazon.com # PR 5: client builder deleted
+src/config.ts pay.aws.amazon.com # PR 5: buyer client options deleted
+src/discovery.ts pay.aws.amazon.com # PR 5: network registry and base-URL helpers deleted
+src/constants.ts prod.agentpay.marketplace.aws.dev # PR 5: DEFAULT_AGENT_PAY_BASE_URL dropped
+src/constants.ts beta.agentpay.marketplace.aws.dev # PR 5: DEFAULT_AGENT_PAY_BASE_URL comment dropped
+test/unit/agent-pay-client.test.ts pay.aws.amazon.com # PR 5: buyer client tests deleted
+test/unit/auth/aws-sigv4.test.ts pay.aws.amazon.com # PR 5: auth tests deleted
+test/unit/discovery.test.ts pay.aws.amazon.com # PR 5: network registry tests deleted
+
+# Our middleware, builders and network presets, deleted by PR 6.
+src/builders/resource-server-builder.ts pay.aws.amazon.com # PR 6: builder deleted
+src/middleware/express.ts pay.aws.amazon.com # PR 6: middleware deleted
+src/networks/aws.ts pay.aws.amazon.com # PR 6: network presets deleted
+
+# Service constants, removed or renamed by PR 7 (rename and new layout).
+src/constants.ts agentpay-test-2026 # PR 7: hard-coded JWKS WAF access key (AGENT_PAY_JWKS_ACCESS_KEY) removed
+src/constants.ts d3aeb2cjjowogc.cloudfront.net # PR 7: hard-coded JWKS host (AGENT_PAY_JWKS_BASE_URL) removed or renamed
+src/agent-pay-facilitator-client.ts agentpay.marketplace.aws.dev # PR 7: file renamed; the JSDoc example uses example.com
+test/unit/security.test.ts pay.aws.amazon.com # PR 7: renamed test uses example.com
+test/unit/types.test.ts pay.aws.amazon.com # PR 7: renamed test uses example.com
+test/unit/utils.test.ts pay.aws.amazon.com # PR 7: renamed test uses example.com
+
+# Docs, rewritten for seller and facilitator by PR 14.
+README.md agentpay.marketplace.aws.dev # PR 14: README rewrite
+docs/sdk-guide.md pay.aws.amazon.com # PR 14: docs rewrite

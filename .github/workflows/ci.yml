@@ -31,33 +31,22 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ matrix.node }}
-      # Every install must come from public npm: no lockfile entry may resolve
-      # elsewhere, and no committed .npmrc may redirect the registry (npm would
-      # otherwise rewrite registry.npmjs.org URLs to that host during npm ci).
+      # Every install must come from public npm: each lockfile entry must be the
+      # registry.npmjs.org tarball for its own name and version, with an integrity
+      # hash, and no committed .npmrc may redirect the registry.
       - name: Check that installs resolve only from the public npm registry
-        run: |
-          if [ -f .npmrc ] && grep -nE '^[[:space:]]*(registry|replace-registry-host|@[^:=]+:registry)[[:space:]]*=' .npmrc; then
-            echo "::error file=.npmrc::.npmrc must not set registry, a scoped registry or replace-registry-host"
-            exit 1
-          fi
-          node -e '
-            const prefix = "https://registry.npmjs.org/";
-            const { packages } = require("./package-lock.json");
-            if (!packages || typeof packages !== "object") {
-              console.log("::error file=package-lock.json::package-lock.json has no packages map (lockfileVersion 2 or 3 required)");
-              process.exit(1);
-            }
-            const bad = Object.entries(packages)
-              .filter(([path, entry]) => path !== "" && !entry.link)
-              .filter(([, entry]) => typeof entry.resolved !== "string" || !entry.resolved.startsWith(prefix))
-              .map(([path, entry]) => `${path}: ${entry.resolved}`);
-            if (bad.length) {
-              bad.forEach((line) => console.log(line));
-              console.log("::error file=package-lock.json::Every resolved URL must start with " + prefix);
-              process.exit(1);
-            }
-          '
-      - run: npm ci --no-audit --no-fund
+        run: node .github/scripts/check-npm-registry.mjs
+      # Fails on a source file without the SPDX header, or an internal hostname
+      # or identifier in any tracked file (see internal-hosts-allowlist.txt).
+      - name: Check SPDX headers and internal hostnames
+        run: node .github/scripts/check-oss-hygiene.mjs
+      # Both check scripts gate CI, so they are tested on each Node version
+      # CI uses.
+      - name: Test the CI check scripts
+        run: node --test .github/scripts/tests/check-npm-registry.fixtures.mjs .github/scripts/tests/check-oss-hygiene.fixtures.mjs
+      # --ignore-scripts: no dependency lifecycle script runs in CI. Only esbuild
+      # and fsevents declare one, and every step passes without them.
+      - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run typecheck
       - run: npm run lint
       - id: coverage
@@ -83,33 +72,12 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
-      # Every install must come from public npm: no lockfile entry may resolve
-      # elsewhere, and no committed .npmrc may redirect the registry (npm would
-      # otherwise rewrite registry.npmjs.org URLs to that host during npm ci).
+      # Every install must come from public npm: each lockfile entry must be the
+      # registry.npmjs.org tarball for its own name and version, with an integrity
+      # hash, and no committed .npmrc may redirect the registry.
       - name: Check that installs resolve only from the public npm registry
-        run: |
-          if [ -f .npmrc ] && grep -nE '^[[:space:]]*(registry|replace-registry-host|@[^:=]+:registry)[[:space:]]*=' .npmrc; then
-            echo "::error file=.npmrc::.npmrc must not set registry, a scoped registry or replace-registry-host"
-            exit 1
-          fi
-          node -e '
-            const prefix = "https://registry.npmjs.org/";
-            const { packages } = require("./package-lock.json");
-            if (!packages || typeof packages !== "object") {
-              console.log("::error file=package-lock.json::package-lock.json has no packages map (lockfileVersion 2 or 3 required)");
-              process.exit(1);
-            }
-            const bad = Object.entries(packages)
-              .filter(([path, entry]) => path !== "" && !entry.link)
-              .filter(([, entry]) => typeof entry.resolved !== "string" || !entry.resolved.startsWith(prefix))
-              .map(([path, entry]) => `${path}: ${entry.resolved}`);
-            if (bad.length) {
-              bad.forEach((line) => console.log(line));
-              console.log("::error file=package-lock.json::Every resolved URL must start with " + prefix);
-              process.exit(1);
-            }
-          '
-      - run: npm ci --no-audit --no-fund
+        run: node .github/scripts/check-npm-registry.mjs
+      - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run build
       - run: npm run attw
       - run: npm run publint
