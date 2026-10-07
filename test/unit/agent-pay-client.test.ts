@@ -21,6 +21,10 @@ describe('DefaultAgentPayClient', () => {
   });
 
   afterEach(() => {
+    // `mockFetch` is shared across this suite, and Vitest 4's
+    // `restoreAllMocks` no longer resets spy state, so clear the recorded
+    // calls explicitly to keep each test reading its own `mock.calls[0]`.
+    vi.clearAllMocks();
     vi.restoreAllMocks();
   });
 
