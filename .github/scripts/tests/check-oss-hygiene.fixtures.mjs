@@ -21,6 +21,10 @@ const HEADER = '// Copyright Amazon.com, Inc. or its affiliates. All Rights Rese
 const ALLOWLIST = '.github/scripts/internal-hosts-allowlist.txt';
 const AMZ = 'amazon';
 
+// Escapes every RegExp metacharacter, so a path or token can be matched
+// literally inside a built pattern.
+const escapeRegExp = (text) => text.replace(/[\\^$.*+?()[\]{}|/-]/g, '\\$&');
+
 const dirs = [];
 after(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
 
@@ -61,14 +65,12 @@ describe('check-oss-hygiene: SPDX header', () => {
     const { code, out } = run(repoRoot);
     assert.equal(code, 0, out);
   });
-  it('passes regional console URLs', () =>
-    passes({ 'a.md': `https://us-east-1.console.aws.${AMZ}.com/marketplace/home\n` }));
   it('passes headed .ts, .js, .mjs, .cjs, .mts and .cts files', () =>
     passes(Object.fromEntries(['a.ts', 'b.js', 'c.mjs', 'd.cjs', 'e.mts', 'f.cts'].map((f) => [`src/${f}`, `${HEADER}export {};\n`]))));
   it('passes a shebang followed by the header', () => passes({ 'bin/cli.mjs': `#!/usr/bin/env node\n${HEADER}` }));
   it('does not require a header in non-source files', () => passes({ 'README.md': '# hi\n', 'package.json': '{}\n' }));
   for (const name of ['src/a.ts', 'test/b.test.ts', 'examples/c.ts', 'eslint.config.js', 'x.mjs', 'y.cjs']) {
-    it(`fails ${name} with no header`, () => fails({ [name]: 'export {};\n' }, new RegExp(`file=${name.replace('.', '\\.')},line=1::missing SPDX header`)));
+    it(`fails ${name} with no header`, () => fails({ [name]: 'export {};\n' }, new RegExp(`file=${escapeRegExp(name)},line=1::missing SPDX header`)));
   }
   it('fails a shebang with no header', () => fails({ 'bin/cli.mjs': '#!/usr/bin/env node\nexport {};\n' }, /line=2::missing SPDX header/));
   it('fails a header that is not first', () => fails({ 'a.ts': `// @ts-check\n${HEADER}` }));
@@ -112,6 +114,12 @@ describe('check-oss-hygiene: internal hosts and identifiers', () => {
       'NOTICE': `Copyright Amazon.com, Inc. or its affiliates.\n`,
       'src/a.ts': `${HEADER}const kms = 'kms.us-east-1.amazonaws.com';\n`,
     }));
+  it('fails a made-up label under console.aws.amazon.com', () =>
+    fails({ 'a.md': `https://internal-tool.console.aws.${AMZ}.com/\n` }, /internal Amazon host/));
+  it('passes public hosts written in capitals (tokens are compared lower-cased)', () =>
+    passes({ 'a.md': `https://US-EAST-1.console.aws.${AMZ.toUpperCase()}.com/ https://Docs.aws.${AMZ}.com/\n` }));
+  it('passes regional and service console URLs', () =>
+    passes({ 'a.md': `https://us-east-1.console.aws.${AMZ}.com/marketplace/home https://s3.console.aws.${AMZ}.com/s3/home\n` }));
   it('passes the real public AWS hosts', () =>
     passes({ 'a.md': `https://console.aws.${AMZ}.com/marketplace https://repost.aws.${AMZ}.com\n` }));
   it('fails a host that only looks like a public AWS subdomain', () =>
@@ -147,6 +155,10 @@ describe('check-oss-hygiene: allowlist', () => {
     passes({ 'a.md': `${host}\n${host}\n`, [ALLOWLIST]: `# header\n\na.md ${host} # PR 5: buyer side\n` });
     fails({ 'a.md': `${host}\n`, 'b.md': `${host}\n`, [ALLOWLIST]: `a.md ${host} # PR 5: x\n` }, /file=b\.md/);
   });
+  it('exempts an entry whose path also contains the token', () => {
+    const file = `docs/${host}-notes.md`;
+    passes({ [file]: `${host}\n`, [ALLOWLIST]: `${file} ${host} # PR 5: x\n` });
+  });
   it('compares tokens case-insensitively', () =>
     passes({ 'a.md': `${host.toUpperCase()}\n`, [ALLOWLIST]: `a.md ${host} # PR 5: x\n` }));
   it('does not exempt a different token in the listed file', () =>
@@ -154,7 +166,7 @@ describe('check-oss-hygiene: allowlist', () => {
   it('scans the reason text of an entry line', () =>
     fails({ 'a.md': `${host}\n`, [ALLOWLIST]: `a.md ${host} # PR 5: see https://code.${AMZ}.com/packages/Foo\n` }, /internal Amazon host: code/));
   it('exempts its entry lines but still scans its comments', () =>
-    fails({ 'a.md': `${host}\n`, [ALLOWLIST]: `# e.g. ${host}\na.md ${host} # PR 5: x\n` }, new RegExp(`${ALLOWLIST.replace(/[./]/g, '\\$&')},line=1::`)));
+    fails({ 'a.md': `${host}\n`, [ALLOWLIST]: `# e.g. ${host}\na.md ${host} # PR 5: x\n` }, new RegExp(`${escapeRegExp(ALLOWLIST)},line=1::`)));
   it('fails an entry that does not name a PR', () =>
     fails({ 'a.md': `${host}\n`, [ALLOWLIST]: `a.md ${host} # later\n` }, /must name the PR/));
   it('fails an entry with no comment', () =>
@@ -165,14 +177,32 @@ describe('check-oss-hygiene: allowlist', () => {
     fails({ 'a.md': `${host}\n`, [ALLOWLIST]: `a.md ${host} # PR 5: x\na.md ${host} # PR 6: y\n` }, /duplicate allowlist entry/));
 });
 
+describe('fixture helper: escapeRegExp', () => {
+  for (const text of ['a\\b.md', 'C:\\path\\x.ts', 'a.b', 'a/b', '^$*+?()[]{}|-']) {
+    it(`matches ${JSON.stringify(text)} literally and nothing else`, () => {
+      const pattern = new RegExp(`^${escapeRegExp(text)}$`);
+      assert.ok(pattern.test(text), `${pattern} should match ${text}`);
+      assert.ok(!pattern.test(`${text}x`), `${pattern} should not match ${text}x`);
+    });
+  }
+});
+
 describe('check-oss-hygiene: annotations', () => {
+  // A backslash is a path separator on Windows, so the file name cannot be made there.
+  it('reports a tracked file whose name contains a backslash', { skip: process.platform === 'win32' }, () => {
+    const name = 'dir\\x.md';
+    const out = fails({ [name]: `code.${AMZ}.com\n` });
+    assert.match(out, new RegExp(`file=${escapeRegExp(name)},line=1::internal Amazon host`));
+  });
   it('escapes file names so they cannot inject workflow commands', () => {
     const out = fails({ 'a,b:c%.ts': 'export {};\n' });
     assert.match(out, /file=a%2Cb%3Ac%25\.ts,line=1::/);
   });
-  it('escapes reported message text', () => {
-    const out = fails({ 'a.md': `see code.${AMZ}.com%0A::warning::injected\n` });
-    assert.doesNotMatch(out, /^::warning::/m);
-    assert.match(out, /code\.amazon\.com/);
+  it('escapes newlines in message text', () => {
+    // The missing-header message spans three lines; unescaped, its second and
+    // third lines would print as separate (and injectable) output lines.
+    const out = fails({ 'a.ts': 'export {};\n' });
+    assert.match(out, /must be:%0A\/\/ Copyright .*%0A\/\/ SPDX-License-Identifier/);
+    assert.doesNotMatch(out, /^\/\/ /m);
   });
 });

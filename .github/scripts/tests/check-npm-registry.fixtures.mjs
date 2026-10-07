@@ -35,7 +35,7 @@ const entry = (name, version, extra = {}) => ({
 });
 
 const goodPackages = () => ({
-  '': { name: 'fixture', version: '1.0.0' },
+  '': { name: 'fixture', version: '1.0.0', dependencies: { 'string-width-cjs': 'npm:string-width@^4.2.0' } },
   'node_modules/left-pad': entry('left-pad', '1.3.0'),
   'node_modules/@scope/pkg': entry('@scope/pkg', '2.0.0'),
   'node_modules/a/node_modules/@scope/b': entry('@scope/b', '0.1.0'),
@@ -79,9 +79,66 @@ describe('check-npm-registry: passes', () => {
     assert.equal(code, 0, out);
   });
   it('a bundled dependency, which has no resolved URL or integrity of its own', () => {
-    const packages = withEntry('node_modules/parent/node_modules/bundled', { version: '1.0.0', inBundle: true });
-    const dir = fixture({ packages });
-    assert.equal(run(dir).code, 0, run(dir).out);
+    const packages = {
+      ...goodPackages(),
+      'node_modules/parent': { ...entry('parent', '1.0.0'), bundleDependencies: ['bundled'] },
+      'node_modules/parent/node_modules/bundled': { version: '1.0.0', inBundle: true },
+      'node_modules/parent/node_modules/bundled/node_modules/deep': { version: '2.0.0', inBundle: true },
+    };
+    const { code, out } = run(fixture({ packages }));
+    assert.equal(code, 0, out);
+  });
+  it('a hoisted npm: alias declared by another package', () => {
+    const packages = {
+      ...goodPackages(),
+      'node_modules/cliui': { ...entry('cliui', '8.0.0'), dependencies: { 'wrap-ansi-cjs': 'npm:wrap-ansi@^7.0.0' } },
+      'node_modules/wrap-ansi-cjs': { ...entry('wrap-ansi', '7.0.0'), name: 'wrap-ansi' },
+    };
+    const { code, out } = run(fixture({ packages }));
+    assert.equal(code, 0, out);
+  });
+  it('a nested npm: alias declared by its own parent', () => {
+    const packages = {
+      ...goodPackages(),
+      'node_modules/a': { ...entry('a', '1.0.0'), dependencies: { 'x-cjs': 'npm:x@^1.0.0' } },
+      'node_modules/a/node_modules/x-cjs': { ...entry('x', '1.0.0'), name: 'x' },
+    };
+    const { code, out } = run(fixture({ packages }));
+    assert.equal(code, 0, out);
+  });
+  it('a scoped bundled dependency', () => {
+    const packages = {
+      ...goodPackages(),
+      'node_modules/parent': { ...entry('parent', '1.0.0'), bundleDependencies: ['@s/b'] },
+      'node_modules/parent/node_modules/@s/b': { version: '1.0.0', inBundle: true },
+      'node_modules/parent/node_modules/@s/b/node_modules/deep': { version: '1.0.0', inBundle: true },
+    };
+    const { code, out } = run(fixture({ packages }));
+    assert.equal(code, 0, out);
+  });
+  it("a bundled package's own dependency, flattened into the bundler", () => {
+    const packages = {
+      ...goodPackages(),
+      'node_modules/parent': { ...entry('parent', '1.0.0'), bundleDependencies: ['bundled'] },
+      'node_modules/parent/node_modules/bundled': { version: '1.0.0', inBundle: true, dependencies: { transitive: '^1.0.0' } },
+      'node_modules/parent/node_modules/transitive': { version: '1.0.0', inBundle: true },
+    };
+    const { code, out } = run(fixture({ packages }));
+    assert.equal(code, 0, out);
+  });
+  it('bundleDependencies: true, which bundles every dependency', () => {
+    const packages = {
+      ...goodPackages(),
+      'node_modules/parent': { ...entry('parent', '1.0.0'), dependencies: { dep: '^1.0.0' }, bundleDependencies: true },
+      'node_modules/parent/node_modules/dep': { version: '1.0.0', inBundle: true },
+    };
+    const { code, out } = run(fixture({ packages }));
+    assert.equal(code, 0, out);
+  });
+  it('a top-level entry the root project bundles, with a valid registry URL', () => {
+    const packages = { ...goodPackages(), 'node_modules/x': { ...entry('x', '1.0.0'), inBundle: true } };
+    const { code, out } = run(fixture({ packages }));
+    assert.equal(code, 0, out);
   });
   it('a benign .npmrc, with comments mentioning registry', () => {
     const npmrc = 'fund=false\n# registry=https://evil.example/\n; @x:registry=https://evil.example/\nengine-strict=true\n';
@@ -117,6 +174,47 @@ describe('check-npm-registry: blocks', () => {
     blocks(fixture({ packages: withEntry('node_modules/x', { ...entry('x', '1.0.0'), version: undefined }) })));
   it('an entry that is not an object', () =>
     blocks(fixture({ packages: withEntry('node_modules/x', 'oops') }), /is not an object/));
+  it('a top-level entry flagged inBundle, which npm still downloads', () =>
+    blocks(fixture({ packages: withEntry('node_modules/x', { version: '1.0.0', resolved: 'https://evil.example/x.tgz', inBundle: true }) }), /node_modules\/x resolves to https:\/\/evil/));
+  it('an entry that claims another name without a declared npm: alias', () =>
+    blocks(fixture({ packages: withEntry('node_modules/lodash', { ...entry('evil-pkg', '1.0.0'), name: 'evil-pkg' }) }), /claims the name evil-pkg/));
+  it('an entry that declares its own npm: alias', () =>
+    blocks(fixture({ packages: withEntry('node_modules/lodash', { ...entry('evil-pkg', '1.0.0'), name: 'evil-pkg', dependencies: { lodash: 'npm:evil-pkg@1' } }) }), /claims the name evil-pkg/));
+  it('an alias vouched for only by a package installed under the entry itself', () =>
+    blocks(fixture({ packages: {
+      ...goodPackages(),
+      'node_modules/lodash': { ...entry('evil-pkg', '1.0.0'), name: 'evil-pkg' },
+      'node_modules/lodash/node_modules/child': { ...entry('child', '1.0.0'), dependencies: { lodash: 'npm:evil-pkg@1' } },
+    } }), /claims the name evil-pkg/));
+  it('a nested alias declared only by an unrelated package', () =>
+    blocks(fixture({ packages: {
+      ...goodPackages(),
+      'node_modules/a': entry('a', '1.0.0'),
+      'node_modules/b': { ...entry('b', '1.0.0'), dependencies: { 'x-cjs': 'npm:evil@1' } },
+      'node_modules/a/node_modules/x-cjs': { ...entry('evil', '1.0.0'), name: 'evil' },
+    } }), /claims the name evil/));
+  it('a nested inBundle entry with no bundling parent in the lockfile', () =>
+    blocks(fixture({ packages: withEntry('node_modules/ghost/node_modules/x', { version: '1.0.0', resolved: 'https://evil.example/x.tgz', inBundle: true }) }), /ghost\/node_modules\/x resolves to https:\/\/evil.*flagged inBundle, but no non-bundled ancestor/));
+  it('a nested inBundle entry that its parent does not bundle', () =>
+    blocks(fixture({ packages: {
+      ...goodPackages(),
+      'node_modules/parent': { ...entry('parent', '1.0.0'), bundleDependencies: ['bundled'] },
+      'node_modules/parent/node_modules/bundled': { version: '1.0.0', inBundle: true },
+      'node_modules/parent/node_modules/evil': { version: '1.0.0', resolved: 'https://evil.example/evil.tgz', inBundle: true },
+    } }), /parent\/node_modules\/evil resolves to https:\/\/evil/));
+  it('a nested inBundle entry whose parent bundles nothing', () =>
+    blocks(fixture({ packages: { ...goodPackages(), 'node_modules/p': entry('p', '1.0.0'), 'node_modules/p/node_modules/x': { version: '1.0.0', inBundle: true } } }), /no resolved URL/));
+  it('a name field that is not a string, as an annotation and not a crash', () => {
+    const { code, out } = run(fixture({ packages: withEntry('node_modules/x', { ...entry('x', '1.0.0'), name: 5 }) }));
+    assert.equal(code, 1, out);
+    assert.match(out, /::error file=.*name field that is not a string/);
+    assert.doesNotMatch(out, /TypeError/);
+  });
+  it('an npm-shrinkwrap.json, which npm ci would install from instead', () => {
+    const dir = fixture();
+    writeFileSync(join(dir, 'npm-shrinkwrap.json'), '{}');
+    blocks(dir, /npm-shrinkwrap\.json takes precedence/);
+  });
   it('a v1 lockfile', () =>
     blocks(fixture({ lock: { lockfileVersion: 1, dependencies: {} } }), /lockfileVersion 2 or 3 required/));
   it('a lockfile with no packages map', () =>

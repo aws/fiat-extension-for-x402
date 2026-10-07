@@ -54,7 +54,9 @@ const PUBLIC = [
   /^aws\.amazon\.com$/,
   /^(?:docs|signin|repost|status|health|portal|calculator|pages\.awscloud)\.aws\.amazon\.com$/,
   // console.aws.amazon.com and its regional forms, e.g. us-east-1.console...
-  /^(?:[a-z0-9-]+\.)?console\.aws\.amazon\.com$/,
+  // Only region-shaped labels and the service consoles that have their own
+  // host (s3.console...) pass, so a made-up "tool.console..." host does not.
+  /^(?:[a-z]{2}(?:-[a-z]+)+-\d+\.|s3\.)?console\.aws\.amazon\.com$/,
   /^opensource-codeofconduct@amazon\.com$/,
   /^aws-security@amazon\.com$/,
 ];
@@ -92,7 +94,9 @@ if (existsSync(allowFile)) {
         return;
       }
       const [, path, token, comment] = match;
-      allowlistEntryPrefix.set(index + 1, line.indexOf(token) + token.length);
+      // Search after the path field: the path itself may contain the token.
+      const pathEnd = line.indexOf(path) + path.length;
+      allowlistEntryPrefix.set(index + 1, line.indexOf(token, pathEnd) + token.length);
       if (!/\bPR #?\d+\b/.test(comment)) {
         problems.push({ ...where, message: `allowlist entry for ${path} must name the PR that removes it` });
         return;
