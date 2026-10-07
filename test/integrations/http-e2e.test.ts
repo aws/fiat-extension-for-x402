@@ -1,4 +1,3 @@
-import { describe } from 'vitest';
 /**
  * HTTP End-to-End Integration Test
  *
