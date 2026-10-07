@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 import { describe, expect, it } from 'vitest';
 import { buildAgentPayClient, createAgentPayClient } from '../../../src/builders/client-builder';
 import { ValidationError } from '../../../src/types';

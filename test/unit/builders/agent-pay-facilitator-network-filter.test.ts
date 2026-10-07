@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { AgentPayFacilitatorClient } from '../../../src/agent-pay-facilitator-client';
 import type { Network } from '@x402/core/types';

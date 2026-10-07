@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import { AgentPayAWSClientScheme, AgentPayAWSServerScheme, AgentPayAWSFacilitatorScheme } from '../../../src/networks/aws';
 import * as jose from 'jose';

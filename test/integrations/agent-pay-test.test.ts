@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { x402Client, x402HTTPClient } from '@x402/core/client';
 import { x402Facilitator } from '@x402/core/facilitator';

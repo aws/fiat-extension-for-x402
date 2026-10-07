@@ -133,7 +133,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "ssh://git.amazon.com/pkg/AgentPayX402SDKExtension-Typescript"
+    "url": "git+https://github.com/aws/fiat-extension-for-x402.git"
   },
-  "homepage": "https://code.amazon.com/packages/AgentPayX402SDKExtension-Typescript"
+  "homepage": "https://github.com/aws/fiat-extension-for-x402#readme",
+  "bugs": {
+    "url": "https://github.com/aws/fiat-extension-for-x402/issues"
+  }
 }
