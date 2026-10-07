@@ -374,13 +374,13 @@ All caches can be cleared programmatically (`clearServiceJWKSCache()`, `clearJWK
 
 ### 4.3 Build Outputs
 
-The package produces three outputs via `tsup`:
+The package is built with `tsup`. The root entry produces:
 
 - `dist/index.js` — ESM
 - `dist/index.cjs` — CommonJS
-- `dist/index.d.ts` — TypeScript declarations
+- `dist/index.d.ts` / `dist/index.d.cts` — TypeScript declarations (ESM / CommonJS)
 
-Sub-path exports are available for tree-shaking: `aws-agent-pay-x402/client`, `aws-agent-pay-x402/server`, `aws-agent-pay-x402/facilitator`.
+Sub-path exports are available for tree-shaking: `aws-agent-pay-x402/agent-pay/client`, `aws-agent-pay-x402/agent-pay/server`, `aws-agent-pay-x402/agent-pay/facilitator`, `aws-agent-pay-x402/middleware/express`.
 
 ### 4.4 Known Limitations
 

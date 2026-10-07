@@ -90,6 +90,7 @@ export async function verifyPaymentToken(
  */
 export function extractQuoteFromPayment(payment: PaymentTokenPayload): string {
   // Agent Pay returns quote_token at top level; fallback to payment_context for backward compat
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- pre-existing `any` fallback, tracked with the no-explicit-any cleanup
   return (payment as any).quote_token || payment.payment_context?.quote_token;
 }
 

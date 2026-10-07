@@ -89,6 +89,7 @@ export class InProcessFacilitatorClient implements FacilitatorClient {
    * @returns Supported payment kinds and extensions
    */
   async getSupported(): Promise<SupportedResponse> {
+    // eslint-disable-next-line @typescript-eslint/await-thenable -- x402Facilitator.getSupported is synchronous in the locked @x402/core; the await is a no-op
     const result = await this.facilitator.getSupported();
     return result as SupportedResponse;
   }
