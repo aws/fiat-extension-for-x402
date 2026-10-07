@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Agent Pay Payment Settlement Logic
- * 
+ *
  * In the Agent Pay model, payments are auto-captured during CreateAgentPayment.
  * There is no separate capture/settle step. This function returns success
  * immediately — the payment was already settled when it was created.
@@ -14,11 +14,11 @@ import { AgentPayPayloadV2 } from '../../types';
 
 /**
  * Settle a Agent Pay payment
- * 
+ *
  * Agent Pay auto-captures on creation — there is no separate /capture endpoint.
  * This function is a no-op that returns success, since the payment was already
  * settled when the Agent Pay Service processed CreateAgentPayment.
- * 
+ *
  * @param agentPayClient - Agent Pay client (unused — no capture call needed)
  * @param payload - Payment payload
  * @param requirements - Payment requirements
@@ -36,6 +36,6 @@ export async function settlePayment(
   return {
     success: true,
     transaction: apPayload.paymentId || apPayload.transactionId || '',
-    network: requirements.network
+    network: requirements.network,
   };
 }

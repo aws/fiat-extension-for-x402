@@ -33,13 +33,19 @@ describe('createAgentPayClient', () => {
 
   it('should add networks to an existing x402Client', () => {
     const existing = new x402Client();
-    const c = createAgentPayClient({ agentPayBaseUrl: 'https://pay.example.com', agentPayId: 'w', existingClient: existing });
+    const c = createAgentPayClient({
+      agentPayBaseUrl: 'https://pay.example.com',
+      agentPayId: 'w',
+      existingClient: existing,
+    });
     c.registerNetwork('fab:aws');
     expect(c.client).toBe(existing);
   });
 
   it('should throw on invalid agentPayBaseUrl', () => {
-    expect(() => createAgentPayClient({ agentPayBaseUrl: 'bad', agentPayId: 'w' })).toThrow(ValidationError);
+    expect(() => createAgentPayClient({ agentPayBaseUrl: 'bad', agentPayId: 'w' })).toThrow(
+      ValidationError
+    );
   });
 
   it('should use default agentPayBaseUrl when not provided', () => {

@@ -10,16 +10,19 @@ describe('InProcessFacilitatorClient', () => {
     it('should create client with scheme map', async () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const jwk = await jose.exportJWK(publicKey);
-      
+
       const schemes = new Map();
-      schemes.set('fab:test', new AgentPayFacilitatorSchemeImpl({
-        signingKeys: { privateKey, publicKey: jwk, alg: 'RS256' },
-        agentPayId: 'test-agent-pay',
-        agentPay: {
-          baseUrl: 'https://pay.test.com'
-        }
-      }));
-      
+      schemes.set(
+        'fab:test',
+        new AgentPayFacilitatorSchemeImpl({
+          signingKeys: { privateKey, publicKey: jwk, alg: 'RS256' },
+          agentPayId: 'test-agent-pay',
+          agentPay: {
+            baseUrl: 'https://pay.test.com',
+          },
+        })
+      );
+
       const client = new InProcessFacilitatorClient(schemes);
       expect(client).toBeDefined();
     });
@@ -34,19 +37,25 @@ describe('InProcessFacilitatorClient', () => {
       const { privateKey: pk2, publicKey: pub2 } = await jose.generateKeyPair('RS256');
       const jwk1 = await jose.exportJWK(pub1);
       const jwk2 = await jose.exportJWK(pub2);
-      
+
       const schemes = new Map();
-      schemes.set('fab:test1', new AgentPayFacilitatorSchemeImpl({
-        signingKeys: { privateKey: pk1, publicKey: jwk1, alg: 'RS256' },
-        agentPayId: 'agent-pay-1',
-        agentPay: { baseUrl: 'https://pay1.test.com' }
-      }));
-      schemes.set('fab:test2', new AgentPayFacilitatorSchemeImpl({
-        signingKeys: { privateKey: pk2, publicKey: jwk2, alg: 'RS256' },
-        agentPayId: 'agent-pay-2',
-        agentPay: { baseUrl: 'https://pay2.test.com' }
-      }));
-      
+      schemes.set(
+        'fab:test1',
+        new AgentPayFacilitatorSchemeImpl({
+          signingKeys: { privateKey: pk1, publicKey: jwk1, alg: 'RS256' },
+          agentPayId: 'agent-pay-1',
+          agentPay: { baseUrl: 'https://pay1.test.com' },
+        })
+      );
+      schemes.set(
+        'fab:test2',
+        new AgentPayFacilitatorSchemeImpl({
+          signingKeys: { privateKey: pk2, publicKey: jwk2, alg: 'RS256' },
+          agentPayId: 'agent-pay-2',
+          agentPay: { baseUrl: 'https://pay2.test.com' },
+        })
+      );
+
       const client = new InProcessFacilitatorClient(schemes);
       expect(client).toBeDefined();
     });
@@ -56,20 +65,20 @@ describe('InProcessFacilitatorClient', () => {
     it('should handle scheme lookup for registered networks', async () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const jwk = await jose.exportJWK(publicKey);
-      
+
       const scheme = new AgentPayFacilitatorSchemeImpl({
         signingKeys: { privateKey, publicKey: jwk, alg: 'RS256' },
         agentPayId: 'test-agent-pay',
         agentPay: {
-          baseUrl: 'https://pay.test.com'
-        }
+          baseUrl: 'https://pay.test.com',
+        },
       });
-      
+
       const schemes = new Map();
       schemes.set('fab:test', scheme);
-      
+
       const client = new InProcessFacilitatorClient(schemes);
-      
+
       // The client should have the scheme registered
       expect(client).toBeDefined();
     });

@@ -86,9 +86,7 @@ describe('Agent Pay Discovery', () => {
     });
 
     it('should throw error for missing provider', () => {
-      expect(() => registerNetwork('fab:', 'https://pay.example.com')).toThrow(
-        'Missing provider'
-      );
+      expect(() => registerNetwork('fab:', 'https://pay.example.com')).toThrow('Missing provider');
     });
 
     it('should throw error for invalid base URL', () => {
@@ -98,9 +96,7 @@ describe('Agent Pay Discovery', () => {
 
   describe('getAgentPayBaseUrl', () => {
     it('should throw error when network not registered', () => {
-      expect(() => getAgentPayBaseUrl('fab:aws')).toThrow(
-        'Network not registered: fab:aws'
-      );
+      expect(() => getAgentPayBaseUrl('fab:aws')).toThrow('Network not registered: fab:aws');
     });
 
     it('should throw error for invalid network format', () => {
@@ -226,9 +222,7 @@ describe('Agent Pay Discovery', () => {
       const jwks = await fetchAgentPayPublicKeys('fab:aws');
 
       expect(jwks).toEqual(mockJWKS);
-      expect(global.fetch).toHaveBeenCalledWith(
-        'https://pay.aws.amazon.com/.well-known/jwks.json'
-      );
+      expect(global.fetch).toHaveBeenCalledWith('https://pay.aws.amazon.com/.well-known/jwks.json');
     });
   });
 
@@ -327,7 +321,7 @@ describe('Agent Pay Discovery', () => {
     it('should accept both http and https', () => {
       registerNetwork('fab:http', 'http://pay.test.com');
       registerNetwork('fab:https', 'https://pay.test.com');
-      
+
       expect(getAgentPayBaseUrl('fab:http')).toBe('http://pay.test.com');
       expect(getAgentPayBaseUrl('fab:https')).toBe('https://pay.test.com');
     });
@@ -336,20 +330,20 @@ describe('Agent Pay Discovery', () => {
   describe('getRegisteredNetworks - immutability', () => {
     it('should return a copy of the registry', () => {
       registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
-      
+
       const networks1 = getRegisteredNetworks();
       const networks2 = getRegisteredNetworks();
-      
+
       expect(networks1).not.toBe(networks2); // Different objects
       expect(networks1.size).toBe(networks2.size);
     });
 
     it('should not allow modification of internal state', () => {
       registerNetwork('fab:aws', 'https://pay.aws.amazon.com');
-      
+
       const networks = getRegisteredNetworks();
       networks.set('fab:hacked', 'https://evil.com');
-      
+
       // Original registry should be unchanged
       expect(() => getAgentPayBaseUrl('fab:hacked')).toThrow('Network not registered');
     });

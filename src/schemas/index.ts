@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Zod runtime validation schemas for Agent Pay types.
- * 
+ *
  * These schemas mirror the TypeScript interfaces in types.ts and config.ts,
  * providing runtime validation for untrusted input (e.g., 402 responses,
  * webhook payloads, decoded JWTs).
- * 
+ *
  * Usage:
  *   import { QuoteTokenPayloadSchema, parseQuoteToken } from 'aws-agent-pay-x402/schemas';
  *   const validated = QuoteTokenPayloadSchema.parse(decoded);
@@ -165,7 +165,7 @@ export const ListAgentPaymentsResponseSchema = z.object({
 /**
  * Decode and validate a quote token JWT.
  * Decodes without signature verification, then validates the payload structure.
- * 
+ *
  * @param token - Quote token JWT string
  * @returns Validated QuoteTokenPayload
  * @throws z.ZodError if payload doesn't match schema
@@ -178,29 +178,33 @@ export function parseQuoteToken(token: string): z.infer<typeof QuoteTokenPayload
 /**
  * Safely decode and validate a quote token JWT.
  * Returns a Zod SafeParseResult instead of throwing.
- * 
+ *
  * @param token - Quote token JWT string
  * @returns SafeParseResult with success/error
  */
-export function safeParseQuoteToken(token: string): z.SafeParseReturnType<unknown, z.infer<typeof QuoteTokenPayloadSchema>> {
+export function safeParseQuoteToken(
+  token: string
+): z.SafeParseReturnType<unknown, z.infer<typeof QuoteTokenPayloadSchema>> {
   try {
     const decoded = jose.decodeJwt(token);
     return QuoteTokenPayloadSchema.safeParse(decoded);
   } catch {
     return {
       success: false,
-      error: new z.ZodError([{
-        code: 'custom',
-        message: 'Invalid JWT format',
-        path: [],
-      }]),
+      error: new z.ZodError([
+        {
+          code: 'custom',
+          message: 'Invalid JWT format',
+          path: [],
+        },
+      ]),
     } as z.SafeParseReturnType<unknown, z.infer<typeof QuoteTokenPayloadSchema>>;
   }
 }
 
 /**
  * Validate a payment payload structure.
- * 
+ *
  * @param payload - Payment payload object
  * @returns Validated AgentPayPayloadV2
  * @throws z.ZodError if payload doesn't match schema
@@ -211,11 +215,13 @@ export function parsePaymentPayload(payload: unknown): z.infer<typeof AgentPayPa
 
 /**
  * Validate a CreateAgentPayment response.
- * 
+ *
  * @param response - API response object
  * @returns Validated response
  * @throws z.ZodError if response doesn't match schema
  */
-export function parseCreatePaymentResponse(response: unknown): z.infer<typeof CreateAgentPaymentResponseSchema> {
+export function parseCreatePaymentResponse(
+  response: unknown
+): z.infer<typeof CreateAgentPaymentResponseSchema> {
   return CreateAgentPaymentResponseSchema.parse(response);
 }

@@ -33,8 +33,8 @@ export class ApiKeyAuthenticator implements Authenticator {
       ...request,
       headers: {
         ...request.headers,
-        [this.headerName]: value
-      }
+        [this.headerName]: value,
+      },
     };
   }
 }

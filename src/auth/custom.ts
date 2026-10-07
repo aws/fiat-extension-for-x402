@@ -16,10 +16,7 @@ export class CustomAuthenticator implements Authenticator {
 
   constructor(config: CustomAuthConfig) {
     if (!config.authenticate || typeof config.authenticate !== 'function') {
-      throw new AuthenticationError(
-        'Custom authenticate function must be provided',
-        'custom'
-      );
+      throw new AuthenticationError('Custom authenticate function must be provided', 'custom');
     }
 
     this.authenticateFn = config.authenticate;
@@ -37,7 +34,11 @@ export class CustomAuthenticator implements Authenticator {
         );
       }
 
-      if (!authenticatedRequest.url || !authenticatedRequest.method || !authenticatedRequest.headers) {
+      if (
+        !authenticatedRequest.url ||
+        !authenticatedRequest.method ||
+        !authenticatedRequest.headers
+      ) {
         throw new AuthenticationError(
           'Custom authenticate function must return a valid AuthenticatedRequest with url, method, and headers',
           'custom'

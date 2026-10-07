@@ -19,16 +19,16 @@ export function createAuthenticator(config: AuthConfig): Authenticator {
   switch (config.type) {
     case 'apiKey':
       return new ApiKeyAuthenticator(config);
-    
+
     case 'awsSigV4':
       return new AwsSigV4Authenticator(config);
-    
+
     case 'oauth2':
       return new OAuth2Authenticator(config);
-    
+
     case 'custom':
       return new CustomAuthenticator(config);
-    
+
     default:
       // TypeScript should prevent this, but handle it anyway
       throw new AuthenticationError(

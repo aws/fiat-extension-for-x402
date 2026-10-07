@@ -30,7 +30,7 @@ describe('Agent Pay Server Scheme', () => {
     expect(result1).toEqual({
       amount: '1.5',
       asset: 'iso4217:USD',
-      extra: {}
+      extra: {},
     });
 
     // Test number price (assumes USD)
@@ -38,14 +38,14 @@ describe('Agent Pay Server Scheme', () => {
     expect(result2).toEqual({
       amount: '2.99',
       asset: 'iso4217:USD',
-      extra: {}
+      extra: {},
     });
 
     // Test AssetAmount (pass through)
     const assetAmount: AssetAmount = {
       amount: '5.00',
       asset: 'iso4217:EUR',
-      extra: {}
+      extra: {},
     };
     const result3 = await scheme.parsePrice(assetAmount, 'fab:test');
     expect(result3).toEqual(assetAmount);
@@ -59,21 +59,17 @@ describe('Agent Pay Server Scheme', () => {
       asset: 'iso4217:USD',
       payTo: 'service-pay',
       maxTimeoutSeconds: 3600,
-      extra: {}
+      extra: {},
     };
 
     const supportedKind = {
       x402Version: 2,
       scheme: AGENT_PAY_SCHEME,
       network: 'fab:test' as const,
-      extra: { agentPayId: 'agent-pay-123' }
+      extra: { agentPayId: 'agent-pay-123' },
     };
 
-    const result = await scheme.enhancePaymentRequirements(
-      requirements,
-      supportedKind,
-      []
-    );
+    const result = await scheme.enhancePaymentRequirements(requirements, supportedKind, []);
 
     expect(result).toBeDefined();
     expect(result.extra).toBeDefined();
@@ -86,7 +82,7 @@ describe('Agent Pay Server Scheme', () => {
     expect(decoded.aud).toBe('aws:marketplace');
     expect((decoded as any).price).toEqual({
       amount: '1.50',
-      currency: 'USD'
+      currency: 'USD',
     });
   });
 
@@ -98,21 +94,17 @@ describe('Agent Pay Server Scheme', () => {
       asset: 'iso4217:USD',
       payTo: 'service-pay',
       maxTimeoutSeconds: 3600,
-      extra: {}
+      extra: {},
     };
 
     const supportedKind = {
       x402Version: 2,
       scheme: AGENT_PAY_SCHEME,
       network: 'fab:test' as const,
-      extra: { agentPayId: 'agent-pay-123' }
+      extra: { agentPayId: 'agent-pay-123' },
     };
 
-    const result = await scheme.enhancePaymentRequirements(
-      requirements,
-      supportedKind,
-      []
-    );
+    const result = await scheme.enhancePaymentRequirements(requirements, supportedKind, []);
 
     const quoteToken = (result.extra as any).quoteToken;
 
@@ -144,43 +136,31 @@ describe('Agent Pay Server Scheme', () => {
       asset: 'iso4217:USD',
       payTo: 'service-pay',
       maxTimeoutSeconds: 3600,
-      extra: {}
+      extra: {},
     };
 
     const supportedKind = {
       x402Version: 2,
       scheme: AGENT_PAY_SCHEME,
       network: 'fab:test' as const,
-      extra: { agentPayId: 'agent-pay-123' }
+      extra: { agentPayId: 'agent-pay-123' },
     };
 
     it('should set payTo to AGENT_PAY_SENTINEL_PAY_TO in enhanced requirements', async () => {
-      const result = await scheme.enhancePaymentRequirements(
-        baseRequirements,
-        supportedKind,
-        []
-      );
+      const result = await scheme.enhancePaymentRequirements(baseRequirements, supportedKind, []);
 
       expect(result.payTo).toBe(AGENT_PAY_SENTINEL_PAY_TO);
       expect(result.payTo).toBe('urn:x402:agent-pay:see-quote');
     });
 
     it('should set maxTimeoutSeconds to quote validity window (exp - iat)', async () => {
-      const result = await scheme.enhancePaymentRequirements(
-        baseRequirements,
-        supportedKind,
-        []
-      );
+      const result = await scheme.enhancePaymentRequirements(baseRequirements, supportedKind, []);
 
       expect(result.maxTimeoutSeconds).toBe(3600);
     });
 
     it('should preserve real payTo inside the signed quote token', async () => {
-      const result = await scheme.enhancePaymentRequirements(
-        baseRequirements,
-        supportedKind,
-        []
-      );
+      const result = await scheme.enhancePaymentRequirements(baseRequirements, supportedKind, []);
 
       // Outer payTo is sentinel
       expect(result.payTo).toBe(AGENT_PAY_SENTINEL_PAY_TO);
@@ -191,11 +171,7 @@ describe('Agent Pay Server Scheme', () => {
     });
 
     it('should keep amount and asset as real values (not sentinels)', async () => {
-      const result = await scheme.enhancePaymentRequirements(
-        baseRequirements,
-        supportedKind,
-        []
-      );
+      const result = await scheme.enhancePaymentRequirements(baseRequirements, supportedKind, []);
 
       expect(result.amount).toBe('1.50');
       expect(result.asset).toBe('iso4217:USD');

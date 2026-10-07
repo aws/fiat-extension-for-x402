@@ -59,10 +59,7 @@ export interface CustomAuthConfig {
  * Union type of all authentication configurations
  */
 export type AuthConfig =
-  | ApiKeyAuthConfig
-  | AwsSigV4AuthConfig
-  | OAuth2AuthConfig
-  | CustomAuthConfig;
+  ApiKeyAuthConfig | AwsSigV4AuthConfig | OAuth2AuthConfig | CustomAuthConfig;
 
 /**
  * HTTP request structure for authentication

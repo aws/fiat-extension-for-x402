@@ -99,7 +99,11 @@ describe('SellerKeyResolver', () => {
       x402Version: 2,
       scheme: 'agent-pay',
       network: 'aws:base',
-      payload: { paymentToken, paymentId: 'awsmp-test-123', transactionId: 'awsmp-test-123' } as any,
+      payload: {
+        paymentToken,
+        paymentId: 'awsmp-test-123',
+        transactionId: 'awsmp-test-123',
+      } as any,
     };
     const requirements: PaymentRequirements = {
       scheme: 'agent-pay',
@@ -133,7 +137,8 @@ describe('SellerKeyResolver', () => {
 
       const client = new AgentPayFacilitatorClient(
         'https://agentpay.test.com',
-        undefined, undefined,
+        undefined,
+        undefined,
         'https://agentpay.test.com' // jwksBaseUrl = same as base so mock matches
       );
       const { payload, requirements } = buildVerifyInputs(paymentToken, quoteToken);
@@ -157,7 +162,8 @@ describe('SellerKeyResolver', () => {
 
       const client = new AgentPayFacilitatorClient(
         'https://agentpay.test.com',
-        undefined, undefined,
+        undefined,
+        undefined,
         'https://agentpay.test.com'
       );
       const { payload, requirements } = buildVerifyInputs(paymentToken, quoteToken);
@@ -192,7 +198,8 @@ describe('SellerKeyResolver', () => {
 
       const client = new AgentPayFacilitatorClient(
         'https://agentpay.test.com',
-        undefined, undefined,
+        undefined,
+        undefined,
         'https://agentpay.test.com',
         { type: 'jwks', jwksUrl: jwksHost }
       );
@@ -212,9 +219,10 @@ describe('SellerKeyResolver', () => {
       // Export seller public key as DER for KMS mock
       const spki = await jose.exportSPKI(sellerPublicKey);
       const derBytes = Buffer.from(
-        spki.replace('-----BEGIN PUBLIC KEY-----', '')
-            .replace('-----END PUBLIC KEY-----', '')
-            .replace(/\n/g, ''),
+        spki
+          .replace('-----BEGIN PUBLIC KEY-----', '')
+          .replace('-----END PUBLIC KEY-----', '')
+          .replace(/\n/g, ''),
         'base64'
       );
 
@@ -241,7 +249,8 @@ describe('SellerKeyResolver', () => {
 
       const client = new AgentPayFacilitatorClient(
         'https://agentpay.test.com',
-        undefined, undefined,
+        undefined,
+        undefined,
         'https://agentpay.test.com',
         {
           type: 'kms',
@@ -264,7 +273,10 @@ describe('SellerKeyResolver', () => {
       const quoteToken = await createQuoteToken(issuer);
       // Sign with wrong key
       const wrongKey = (await jose.generateKeyPair('ES384')).privateKey;
-      const badPaymentToken = await new jose.SignJWT({ payment_id: 'awsmp-x', quote_token: quoteToken })
+      const badPaymentToken = await new jose.SignJWT({
+        payment_id: 'awsmp-x',
+        quote_token: quoteToken,
+      })
         .setProtectedHeader({ alg: 'ES384', typ: 'JWT' })
         .setIssuer('awsmp-agentpay.amazonaws.com')
         .setAudience(issuer)
@@ -276,7 +288,8 @@ describe('SellerKeyResolver', () => {
 
       const client = new AgentPayFacilitatorClient(
         'https://agentpay.test.com',
-        undefined, undefined,
+        undefined,
+        undefined,
         'https://agentpay.test.com'
       );
       const { payload, requirements } = buildVerifyInputs(badPaymentToken, quoteToken);
@@ -305,7 +318,8 @@ describe('SellerKeyResolver', () => {
 
       const client = new AgentPayFacilitatorClient(
         'https://agentpay.test.com',
-        undefined, undefined,
+        undefined,
+        undefined,
         'https://agentpay.test.com'
       );
       const { payload, requirements } = buildVerifyInputs(paymentToken, quoteToken);

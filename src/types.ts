@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Agent Pay-specific types for the x402 protocol
- * 
+ *
  * This module contains all type definitions for the Agent Pay payment scheme,
  * including settlement types, payment structures, and error classes.
  */
@@ -13,10 +13,10 @@
 
 /**
  * Settlement method codes (Agent Pay-specific, with ISO 20022 mapping intent)
- * 
+ *
  * Note: These are Agent Pay conceptual codes, not official ISO 20022 settlement method codes.
  * The actual ISO 20022 settlement methods are: INDA, INGA, COVE, CLRG.
- * 
+ *
  * - INST: Instant settlement (maps to immediate fund transfer via FedNow/SEPA)
  * - CLRG: Clearing/batch settlement (maps to deferred ACH/Wire transfer)
  * - CRDT: Credit/invoice settlement (maps to monthly invoice with Net-30 terms)
@@ -293,7 +293,10 @@ export class ValidationError extends AgentPayError {
  * Error thrown when JWT signature verification fails
  */
 export class SignatureError extends AgentPayError {
-  constructor(message: string, public tokenType: 'quote' | 'payment') {
+  constructor(
+    message: string,
+    public tokenType: 'quote' | 'payment'
+  ) {
     super(message, 'SIGNATURE_ERROR', { tokenType });
     this.name = 'SignatureError';
     if (Error.captureStackTrace) {
@@ -360,7 +363,8 @@ export class IdempotencyConflictError extends AgentPayError {
 
   constructor(clientToken: string, message?: string) {
     super(
-      message || `Idempotency conflict: clientToken "${clientToken}" was used with different parameters`,
+      message ||
+        `Idempotency conflict: clientToken "${clientToken}" was used with different parameters`,
       'IDEMPOTENCY_CONFLICT',
       { clientToken }
     );

@@ -28,7 +28,7 @@ describe('Constants', () => {
       expect(SETTLEMENT_METHODS).toEqual({
         INST: 'INST',
         CLRG: 'CLRG',
-        CRDT: 'CRDT'
+        CRDT: 'CRDT',
       });
     });
 
@@ -43,7 +43,7 @@ describe('Constants', () => {
       expect(SETTLEMENT_CYCLES).toEqual({
         MNTH: 'MNTH',
         WEEK: 'WEEK',
-        QRTR: 'QRTR'
+        QRTR: 'QRTR',
       });
     });
 

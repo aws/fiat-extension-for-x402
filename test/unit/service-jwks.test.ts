@@ -2,10 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as jose from 'jose';
-import {
-  fetchServiceJWKS,
-  clearServiceJWKSCache,
-} from '../../src/utils';
+import { fetchServiceJWKS, clearServiceJWKSCache } from '../../src/utils';
 
 describe('fetchServiceJWKS', () => {
   beforeEach(() => {

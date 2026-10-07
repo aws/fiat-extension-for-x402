@@ -88,7 +88,8 @@ export function createKmsSigner(config: KmsSignerConfig): ServiceAgentPaySigner 
   // e.g., 'arn:aws:kms:us-east-1:123:alias/my-key' → 'my-key'
   // e.g., 'arn:aws:kms:us-east-1:123:key/abc-123'  → 'key/abc-123'
   const arnLastSegment = keyArn.split(':').pop() ?? keyArn;
-  const resolvedKid = kid ?? (arnLastSegment.startsWith('alias/') ? arnLastSegment.slice(6) : arnLastSegment);
+  const resolvedKid =
+    kid ?? (arnLastSegment.startsWith('alias/') ? arnLastSegment.slice(6) : arnLastSegment);
 
   const kmsClient = new KMSClient({
     region,
@@ -97,16 +98,20 @@ export function createKmsSigner(config: KmsSignerConfig): ServiceAgentPaySigner 
 
   return {
     signQuote: async (payload: unknown): Promise<string> => {
-      const header = Buffer.from(JSON.stringify({ alg: jwtAlg, typ: 'JWT', kid: resolvedKid })).toString('base64url');
+      const header = Buffer.from(
+        JSON.stringify({ alg: jwtAlg, typ: 'JWT', kid: resolvedKid })
+      ).toString('base64url');
       const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
       const message = Buffer.from(`${header}.${body}`);
 
-      const response = await kmsClient.send(new SignCommand({
-        KeyId: keyArn,
-        Message: message,
-        MessageType: 'RAW',
-        SigningAlgorithm: algorithm as SigningAlgorithmSpec,
-      }));
+      const response = await kmsClient.send(
+        new SignCommand({
+          KeyId: keyArn,
+          Message: message,
+          MessageType: 'RAW',
+          SigningAlgorithm: algorithm as SigningAlgorithmSpec,
+        })
+      );
 
       if (!response.Signature) {
         throw new Error('KMS Sign returned no signature');
@@ -134,7 +139,7 @@ function derToRawBase64url(derSig: Uint8Array, componentLength: number): string 
   const der = Buffer.from(derSig);
   let offset = 2;
   // Handle long-form length encoding
-  if (der[1]! > 0x80) offset += (der[1]! & 0x7f);
+  if (der[1]! > 0x80) offset += der[1]! & 0x7f;
 
   // Read r
   offset++; // skip 0x02 tag
@@ -155,7 +160,8 @@ function derToRawBase64url(derSig: Uint8Array, componentLength: number): string 
   r.subarray(rStart).copy(raw, rDest);
   // Same for s
   const sStart = s.length > componentLength ? s.length - componentLength : 0;
-  const sDest = s.length >= componentLength ? componentLength : componentLength + (componentLength - s.length);
+  const sDest =
+    s.length >= componentLength ? componentLength : componentLength + (componentLength - s.length);
   s.subarray(sStart).copy(raw, sDest);
 
   return raw.toString('base64url');

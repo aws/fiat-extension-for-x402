@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * DefaultAgentPayClient Tests
- * 
+ *
  * Verifies the HTTP client calls the correct Agent Pay API endpoints
  * with the correct request shape and handles responses properly.
  */
@@ -140,8 +140,7 @@ describe('DefaultAgentPayClient', () => {
         json: async () => ({ message: 'Invalid quote token' }),
       });
 
-      await expect(client.createPayment({ quoteToken: 'bad' }))
-        .rejects.toThrow(ValidationError);
+      await expect(client.createPayment({ quoteToken: 'bad' })).rejects.toThrow(ValidationError);
     });
 
     it('should throw IdempotencyConflictError on 409', async () => {
@@ -152,8 +151,9 @@ describe('DefaultAgentPayClient', () => {
         json: async () => ({ message: 'Conflict' }),
       });
 
-      await expect(client.createPayment({ quoteToken: 'qt', clientToken: 'dup' }))
-        .rejects.toThrow(IdempotencyConflictError);
+      await expect(client.createPayment({ quoteToken: 'qt', clientToken: 'dup' })).rejects.toThrow(
+        IdempotencyConflictError
+      );
     });
 
     it('should throw ValidationError when response missing paymentId', async () => {
@@ -162,8 +162,9 @@ describe('DefaultAgentPayClient', () => {
         json: async () => ({ paymentToken: 'tok', createdAt: '2026-01-01' }),
       });
 
-      await expect(client.createPayment({ quoteToken: 'qt' }))
-        .rejects.toThrow('missing paymentId or paymentToken');
+      await expect(client.createPayment({ quoteToken: 'qt' })).rejects.toThrow(
+        'missing paymentId or paymentToken'
+      );
     });
 
     it('should strip trailing slash from baseUrl', async () => {
@@ -188,7 +189,9 @@ describe('DefaultAgentPayClient', () => {
 
       await client.getPayment('awsmp-123');
 
-      expect(mockFetch.mock.calls[0][0]).toBe('https://pay.aws.amazon.com/GetAgentPayment/awsmp-123');
+      expect(mockFetch.mock.calls[0][0]).toBe(
+        'https://pay.aws.amazon.com/GetAgentPayment/awsmp-123'
+      );
       expect(mockFetch.mock.calls[0][1].method).toBe('GET');
     });
 
@@ -199,8 +202,7 @@ describe('DefaultAgentPayClient', () => {
         json: async () => ({ message: 'Not found' }),
       });
 
-      await expect(client.getPayment('awsmp-missing'))
-        .rejects.toThrow(ValidationError);
+      await expect(client.getPayment('awsmp-missing')).rejects.toThrow(ValidationError);
     });
   });
 
@@ -222,8 +224,7 @@ describe('DefaultAgentPayClient', () => {
 
   describe('verifyPaymentToken', () => {
     it('should throw ValidationError for invalid token', async () => {
-      await expect(client.verifyPaymentToken('not-a-jwt'))
-        .rejects.toThrow(ValidationError);
+      await expect(client.verifyPaymentToken('not-a-jwt')).rejects.toThrow(ValidationError);
     });
 
     // Note: Full verifyPaymentToken testing with real JWKS fetch is covered

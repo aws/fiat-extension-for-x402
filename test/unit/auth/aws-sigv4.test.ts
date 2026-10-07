@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * AWS SigV4 Authenticator Tests
- * 
+ *
  * Verifies that the SigV4 authenticator:
  * - Adds AWS4-HMAC-SHA256 Authorization header
  * - Adds x-amz-date header
@@ -27,17 +27,23 @@ describe('AwsSigV4Authenticator', () => {
 
   describe('constructor validation', () => {
     it('should throw MissingCredentialsError when region is empty', () => {
-      expect(() => new AwsSigV4Authenticator({
-        ...validConfig,
-        region: '',
-      })).toThrow(MissingCredentialsError);
+      expect(
+        () =>
+          new AwsSigV4Authenticator({
+            ...validConfig,
+            region: '',
+          })
+      ).toThrow(MissingCredentialsError);
     });
 
     it('should throw MissingCredentialsError when no credentials or provider', () => {
-      expect(() => new AwsSigV4Authenticator({
-        type: 'awsSigV4',
-        region: 'us-east-1',
-      } as any)).toThrow(MissingCredentialsError);
+      expect(
+        () =>
+          new AwsSigV4Authenticator({
+            type: 'awsSigV4',
+            region: 'us-east-1',
+          } as any)
+      ).toThrow(MissingCredentialsError);
     });
 
     it('should accept valid static credentials', () => {
@@ -45,14 +51,17 @@ describe('AwsSigV4Authenticator', () => {
     });
 
     it('should accept credential provider', () => {
-      expect(() => new AwsSigV4Authenticator({
-        type: 'awsSigV4',
-        region: 'us-east-1',
-        credentialProvider: async () => ({
-          accessKeyId: 'AKIA...',
-          secretAccessKey: 'secret',
-        }),
-      })).not.toThrow();
+      expect(
+        () =>
+          new AwsSigV4Authenticator({
+            type: 'awsSigV4',
+            region: 'us-east-1',
+            credentialProvider: async () => ({
+              accessKeyId: 'AKIA...',
+              secretAccessKey: 'secret',
+            }),
+          })
+      ).not.toThrow();
     });
   });
 

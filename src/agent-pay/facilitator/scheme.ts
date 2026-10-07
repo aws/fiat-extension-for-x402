@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Agent Pay Facilitator Scheme Implementation
- * 
+ *
  * In Agent Pay, the "facilitator" role is played by the Agent Pay provider,
  * which verifies and settles payments.
  */
@@ -13,7 +13,7 @@ import {
   SchemeNetworkFacilitator,
   SettleResponse,
   VerifyResponse,
-  Network
+  Network,
 } from '@x402/core/types';
 import type { AgentPayFacilitatorSchemeConfig, AgentPayClientForFacilitator } from '../../config';
 import { DefaultAgentPayClient } from '../../agent-pay-client';
@@ -39,32 +39,34 @@ export class AgentPayScheme implements SchemeNetworkFacilitator {
   constructor(config: AgentPayFacilitatorSchemeConfig) {
     // Store Agent Pay ID
     this.agentPayId = config.agentPayId;
-    
+
     // Determine if we have a custom client or need to create default
     if ('agentPayClient' in config) {
       this.agentPayClient = config.agentPayClient;
     } else if ('agentPay' in config) {
       this.agentPayClient = new DefaultAgentPayClient(config.agentPay);
     } else {
-      throw new ValidationError('AgentPayFacilitatorScheme requires either agentPayClient or Agent Pay configuration');
+      throw new ValidationError(
+        'AgentPayFacilitatorScheme requires either agentPayClient or Agent Pay configuration'
+      );
     }
   }
 
   /**
    * Get mechanism-specific extra data for the supported kinds endpoint
-   * 
+   *
    * @param network - Network identifier
    * @returns Extra data with Agent Pay ID
    */
   getExtra(network: Network): Record<string, unknown> | undefined {
     return {
-      agentPayId: this.agentPayId
+      agentPayId: this.agentPayId,
     };
   }
 
   /**
    * Get signer addresses used by this facilitator
-   * 
+   *
    * @param network - Network identifier
    * @returns Array with Agent Pay ID
    */
@@ -74,7 +76,7 @@ export class AgentPayScheme implements SchemeNetworkFacilitator {
 
   /**
    * Verify a payment payload
-   * 
+   *
    * @param payload - Payment payload to verify
    * @param requirements - Payment requirements
    * @returns Verification response
@@ -89,7 +91,7 @@ export class AgentPayScheme implements SchemeNetworkFacilitator {
 
   /**
    * Settle a payment by executing the transfer
-   * 
+   *
    * @param payload - Payment payload to settle
    * @param requirements - Payment requirements
    * @returns Settlement response

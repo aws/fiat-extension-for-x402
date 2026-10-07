@@ -60,9 +60,7 @@ describe('DPoP Key Generation', () => {
     });
 
     it('should throw error for unsupported algorithm', async () => {
-      await expect(
-        generateDPoPKeyPair('PS256' as any)
-      ).rejects.toThrow(DPoPError);
+      await expect(generateDPoPKeyPair('PS256' as any)).rejects.toThrow(DPoPError);
     });
   });
 });

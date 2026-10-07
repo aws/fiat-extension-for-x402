@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Security utilities for Agent Pay
- * 
+ *
  * Provides constant-time comparison and algorithm allowlist enforcement.
  */
 
@@ -17,11 +17,11 @@ export const ALLOWED_ALGORITHMS: string[] = ['RS256', 'ES256', 'ES384', 'ES512']
 /**
  * Constant-time string comparison.
  * Prevents timing attacks when comparing tokens, payment IDs, or other sensitive values.
- * 
+ *
  * Returns false (not equal) if strings have different lengths — this leaks length
  * information, but for our use case (comparing JWTs or UUIDs of known format)
  * the length is not secret.
- * 
+ *
  * @param a - First string
  * @param b - Second string
  * @returns true if strings are equal
@@ -37,7 +37,7 @@ export function secureCompare(a: string, b: string): boolean {
 
 /**
  * Validate that a URL is well-formed and uses HTTPS (or HTTP for localhost/testing).
- * 
+ *
  * @param url - URL string to validate
  * @param allowHttp - Allow HTTP (for local development). Defaults to false.
  * @returns The validated URL object
@@ -53,7 +53,10 @@ export function validateUrl(url: string, allowHttp = false): URL {
 
   if (!allowHttp && parsed.protocol !== 'https:') {
     // Allow http for localhost
-    if (parsed.protocol === 'http:' && (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1')) {
+    if (
+      parsed.protocol === 'http:' &&
+      (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1')
+    ) {
       return parsed;
     }
     throw new Error(`Insecure URL protocol: ${parsed.protocol}. Use HTTPS.`);
