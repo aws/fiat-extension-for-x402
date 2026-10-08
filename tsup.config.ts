@@ -7,7 +7,6 @@ export default defineConfig({
     'src/index.ts',
     'src/agent-pay/server/index.ts',
     'src/agent-pay/facilitator/index.ts',
-    'src/middleware/express.ts',
   ],
   format: ['cjs', 'esm'],
   dts: true,

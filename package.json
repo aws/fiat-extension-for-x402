@@ -42,16 +42,6 @@
         "types": "./dist/agent-pay/facilitator/index.d.cts",
         "default": "./dist/agent-pay/facilitator/index.cjs"
       }
-    },
-    "./middleware/express": {
-      "import": {
-        "types": "./dist/middleware/express.d.ts",
-        "default": "./dist/middleware/express.js"
-      },
-      "require": {
-        "types": "./dist/middleware/express.d.cts",
-        "default": "./dist/middleware/express.cjs"
-      }
     }
   },
   "scripts": {

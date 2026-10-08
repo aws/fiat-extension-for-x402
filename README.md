@@ -155,22 +155,9 @@ await verifier.settle(paymentPayload, originalRequirements);
 
 ---
 
-## Express Middleware (All-in-One)
+## HTTP Middleware
 
-For sellers who want automatic 402 generation + payment verification:
-
-```typescript
-import { agentPayMiddleware, createKmsSigner } from '@aws/fiat-extension-for-x402';
-
-app.use(agentPayMiddleware({
-  agentPayBaseUrl: 'https://agentpay.marketplace.aws.dev',
-  signer: createKmsSigner({ keyArn: '...', region: 'us-east-1', serviceUrl: 'https://api.example.com' }),
-  networks: ['aws:base'],
-  routes: {
-    'GET /api/premium': { amount: '0.50', asset: 'iso4217:USD', productId: 'YOUR_PRODUCT_ID' },
-  },
-}));
-```
+This package does not ship HTTP middleware. To protect routes, register `AgentPayServerScheme` on the stock x402 `x402ResourceServer` and use x402's own server middleware for your framework. Known gap: with the current `agent-pay` scheme the stock middleware mints a new quote token on the paid retry, so it does not match the payment and the request gets 402 again; the `exact` scheme rewrite fixes this.
 
 ---
 
@@ -259,7 +246,6 @@ Core implementation complete (v0.2.0):
 - Auto-capture on payment creation
 - Client token idempotency
 - DPoP proof-of-possession
-- Express middleware
 - 425 tests passing
 
 See [docs/sdk-guide.md](./docs/sdk-guide.md) for the SDK guide.

@@ -114,6 +114,18 @@ describe('Agent Pay Server Scheme', () => {
     expect(verified.payload.aud).toBe('aws:marketplace');
   });
 
+  // Moved from the deleted network-preset tests: the base scheme accepts ES256 signing keys.
+  // Construction only: signing with them still uses RS256 (src/signer.ts), a separate fix.
+  it('should construct with ES256 signing keys', async () => {
+    const { privateKey, publicKey: es256PublicKey } = await jose.generateKeyPair('ES256');
+    const es256Scheme = new AgentPayScheme({
+      signingKeys: { privateKey, publicKey: await jose.exportJWK(es256PublicKey), alg: 'ES256' },
+      serviceUrl,
+    });
+
+    expect(es256Scheme.scheme).toBe(AGENT_PAY_SCHEME);
+  });
+
   it('should handle multiple price currencies', async () => {
     // Test USD
     const result1 = await scheme.parsePrice('1.50 USD', 'fab:test');
