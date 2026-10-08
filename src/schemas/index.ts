@@ -45,7 +45,9 @@ export const AgentPayTermsSchema = z.object({
 // ============================================================================
 
 export const QuoteTokenPriceSchema = z.object({
-  amount: z.string().regex(/^\d+\.?\d*$/, 'Amount must be a decimal string'),
+  // Same strings as /^\d+\.?\d*$/, but linear-time: the old form backtracks
+  // quadratically on a long run of digits (CodeQL js/polynomial-redos).
+  amount: z.string().regex(/^\d+(?:\.\d*)?$/, 'Amount must be a decimal string'),
   currency: z.string().length(3, 'Currency must be a 3-letter ISO 4217 code'),
 });
 

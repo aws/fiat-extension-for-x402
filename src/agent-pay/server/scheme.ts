@@ -22,7 +22,7 @@ import type {
 } from '../../config';
 import { toServiceAgentPaySigner } from '../../signer';
 import { QuoteTokenPayload, AgentPayPaymentExtra, ValidationError } from '../../types';
-import { parseMoneyToDecimal } from '../../utils';
+import { parseMoney } from '../../utils';
 import {
   DEFAULT_QUOTE_VALIDITY_SECONDS,
   AGENT_PAY_SCHEME,
@@ -72,15 +72,15 @@ export class AgentPayScheme implements SchemeNetworkServer {
    */
   async parsePrice(price: Price, network: Network): Promise<AssetAmount> {
     // If already an AssetAmount, return it
-    if (typeof price === 'object' && 'amount' in price) {
+    if (typeof price === 'object' && price !== null && 'amount' in price) {
       return price;
     }
 
-    // Parse money string/number to amount and currency
-    const { amount, currency } = parseMoneyToDecimal(price);
+    // Parse money string/number to amount and currency; a string amount is kept verbatim
+    const { amount, currency } = parseMoney(price);
 
     return {
-      amount: amount.toString(),
+      amount,
       asset: `iso4217:${currency}`,
       extra: {},
     };

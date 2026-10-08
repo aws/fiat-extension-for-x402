@@ -25,10 +25,10 @@ describe('Agent Pay Server Scheme', () => {
   });
 
   it('should parse price correctly', async () => {
-    // Test string price
+    // Test string price (the amount string is kept verbatim)
     const result1 = await scheme.parsePrice('1.50 USD', 'fab:test');
     expect(result1).toEqual({
-      amount: '1.5',
+      amount: '1.50',
       asset: 'iso4217:USD',
       extra: {},
     });
