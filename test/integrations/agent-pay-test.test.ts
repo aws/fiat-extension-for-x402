@@ -19,7 +19,7 @@ import {
   SupportedResponse,
 } from '@x402/core/types';
 import * as jose from 'jose';
-import { AgentPayScheme as APClient } from '../../src/agent-pay/client/scheme';
+import { FakeBuyerScheme } from '../helpers/fake-buyer-scheme';
 import { AgentPayScheme as APServer } from '../../src/agent-pay/server/scheme';
 import { AgentPayScheme as APFacilitator } from '../../src/agent-pay/facilitator/scheme';
 import type { AgentPayPayloadV2 } from '../../src/types';
@@ -158,8 +158,7 @@ describe('Agent Pay Integration Tests', () => {
       clearServiceJWKSCache();
 
       // Create client with Agent Pay client
-      const apClient = new APClient({
-        agentPayId,
+      const apClient = new FakeBuyerScheme({
         agentPayClient: agentPayMock.agentPayClient,
       });
       client = new x402Client().register('fab:aws', apClient);
@@ -289,8 +288,7 @@ describe('Agent Pay Integration Tests', () => {
       const facilitatorClient = new APFacilitatorClient(facilitator);
 
       // Create client with Agent Pay client
-      const apClient = new APClient({
-        agentPayId,
+      const apClient = new FakeBuyerScheme({
         agentPayClient: agentPayMock.agentPayClient,
       });
       const paymentClient = new x402Client().register('fab:aws', apClient);

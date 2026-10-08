@@ -14,13 +14,9 @@ import {
   AgentPayTermsSchema,
   AgentPayPaymentExtraSchema,
   AgentPayPayloadV2Schema,
-  DpopJwkSchema,
-  CreateAgentPaymentRequestSchema,
-  CreateAgentPaymentResponseSchema,
   parseQuoteToken,
   safeParseQuoteToken,
   parsePaymentPayload,
-  parseCreatePaymentResponse,
 } from '../../src/schemas';
 
 describe('Zod Schemas', () => {
@@ -171,95 +167,6 @@ describe('Zod Schemas', () => {
     });
   });
 
-  describe('DpopJwkSchema', () => {
-    it('should accept valid EC key', () => {
-      const result = DpopJwkSchema.parse({
-        kty: 'EC',
-        crv: 'P-256',
-        x: 'f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU',
-        y: 'x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0',
-      });
-      expect(result.kty).toBe('EC');
-      expect(result.crv).toBe('P-256');
-    });
-
-    it('should reject non-EC kty', () => {
-      expect(() =>
-        DpopJwkSchema.parse({ kty: 'RSA', crv: 'P-256', x: 'a'.repeat(43), y: 'b'.repeat(43) })
-      ).toThrow();
-    });
-
-    it('should reject unsupported curve', () => {
-      expect(() =>
-        DpopJwkSchema.parse({ kty: 'EC', crv: 'P-192', x: 'a'.repeat(43), y: 'b'.repeat(43) })
-      ).toThrow();
-    });
-
-    it('should reject short x/y values', () => {
-      expect(() =>
-        DpopJwkSchema.parse({ kty: 'EC', crv: 'P-256', x: 'short', y: 'short' })
-      ).toThrow();
-    });
-  });
-
-  describe('CreateAgentPaymentRequestSchema', () => {
-    it('should accept minimal request', () => {
-      const result = CreateAgentPaymentRequestSchema.parse({ quoteToken: 'eyJ...' });
-      expect(result.quoteToken).toBe('eyJ...');
-      expect(result.clientToken).toBeUndefined();
-    });
-
-    it('should accept full request', () => {
-      const result = CreateAgentPaymentRequestSchema.parse({
-        quoteToken: 'eyJ...',
-        clientToken: 'idem-123',
-        dpopJwk: { kty: 'EC', crv: 'P-256', x: 'a'.repeat(43), y: 'b'.repeat(43) },
-      });
-      expect(result.clientToken).toBe('idem-123');
-    });
-
-    it('should reject empty quoteToken', () => {
-      expect(() => CreateAgentPaymentRequestSchema.parse({ quoteToken: '' })).toThrow();
-    });
-
-    it('should reject clientToken over 128 chars', () => {
-      expect(() =>
-        CreateAgentPaymentRequestSchema.parse({ quoteToken: 'x', clientToken: 'a'.repeat(129) })
-      ).toThrow();
-    });
-  });
-
-  describe('CreateAgentPaymentResponseSchema', () => {
-    it('should accept valid response', () => {
-      const result = CreateAgentPaymentResponseSchema.parse({
-        paymentId: 'awsmp-01970f3e-4b2a-7dc0-8e1f-6a3b9c5d7e2f',
-        paymentToken: 'eyJ...',
-        createdAt: '2026-05-12T00:00:00Z',
-      });
-      expect(result.paymentId).toContain('awsmp-');
-    });
-
-    it('should reject invalid paymentId format', () => {
-      expect(() =>
-        CreateAgentPaymentResponseSchema.parse({
-          paymentId: 'invalid-id',
-          paymentToken: 'x',
-          createdAt: '2026-01-01T00:00:00Z',
-        })
-      ).toThrow();
-    });
-
-    it('should reject invalid createdAt format', () => {
-      expect(() =>
-        CreateAgentPaymentResponseSchema.parse({
-          paymentId: 'awsmp-01970f3e-4b2a-7dc0-8e1f-6a3b9c5d7e2f',
-          paymentToken: 'x',
-          createdAt: 'not-a-date',
-        })
-      ).toThrow();
-    });
-  });
-
   describe('parseQuoteToken', () => {
     it('should decode and validate a valid quote token', async () => {
       const { privateKey } = await jose.generateKeyPair('RS256');
@@ -328,21 +235,6 @@ describe('Zod Schemas', () => {
 
     it('should throw on missing fields', () => {
       expect(() => parsePaymentPayload({ paymentToken: 'tok' })).toThrow();
-    });
-  });
-
-  describe('parseCreatePaymentResponse', () => {
-    it('should validate a valid response', () => {
-      const result = parseCreatePaymentResponse({
-        paymentId: 'awsmp-01970f3e-4b2a-7dc0-8e1f-6a3b9c5d7e2f',
-        paymentToken: 'eyJ...',
-        createdAt: '2026-05-12T10:00:00Z',
-      });
-      expect(result.paymentId).toContain('awsmp-');
-    });
-
-    it('should throw on invalid response', () => {
-      expect(() => parseCreatePaymentResponse({ paymentId: 'bad' })).toThrow();
     });
   });
 });

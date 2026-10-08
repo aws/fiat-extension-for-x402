@@ -6,18 +6,33 @@
  */
 
 import * as jose from 'jose';
-import type {
-  AgentPayClient,
-  CreateAgentPaymentRequest,
-  CreateAgentPaymentResponse,
-} from '../../src/config';
+import type { AgentPayClientForFacilitator } from '../../src/config';
+
+/** CreateAgentPayment request body, as the Agent Pay Service accepts it */
+export interface CreateAgentPaymentRequest {
+  quoteToken: string;
+  clientToken?: string;
+  dpopJwk?: { kty: 'EC'; crv: 'P-256' | 'P-384' | 'P-521'; x: string; y: string };
+}
+
+/** CreateAgentPayment response body */
+export interface CreateAgentPaymentResponse {
+  paymentId: string;
+  paymentToken: string;
+  createdAt: string;
+}
+
+/** The fake service: creates payments (buyer side) and verifies their tokens (facilitator side) */
+export interface MockAgentPayClient extends AgentPayClientForFacilitator {
+  createPayment(request: CreateAgentPaymentRequest): Promise<CreateAgentPaymentResponse>;
+}
 
 /**
  * Create a mock Agent Pay client for testing
  * Uses in-memory key pairs to simulate Agent Pay Service signing
  */
 export async function createMockAgentPayClient(agentPayId: string = 'test-agent-pay-123'): Promise<{
-  agentPayClient: AgentPayClient;
+  agentPayClient: MockAgentPayClient;
   privateKey: jose.KeyLike;
   publicKey: jose.KeyLike;
 }> {
@@ -28,7 +43,7 @@ export async function createMockAgentPayClient(agentPayId: string = 'test-agent-
   const paymentStore = new Map<string, CreateAgentPaymentResponse>();
   let paymentCounter = 0;
 
-  const agentPayClient: AgentPayClient = {
+  const agentPayClient: MockAgentPayClient = {
     // Client-side: create payment (matches Agent Pay API)
     createPayment: async (
       request: CreateAgentPaymentRequest

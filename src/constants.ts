@@ -84,12 +84,6 @@ export const WELL_KNOWN_JWKS_PATH = '/.well-known/jwks.json';
 export const WELL_KNOWN_X402_SUPPORTED_PATH = '/.well-known/x402-supported';
 
 /**
- * Path to the OIDC discovery endpoint.
- * Used for wallet/provider endpoint discovery (optional — not required by Agent Pay).
- */
-export const WELL_KNOWN_OIDC_PATH = '/.well-known/openid-configuration';
-
-/**
  * The audience identifier for the AWS Marketplace Agent Pay Service.
  * This is the `aud` claim in quote tokens — it identifies WHO processes the token,
  * not which network/rail is used. A single audience (the Agent Pay service) can
@@ -109,10 +103,3 @@ export const AGENT_PAY_JWKS_BASE_URL = 'https://d3aeb2cjjowogc.cloudfront.net';
  * Required to fetch the public keys for payment token verification.
  */
 export const AGENT_PAY_JWKS_ACCESS_KEY = 'agentpay-test-2026';
-
-/**
- * Default base URL for the Agent Pay service endpoint.
- * Used when `agentPayBaseUrl` is not provided in client options.
- * Override for beta testing: 'https://beta.agentpay.marketplace.aws.dev'
- */
-export const DEFAULT_AGENT_PAY_BASE_URL = 'https://prod.agentpay.marketplace.aws.dev';

@@ -3,7 +3,7 @@
 /**
  * Zod runtime validation schemas for Agent Pay types.
  *
- * These schemas mirror the TypeScript interfaces in types.ts and config.ts,
+ * These schemas mirror the TypeScript interfaces in types.ts,
  * providing runtime validation for untrusted input (e.g., 402 responses,
  * webhook payloads, decoded JWTs).
  *
@@ -94,73 +94,6 @@ export const AgentPayPayloadV2Schema = z.object({
 });
 
 // ============================================================================
-// DPoP JWK Schema
-// ============================================================================
-
-export const DpopJwkSchema = z.object({
-  kty: z.literal('EC'),
-  crv: z.enum(['P-256', 'P-384', 'P-521']),
-  x: z.string().min(43).max(128),
-  y: z.string().min(43).max(128),
-});
-
-// ============================================================================
-// API Request/Response Schemas
-// ============================================================================
-
-export const CreateAgentPaymentRequestSchema = z.object({
-  quoteToken: z.string().min(1).max(65536),
-  clientToken: z.string().min(1).max(128).optional(),
-  dpopJwk: DpopJwkSchema.optional(),
-});
-
-export const CreateAgentPaymentResponseSchema = z.object({
-  paymentId: z.string().regex(/^awsmp-[0-9a-f-]{36}$/, 'Payment ID must be in awsmp-{UUID} format'),
-  paymentToken: z.string().min(1),
-  createdAt: z.string().datetime(),
-});
-
-export const PaymentAmountSchema = z.object({
-  value: z.string().regex(/^\d+\.?\d*$/),
-  currency: z.string().length(3),
-});
-
-export const SellerInformationSchema = z.object({
-  sellerProfileId: z.string().min(1),
-  displayName: z.string().min(1),
-});
-
-export const PaymentDetailSchema = z.object({
-  paymentId: z.string().min(1),
-  buyerAccountId: z.string().regex(/^\d{12}$/),
-  sellerInformation: SellerInformationSchema,
-  productId: z.string().min(1),
-  quoteToken: z.string().min(1),
-  paymentToken: z.string().min(1),
-  createdAt: z.string().datetime(),
-  amount: PaymentAmountSchema,
-  agreementId: z.string().optional(),
-});
-
-export const GetAgentPaymentResponseSchema = z.object({
-  payment: PaymentDetailSchema,
-});
-
-export const PaymentSummarySchema = z.object({
-  paymentId: z.string().min(1),
-  buyerAccountId: z.string().regex(/^\d{12}$/),
-  sellerInformation: SellerInformationSchema,
-  productId: z.string().min(1),
-  createdAt: z.string().datetime(),
-  agreementId: z.string().optional(),
-});
-
-export const ListAgentPaymentsResponseSchema = z.object({
-  payments: z.array(PaymentSummarySchema),
-  nextToken: z.string().optional(),
-});
-
-// ============================================================================
 // Parse Utilities (decode + validate)
 // ============================================================================
 
@@ -213,17 +146,4 @@ export function safeParseQuoteToken(
  */
 export function parsePaymentPayload(payload: unknown): z.infer<typeof AgentPayPayloadV2Schema> {
   return AgentPayPayloadV2Schema.parse(payload);
-}
-
-/**
- * Validate a CreateAgentPayment response.
- *
- * @param response - API response object
- * @returns Validated response
- * @throws z.ZodError if response doesn't match schema
- */
-export function parseCreatePaymentResponse(
-  response: unknown
-): z.infer<typeof CreateAgentPaymentResponseSchema> {
-  return CreateAgentPaymentResponseSchema.parse(response);
 }

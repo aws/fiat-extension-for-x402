@@ -8,16 +8,6 @@
 #   removes a token (or moves its file) must delete or update the entry.
 # Do not add entries for new code: use example.com or a placeholder instead.
 
-# Buyer side (client, auth, network registry, base URLs), deleted by PR 5.
-src/builders/client-builder.ts pay.aws.amazon.com # PR 5: client builder deleted
-src/config.ts pay.aws.amazon.com # PR 5: buyer client options deleted
-src/discovery.ts pay.aws.amazon.com # PR 5: network registry and base-URL helpers deleted
-src/constants.ts prod.agentpay.marketplace.aws.dev # PR 5: DEFAULT_AGENT_PAY_BASE_URL dropped
-src/constants.ts beta.agentpay.marketplace.aws.dev # PR 5: DEFAULT_AGENT_PAY_BASE_URL comment dropped
-test/unit/agent-pay-client.test.ts pay.aws.amazon.com # PR 5: buyer client tests deleted
-test/unit/auth/aws-sigv4.test.ts pay.aws.amazon.com # PR 5: auth tests deleted
-test/unit/discovery.test.ts pay.aws.amazon.com # PR 5: network registry tests deleted
-
 # Our middleware, builders and network presets, deleted by PR 6.
 src/builders/resource-server-builder.ts pay.aws.amazon.com # PR 6: builder deleted
 src/middleware/express.ts pay.aws.amazon.com # PR 6: middleware deleted

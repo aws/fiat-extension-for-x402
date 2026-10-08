@@ -23,16 +23,6 @@
         "default": "./dist/index.cjs"
       }
     },
-    "./agent-pay/client": {
-      "import": {
-        "types": "./dist/agent-pay/client/index.d.ts",
-        "default": "./dist/agent-pay/client/index.js"
-      },
-      "require": {
-        "types": "./dist/agent-pay/client/index.d.cts",
-        "default": "./dist/agent-pay/client/index.cjs"
-      }
-    },
     "./agent-pay/server": {
       "import": {
         "types": "./dist/agent-pay/server/index.d.ts",
@@ -103,13 +93,8 @@
     }
   },
   "dependencies": {
-    "@aws-crypto/sha256-js": "^5.2.0",
     "@aws-sdk/client-kms": "^3.1143.0",
-    "@aws-sdk/credential-providers": "^3.1143.0",
     "@aws-sdk/types": "^3.973.8",
-    "@smithy/protocol-http": "^5.6.2",
-    "@smithy/signature-v4": "^5.4.1",
-    "@smithy/types": "^4.14.1",
     "jose": "^5.2.0",
     "zod": "^3.22.4"
   },
