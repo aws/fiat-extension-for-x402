@@ -65,7 +65,7 @@ Error messages include contextual information (HTTP status codes, field names) b
 
 1. **Don't disable HTTPS** — The `validateUrl` utility allows HTTP only for localhost. Never use HTTP in production.
 
-2. **Don't skip token verification** — Always verify payment token signatures before delivering resources. The `agentPayMiddleware` does this automatically.
+2. **Don't skip token verification** — Always verify payment token signatures before delivering resources.
 
 3. **Don't reuse DPoP keys** — Generate a fresh key pair per session using `generateDPoPKeyPair()`.
 

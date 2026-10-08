@@ -17,7 +17,6 @@ import { FakeBuyerScheme } from '../helpers/fake-buyer-scheme';
 import { AgentPayScheme as APServer } from '../../src/agent-pay/server/scheme';
 import { AgentPayScheme as APFacilitator } from '../../src/agent-pay/facilitator/scheme';
 import { InProcessFacilitatorClient } from '../../src/facilitator-client';
-import { registerAgentPayNetworks } from '../../src/builders/register';
 import { AGENT_PAY_SCHEME, AGENT_PAY_SENTINEL_PAY_TO } from '../../src/constants';
 import { createMockAgentPayClient } from '../helpers/mock-agent-pay-client';
 import { createMockServiceSigner } from '../helpers/mock-service-signer';
@@ -98,18 +97,7 @@ describe('Multi-Facilitator Integration Tests', () => {
       const facilitatorClient = new APFacilitatorClient(facilitator);
       server = new x402ResourceServer(facilitatorClient);
 
-      // Use registerAgentPayNetworks helper
-      registerAgentPayNetworks(server, ['fab:aws', 'eip155:8453'], {
-        signingKeys: {
-          privateKey: serviceMock.privateKey,
-          publicKey: await jose.exportJWK(serviceMock.publicKey),
-          alg: 'RS256',
-        },
-        serviceUrl,
-      });
-
-      // Override the signer to use our mock (registerAgentPayNetworks creates its own)
-      // Re-register with the mock signer for test determinism
+      // Register the Agent Pay server scheme with the mock signer on both networks
       server.register('fab:aws', new APServer({ signer: serviceMock.signer }));
       server.register('eip155:8453', new APServer({ signer: serviceMock.signer }));
 
@@ -173,8 +161,8 @@ describe('Multi-Facilitator Integration Tests', () => {
     });
   });
 
-  describe('registerAgentPayNetworks helper', () => {
-    it('should register Agent Pay server scheme for multiple networks', async () => {
+  describe('stock x402ResourceServer.register', () => {
+    it('should register an Agent Pay server scheme built from signing keys', async () => {
       const serviceMock = await createMockServiceSigner(serviceUrl);
       const agentPayMock = await createMockAgentPayClient(agentPayId);
 
@@ -186,26 +174,31 @@ describe('Multi-Facilitator Integration Tests', () => {
       const facilitatorClient = new APFacilitatorClient(facilitator);
 
       const server = new x402ResourceServer(facilitatorClient);
-      registerAgentPayNetworks(server, ['fab:aws'], {
-        signingKeys: {
-          privateKey: serviceMock.privateKey,
-          publicKey: await jose.exportJWK(serviceMock.publicKey),
-          alg: 'RS256',
-        },
-        serviceUrl,
-      });
+      server.register(
+        'fab:aws',
+        new APServer({
+          signingKeys: {
+            privateKey: serviceMock.privateKey,
+            publicKey: await jose.exportJWK(serviceMock.publicKey),
+            alg: 'RS256',
+          },
+          serviceUrl,
+        })
+      );
 
       expect(server.hasRegisteredScheme('fab:aws', 'agent-pay')).toBe(true);
-    });
 
-    it('should throw on empty networks array', () => {
-      const server = new x402ResourceServer();
-      expect(() =>
-        registerAgentPayNetworks(server, [], {
-          signingKeys: {} as any,
-          serviceUrl: 'https://api.example.com',
-        })
-      ).toThrow('non-empty');
+      // The signing-keys scheme signs quotes that verify against the service key.
+      await server.initialize();
+      const [accept] = await server.buildPaymentRequirements({
+        scheme: AGENT_PAY_SCHEME,
+        network: 'fab:aws',
+        payTo: 'service-pay',
+        price: 0.15,
+      });
+      const quoteToken = (accept.extra as { quoteToken: string }).quoteToken;
+      const { payload } = await jose.jwtVerify(quoteToken, serviceMock.publicKey);
+      expect(payload.iss).toBe(serviceUrl);
     });
   });
 });

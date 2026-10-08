@@ -10,9 +10,6 @@
 // Scheme implementations
 export { AgentPayServerScheme, AgentPayFacilitatorScheme } from './agent-pay';
 
-// Pre-configured network schemes
-export { AgentPayAWSServerScheme, AgentPayAWSFacilitatorScheme } from './networks';
-
 // Configuration types
 export type {
   SigningKeysConfig,
@@ -117,26 +114,3 @@ export {
 
 // DPoP (Demonstrating Proof-of-Possession)
 export { computeJWKThumbprint, verifyDPoPProof, extractDPoPThumbprint } from './dpop';
-
-// Express Middleware
-export {
-  agentPayMiddleware,
-  type AgentPayMiddlewareConfig,
-  type AgentPayRouteConfig,
-  type AgentPayRoutesConfig,
-  type PaymentInfo,
-} from './middleware';
-
-// Builders (network-aware facilitator routing)
-export {
-  createAgentPayResourceServer,
-  buildAgentPayResourceServer,
-  registerAgentPayNetworks,
-} from './builders';
-export type {
-  AgentPayResourceServerOptions,
-  AgentPayResourceServer,
-  NetworkOptions,
-  InitializeOptions,
-  AgentPayResourceServerConfig,
-} from './builders';

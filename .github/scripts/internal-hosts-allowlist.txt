@@ -8,11 +8,6 @@
 #   removes a token (or moves its file) must delete or update the entry.
 # Do not add entries for new code: use example.com or a placeholder instead.
 
-# Our middleware, builders and network presets, deleted by PR 6.
-src/builders/resource-server-builder.ts pay.aws.amazon.com # PR 6: builder deleted
-src/middleware/express.ts pay.aws.amazon.com # PR 6: middleware deleted
-src/networks/aws.ts pay.aws.amazon.com # PR 6: network presets deleted
-
 # Service constants, removed or renamed by PR 7 (rename and new layout).
 src/constants.ts agentpay-test-2026 # PR 7: hard-coded JWKS WAF access key (AGENT_PAY_JWKS_ACCESS_KEY) removed
 src/constants.ts d3aeb2cjjowogc.cloudfront.net # PR 7: hard-coded JWKS host (AGENT_PAY_JWKS_BASE_URL) removed or renamed

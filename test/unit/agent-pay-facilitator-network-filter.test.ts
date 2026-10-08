@@ -1,7 +1,10 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { AgentPayFacilitatorClient } from '../../../src/agent-pay-facilitator-client';
+import { x402ResourceServer } from '@x402/core/server';
+import { AgentPayFacilitatorClient } from '../../src/agent-pay-facilitator-client';
+import { AgentPayScheme as AgentPayServerScheme } from '../../src/agent-pay/server/scheme';
+import { createMockServiceSigner } from '../helpers/mock-service-signer';
 import type { Network } from '@x402/core/types';
 
 const mockFetch = vi.fn();
@@ -58,5 +61,20 @@ describe('AgentPayFacilitatorClient networkFilter', () => {
 
     expect(supported.kinds).toHaveLength(2);
     expect(supported.kinds.map((k) => k.network).sort()).toEqual(['eip155:8453', 'fab:aws']);
+  });
+
+  // Moved from the deleted builder tests: the filter holds once the client backs a stock x402ResourceServer.
+  it('should keep filtered-out networks out of x402ResourceServer supported kinds', async () => {
+    const { signer } = await createMockServiceSigner('https://api.example.com');
+    const filter = new Set(['fab:aws'] as Network[]);
+    const client = new AgentPayFacilitatorClient('https://pay.example.com', undefined, filter);
+    const server = new x402ResourceServer(client);
+    server.register('fab:aws', new AgentPayServerScheme({ signer }));
+
+    await server.initialize();
+
+    expect(server.hasRegisteredScheme('fab:aws', 'agent-pay')).toBe(true);
+    expect(server.getSupportedKind(2, 'fab:aws', 'agent-pay')).toBeDefined();
+    expect(server.getSupportedKind(2, 'fab:test', 'agent-pay')).toBeUndefined();
   });
 });

@@ -145,12 +145,10 @@ This eliminates the need for a separate facilitator service. The `AgentPayFacili
 | **AgentPayFacilitatorScheme** | `src/agent-pay/facilitator/scheme.ts` | Implements `SchemeNetworkFacilitator`. Delegates to `verify.ts` and `settle.ts` for cryptographic verification and Agent Pay capture calls. |
 | **AgentPayFacilitatorClient** | `src/agent-pay-facilitator-client.ts` | Implements `FacilitatorClient` (the x402 facilitator interface). Verifies payment tokens by checking JWT signatures against the Agent Pay's JWKS, then settles via the Agent Pay's `/capture` endpoint. |
 | **DefaultAgentPayClient** | `src/agent-pay-client.ts` | HTTP client for Agent Pay API calls (`/transactions`, `/capture`, `/.well-known/jwks.json`). Used by both the client scheme and the facilitator scheme. This is a reference implementation — it will be replaced by the official AWS SDK Agent Pay client in production. The scheme constructors accept either a `AgentPayConfig` (which creates a `DefaultAgentPayClient`) or a custom object implementing `AgentPayClientForClient` / `AgentPayClientForFacilitator`, so swapping in the AWS SDK client requires no changes to the scheme layer. |
-| **Builders** | `src/builders/` | `createAgentPayResourceServer()` and `createAgentPayClient()` — high-level APIs that wire up schemes, facilitators, and network registration in a fluent two-phase pattern. |
 | **Authentication** | `src/auth/` | Pluggable auth for Agent Pay API calls: API Key, AWS SigV4, OAuth2, Custom. Factory pattern via `createAuthenticator()`. |
 | **DPoP** | `src/dpop/` | RFC 9449 Demonstrating Proof-of-Possession. Key generation, proof creation, proof verification with replay protection. Prevents token theft by binding payment tokens to ephemeral client keys. |
 | **Discovery** | `src/discovery.ts` | Network registry (`registerNetwork`) and OIDC-based Agent Pay endpoint discovery. |
 | **Signers** | `src/signer.ts` | `toServiceAgentPaySigner()` and `toAgentPaySigner()` — adapter functions that wrap `jose` key pairs into the `ServiceAgentPaySigner` / `AgentPaySigner` interfaces. |
-| **AWS Presets** | `src/networks/aws.ts` | Pre-configured scheme classes for AWS Agent Pay (`AgentPayAWSClientScheme`, `AgentPayAWSServerScheme`, `AgentPayAWSFacilitatorScheme`) with `https://pay.aws.amazon.com` as the default base URL. |
 | **Types** | `src/types.ts` | All Agent Pay-specific types: `QuoteTokenPayload`, `PaymentTokenPayload`, `AgentPayPayloadV2`, settlement types, DPoP types, error classes. |
 | **Constants** | `src/constants.ts` | `AGENT_PAY_SCHEME`, `AGENT_PAY_CAIP_FAMILY`, `AGENT_PAY_SENTINEL_PAY_TO`, default validity windows. |
 | **Utilities** | `src/utils.ts` | JWT decode/verify helpers, transaction ID parsing, money parsing, service JWKS caching. |
@@ -325,26 +323,7 @@ Any Agent Pay provider can integrate with Agent Pay by exposing these standardiz
 
 ### 3.10 Network Registration and Facilitator Routing
 
-Agent Pay uses a two-phase builder pattern:
-
-```typescript
-const server = createAgentPayResourceServer({
-  agentPayBaseUrl: 'https://pay.aws.amazon.com',
-  agentPayId: 'my-agent-pay',
-  signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
-  serviceUrl: 'https://api.example.com',
-});
-
-// Phase 1: register which networks Agent Pay should handle
-server.registerNetwork('aws:base');
-
-// Phase 2: initialize (fetches supported kinds, builds routing table)
-const x402Server = await server.initialize();
-```
-
-During `initialize()`, the server queries the Agent Pay facilitator's `getSupported()` and the default x402 facilitator's `getSupported()`. The Agent Pay facilitator only claims networks that were explicitly registered (via the `networkFilter` on `AgentPayFacilitatorClient`). Unregistered networks fall through to the default facilitator.
-
-This prevents Agent Pay from accidentally shadowing EVM or Solana networks that should be handled by the default `https://x402.org/facilitator`.
+This package no longer ships a builder or network presets. Register `AgentPayServerScheme` per network with the stock x402 `x402ResourceServer.register(network, scheme)`, and pass it the facilitator clients you want explicitly: given none, the stock server uses x402's default facilitator. Pass the same networks as the `networkFilter` set to `AgentPayFacilitatorClient`; without it, Agent Pay claims every network its provider reports, and the first facilitator to claim a network wins.
 
 ---
 
@@ -380,7 +359,7 @@ The package is built with `tsup`. The root entry produces:
 - `dist/index.cjs` — CommonJS
 - `dist/index.d.ts` / `dist/index.d.cts` — TypeScript declarations (ESM / CommonJS)
 
-Sub-path exports are available for tree-shaking: `@aws/fiat-extension-for-x402/agent-pay/client`, `@aws/fiat-extension-for-x402/agent-pay/server`, `@aws/fiat-extension-for-x402/agent-pay/facilitator`, `@aws/fiat-extension-for-x402/middleware/express`.
+Sub-path exports are available for tree-shaking: `@aws/fiat-extension-for-x402/agent-pay/client`, `@aws/fiat-extension-for-x402/agent-pay/server`, `@aws/fiat-extension-for-x402/agent-pay/facilitator`.
 
 ### 4.4 Known Limitations
 
@@ -417,10 +396,6 @@ src/
 │       ├── scheme.ts           # SchemeNetworkFacilitator implementation
 │       ├── verify.ts           # Payment verification logic
 │       └── settle.ts           # Payment settlement logic
-├── builders/
-│   ├── resource-server-builder.ts  # createAgentPayResourceServer / buildAgentPayResourceServer
-│   ├── client-builder.ts          # createAgentPayClient / buildAgentPayClient
-│   └── register.ts                # registerAgentPayNetworks helper
 ├── auth/
 │   ├── types.ts                # Auth config interfaces
 │   ├── factory.ts              # createAuthenticator()
@@ -428,10 +403,8 @@ src/
 │   ├── aws-sigv4.ts            # AWS SigV4 authenticator
 │   ├── oauth2.ts               # OAuth2 authenticator
 │   └── custom.ts               # Custom authenticator
-├── dpop/
-│   ├── key-generation.ts       # generateDPoPKeyPair
-│   ├── proof-creation.ts       # createDPoPProof, computeJWKThumbprint
-│   └── proof-verification.ts   # verifyDPoPProof, extractDPoPThumbprint
-└── networks/
-    └── aws.ts                  # Pre-configured AWS Agent Pay schemes
+└── dpop/
+    ├── key-generation.ts       # generateDPoPKeyPair
+    ├── proof-creation.ts       # createDPoPProof, computeJWKThumbprint
+    └── proof-verification.ts   # verifyDPoPProof, extractDPoPThumbprint
 ```
