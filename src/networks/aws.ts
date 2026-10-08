@@ -28,8 +28,8 @@ export class AgentPayAWSClientScheme extends AgentPayClientSchemeBase {
     super({
       agentPayId: config.agentPayId,
       agentPay: {
-        baseUrl: AWS_AGENT_PAY_BASE_URL
-      }
+        baseUrl: AWS_AGENT_PAY_BASE_URL,
+      },
     });
   }
 }
@@ -48,8 +48,8 @@ export class AgentPayAWSServerScheme extends AgentPayServerSchemeBase {
       signingKeys: config.signingKeys,
       serviceUrl: config.serviceUrl,
       agentPay: {
-        baseUrl: AWS_AGENT_PAY_BASE_URL
-      }
+        baseUrl: AWS_AGENT_PAY_BASE_URL,
+      },
     });
   }
 }
@@ -67,8 +67,8 @@ export class AgentPayAWSFacilitatorScheme extends AgentPayFacilitatorSchemeBase 
     super({
       agentPayId,
       agentPay: {
-        baseUrl: AWS_AGENT_PAY_BASE_URL
-      }
+        baseUrl: AWS_AGENT_PAY_BASE_URL,
+      },
     });
   }
 }

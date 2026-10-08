@@ -23,7 +23,7 @@ export interface SigningKeysConfig {
 export interface AgentPayConfig {
   /**
    * Base URL for Agent Pay provider (e.g., 'https://pay.aws.amazon.com')
-   * 
+   *
    * Standardized endpoints:
    * - POST ${baseUrl}/CreateAgentPayment - create/authorize payment
    * - GET  ${baseUrl}/GetAgentPayment/{paymentId} - get payment detail
@@ -31,7 +31,7 @@ export interface AgentPayConfig {
    * - GET  ${baseUrl}/.well-known/jwks.json - public keys
    */
   baseUrl: string;
-  
+
   /**
    * Optional authentication configuration for Agent Pay API calls
    * Supports API Key, AWS SigV4, OAuth2, and custom authentication
@@ -144,7 +144,7 @@ export interface AgentPayClientForClient {
    * Create a payment with the Agent Pay Service.
    * Sends the seller-signed quote token; Agent Pay verifies, captures,
    * and returns a signed payment JWT.
-   * 
+   *
    * @param request - CreateAgentPayment request
    * @returns Payment ID and signed payment token
    */
@@ -154,14 +154,14 @@ export interface AgentPayClientForClient {
 /**
  * Facilitator-side Agent Pay operations
  * Used by AgentPayFacilitatorScheme to verify payments
- * 
+ *
  * Note: Agent Pay auto-captures on creation — there is no separate capture/settle step.
  */
 export interface AgentPayClientForFacilitator {
   /**
    * Verify a payment token's signature
    * Fetches Agent Pay's public keys from JWKS endpoint and verifies
-   * 
+   *
    * @param token - Payment token JWT to verify
    * @returns Decoded and verified payment token payload
    */
@@ -190,21 +190,21 @@ export interface AgentPayClient extends AgentPayClientForClient, AgentPayClientF
 /**
  * Client scheme configuration
  */
-export type AgentPayClientSchemeConfig = 
+export type AgentPayClientSchemeConfig =
   | { agentPayId: string; agentPay: AgentPayConfig }
   | { agentPayId: string; agentPayClient: AgentPayClientForClient; auth?: AuthConfig };
 
 /**
  * Server scheme configuration
  */
-export type AgentPayServerSchemeConfig = 
+export type AgentPayServerSchemeConfig =
   | { signingKeys: SigningKeysConfig; serviceUrl: string; agentPay?: AgentPayConfig }
   | { signer: ServiceAgentPaySigner };
 
 /**
  * Facilitator scheme configuration
  */
-export type AgentPayFacilitatorSchemeConfig = 
+export type AgentPayFacilitatorSchemeConfig =
   | { agentPayId: string; agentPay: AgentPayConfig }
   | { agentPayId: string; agentPayClient: AgentPayClientForFacilitator; auth?: AuthConfig };
 

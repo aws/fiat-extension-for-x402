@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * DPoP (Demonstrating Proof-of-Possession) Module
- * 
+ *
  * Provides key generation, proof creation, and proof verification
  * for DPoP token binding as specified in RFC 9449.
  */

@@ -45,7 +45,7 @@ describe('DPoP Proof Verification', () => {
     it('should verify proof with access token', async () => {
       const keyPair = await generateDPoPKeyPair('ES256');
       const accessToken = 'test-token-123';
-      
+
       const proof = await createDPoPProof(keyPair, {
         method: 'POST',
         url: 'https://api.example.com/resource',
@@ -116,7 +116,7 @@ describe('DPoP Proof Verification', () => {
       });
 
       // Wait 2 seconds and verify with 1 second maxAge
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       await expect(
         verifyDPoPProof(proof, {
@@ -146,7 +146,7 @@ describe('DPoP Proof Verification', () => {
     it('should detect replay attacks with nonce store', async () => {
       const keyPair = await generateDPoPKeyPair('ES256');
       const nonceStore = new InMemoryNonceStore();
-      
+
       const proof = await createDPoPProof(keyPair, {
         method: 'GET',
         url: 'https://api.example.com/resource',
@@ -172,12 +172,12 @@ describe('DPoP Proof Verification', () => {
     it('should allow different proofs with nonce store', async () => {
       const keyPair = await generateDPoPKeyPair('ES256');
       const nonceStore = new InMemoryNonceStore();
-      
+
       const proof1 = await createDPoPProof(keyPair, {
         method: 'GET',
         url: 'https://api.example.com/resource',
       });
-      
+
       const proof2 = await createDPoPProof(keyPair, {
         method: 'GET',
         url: 'https://api.example.com/resource',
@@ -272,7 +272,7 @@ describe('DPoP Proof Verification', () => {
       });
 
       const thumbprintFromProof = await extractDPoPThumbprint(proof);
-      
+
       // Compute directly from public key
       const jose = await import('jose');
       const thumbprintDirect = await jose.calculateJwkThumbprint(keyPair.publicKey, 'sha256');

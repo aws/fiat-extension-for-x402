@@ -10,7 +10,7 @@ import { createMockAgentPayClient } from '../../helpers/mock-agent-pay-client';
 
 /**
  * Agent Pay Client Unit Tests
- * 
+ *
  * Tests the client scheme with mock Agent Pay client.
  * The client sends the quote token to the Agent Pay Service and receives
  * a signed payment JWT in return.
@@ -29,7 +29,7 @@ describe('Agent Pay Client Scheme', () => {
 
     scheme = new AgentPayScheme({
       agentPayId,
-      agentPayClient: mock.agentPayClient
+      agentPayClient: mock.agentPayClient,
     });
   });
 
@@ -43,7 +43,7 @@ describe('Agent Pay Client Scheme', () => {
       price: { amount: '1.50', currency: 'USD' },
       payTo: 'service-pay',
       capture: 'manual',
-      reference: 'TEST'
+      reference: 'TEST',
     };
     const quoteToken = await new jose.SignJWT(quotePayload as any)
       .setProtectedHeader({ alg: 'RS256' })
@@ -56,7 +56,7 @@ describe('Agent Pay Client Scheme', () => {
       asset: 'iso4217:USD',
       payTo: 'service-pay',
       maxTimeoutSeconds: 3600,
-      extra: { quoteToken } as unknown as Record<string, unknown>
+      extra: { quoteToken } as unknown as Record<string, unknown>,
     };
 
     const result = await scheme.createPaymentPayload(2, requirements);
@@ -85,12 +85,12 @@ describe('Agent Pay Client Scheme', () => {
       asset: 'iso4217:USD',
       payTo: 'service-pay',
       maxTimeoutSeconds: 3600,
-      extra: {} as Record<string, unknown>
+      extra: {} as Record<string, unknown>,
     };
 
-    await expect(
-      scheme.createPaymentPayload(2, requirements)
-    ).rejects.toThrow('Missing quoteToken');
+    await expect(scheme.createPaymentPayload(2, requirements)).rejects.toThrow(
+      'Missing quoteToken'
+    );
   });
 
   it('should generate valid payment ID in awsmp format', async () => {
@@ -103,7 +103,7 @@ describe('Agent Pay Client Scheme', () => {
       price: { amount: '1.50', currency: 'USD' },
       payTo: 'service-pay',
       capture: 'manual',
-      reference: 'TEST'
+      reference: 'TEST',
     };
     const quoteToken = await new jose.SignJWT(quotePayload as any)
       .setProtectedHeader({ alg: 'RS256' })
@@ -116,7 +116,7 @@ describe('Agent Pay Client Scheme', () => {
       asset: 'iso4217:USD',
       payTo: 'service-pay',
       maxTimeoutSeconds: 3600,
-      extra: { quoteToken } as unknown as Record<string, unknown>
+      extra: { quoteToken } as unknown as Record<string, unknown>,
     };
 
     const result = await scheme.createPaymentPayload(2, requirements);
@@ -136,7 +136,7 @@ describe('Agent Pay Client Scheme', () => {
       price: { amount: '1.50', currency: 'USD' },
       payTo: 'service-pay',
       capture: 'manual',
-      reference: 'TEST'
+      reference: 'TEST',
     };
     const quoteToken = await new jose.SignJWT(quotePayload as any)
       .setProtectedHeader({ alg: 'RS256' })
@@ -149,7 +149,7 @@ describe('Agent Pay Client Scheme', () => {
       asset: 'iso4217:USD',
       payTo: 'service-pay',
       maxTimeoutSeconds: 3600,
-      extra: { quoteToken } as unknown as Record<string, unknown>
+      extra: { quoteToken } as unknown as Record<string, unknown>,
     };
 
     const result = await scheme.createPaymentPayload(2, requirements);
@@ -174,7 +174,7 @@ describe('Agent Pay Client Scheme', () => {
         price: { amount: '1.50', currency: 'USD' },
         payTo: 'service-pay',
         capture: 'manual',
-        reference: 'TEST'
+        reference: 'TEST',
       };
       const quoteToken = await new jose.SignJWT(quotePayload as any)
         .setProtectedHeader({ alg: 'RS256' })
@@ -188,7 +188,7 @@ describe('Agent Pay Client Scheme', () => {
         asset: 'iso4217:USD',
         payTo: AGENT_PAY_SENTINEL_PAY_TO,
         maxTimeoutSeconds: 300,
-        extra: { quoteToken } as unknown as Record<string, unknown>
+        extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
       const result = await scheme.createPaymentPayload(2, requirements);
@@ -212,7 +212,7 @@ describe('Agent Pay Client Scheme', () => {
         price: { amount: '2.00', currency: 'USD' },
         payTo: 'real-service-pay',
         capture: 'manual',
-        reference: 'TEST'
+        reference: 'TEST',
       };
       const quoteToken = await new jose.SignJWT(quotePayload as any)
         .setProtectedHeader({ alg: 'RS256' })
@@ -225,7 +225,7 @@ describe('Agent Pay Client Scheme', () => {
         asset: 'iso4217:USD',
         payTo: AGENT_PAY_SENTINEL_PAY_TO,
         maxTimeoutSeconds: 300,
-        extra: { quoteToken } as unknown as Record<string, unknown>
+        extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
       const result = await scheme.createPaymentPayload(2, requirements);

@@ -31,7 +31,7 @@ import { clearServiceJWKSCache } from '../../src/utils';
 
 /**
  * Agent Pay Integration Tests
- * 
+ *
  * Tests use mock Agent Pay client and service signer to simulate the complete Agent Pay flow.
  * In production:
  * - Client calls Agent Pay provider API to get payment tokens
@@ -52,14 +52,14 @@ class APFacilitatorClient implements FacilitatorClient {
 
   verify(
     paymentPayload: PaymentPayload,
-    paymentRequirements: PaymentRequirements,
+    paymentRequirements: PaymentRequirements
   ): Promise<VerifyResponse> {
     return this.facilitator.verify(paymentPayload, paymentRequirements);
   }
 
   settle(
     paymentPayload: PaymentPayload,
-    paymentRequirements: PaymentRequirements,
+    paymentRequirements: PaymentRequirements
   ): Promise<SettleResponse> {
     return this.facilitator.settle(paymentPayload, paymentRequirements);
   }
@@ -75,7 +75,7 @@ class APFacilitatorClient implements FacilitatorClient {
 function buildPaymentRequirements(
   payTo: string,
   amount: string,
-  network: Network = 'fab:aws',
+  network: Network = 'fab:aws'
 ): PaymentRequirements {
   return {
     scheme: AGENT_PAY_SCHEME,
@@ -140,7 +140,7 @@ describe('Agent Pay Integration Tests', () => {
     beforeEach(async () => {
       // Create mock Agent Pay client
       const agentPayMock = await createMockAgentPayClient(agentPayId);
-      
+
       // Create mock service signer
       const serviceMock = await createMockServiceSigner(serviceUrl);
 
@@ -160,14 +160,14 @@ describe('Agent Pay Integration Tests', () => {
       // Create client with Agent Pay client
       const apClient = new APClient({
         agentPayId,
-        agentPayClient: agentPayMock.agentPayClient
+        agentPayClient: agentPayMock.agentPayClient,
       });
       client = new x402Client().register('fab:aws', apClient);
 
       // Create facilitator with Agent Pay client
       const apFacilitator = new APFacilitator({
         agentPayId,
-        agentPayClient: agentPayMock.agentPayClient
+        agentPayClient: agentPayMock.agentPayClient,
       });
       const facilitator = new x402Facilitator().register('fab:aws', apFacilitator);
 
@@ -185,7 +185,7 @@ describe('Agent Pay Integration Tests', () => {
         payTo: 'service-pay-789',
         price: 0.15,
       });
-      
+
       const resource = {
         url: 'https://company.co/api/resource',
         description: 'Company Co. API resource',
@@ -275,14 +275,14 @@ describe('Agent Pay Integration Tests', () => {
     beforeEach(async () => {
       // Create mock Agent Pay client
       const agentPayMock = await createMockAgentPayClient(agentPayId);
-      
+
       // Create mock service signer
       const serviceMock = await createMockServiceSigner(serviceUrl);
 
       // Create facilitator with Agent Pay client
       const apFacilitator = new APFacilitator({
         agentPayId,
-        agentPayClient: agentPayMock.agentPayClient
+        agentPayClient: agentPayMock.agentPayClient,
       });
       const facilitator = new x402Facilitator().register('fab:aws', apFacilitator);
 
@@ -291,7 +291,7 @@ describe('Agent Pay Integration Tests', () => {
       // Create client with Agent Pay client
       const apClient = new APClient({
         agentPayId,
-        agentPayClient: agentPayMock.agentPayClient
+        agentPayClient: agentPayMock.agentPayClient,
       });
       const paymentClient = new x402Client().register('fab:aws', apClient);
       client = new x402HTTPClient(paymentClient) as x402HTTPClient;
@@ -336,10 +336,10 @@ describe('Agent Pay Integration Tests', () => {
 
       // Client responds to PaymentRequired and submits a request with a PaymentPayload
       const paymentRequired = client.getPaymentRequiredResponse(
-        name => initial402Response.headers[name],
-        initial402Response.body,
+        (name) => initial402Response.headers[name],
+        initial402Response.body
       );
-      
+
       const paymentPayload = await client.createPaymentPayload(paymentRequired);
 
       expect(paymentPayload).toBeDefined();
@@ -374,7 +374,7 @@ describe('Agent Pay Integration Tests', () => {
       const settlementResult = await httpServer.processSettlement(
         verifiedPaymentPayload,
         verifiedPaymentRequirements,
-        200,
+        200
       );
 
       expect(settlementResult).toBeDefined();
@@ -394,13 +394,13 @@ describe('Agent Pay Integration Tests', () => {
     beforeEach(async () => {
       // Create mock Agent Pay client
       const agentPayMock = await createMockAgentPayClient(agentPayId);
-      
+
       // Create mock service signer
       const serviceMock = await createMockServiceSigner(serviceUrl);
 
       const apFacilitator = new APFacilitator({
         agentPayId,
-        agentPayClient: agentPayMock.agentPayClient
+        agentPayClient: agentPayMock.agentPayClient,
       });
       const facilitator = new x402Facilitator().register('fab:aws', apFacilitator);
 

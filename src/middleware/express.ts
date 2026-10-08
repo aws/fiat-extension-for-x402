@@ -112,7 +112,11 @@ export interface AgentPayMiddlewareConfig {
   /**
    * Hook called after successful settlement.
    */
-  onPaymentSettled?: (req: Request, payment: PaymentInfo, transaction: string) => void | Promise<void>;
+  onPaymentSettled?: (
+    req: Request,
+    payment: PaymentInfo,
+    transaction: string
+  ) => void | Promise<void>;
 
   /**
    * Custom error handler. If not provided, errors are returned as JSON.
@@ -169,20 +173,24 @@ function compileRoutes(routes: AgentPayRoutesConfig): CompiledRoute[] {
       method = '*';
       path = parts[0];
     } else {
-      throw new ValidationError(`Invalid route pattern: "${pattern}". Expected "METHOD /path" or "/path".`);
+      throw new ValidationError(
+        `Invalid route pattern: "${pattern}". Expected "METHOD /path" or "/path".`
+      );
     }
 
     // Convert path to regex: /api/* → /api/.*, /api/:id → /api/[^/]+
-    const regexStr = path
-      .replace(/\*/g, '.*')
-      .replace(/:([^/]+)/g, '([^/]+)');
+    const regexStr = path.replace(/\*/g, '.*').replace(/:([^/]+)/g, '([^/]+)');
     const regex = new RegExp(`^${regexStr}$`);
 
     return { method, regex, config };
   });
 }
 
-function matchRoute(compiledRoutes: CompiledRoute[], method: string, path: string): AgentPayRouteConfig | undefined {
+function matchRoute(
+  compiledRoutes: CompiledRoute[],
+  method: string,
+  path: string
+): AgentPayRouteConfig | undefined {
   for (const route of compiledRoutes) {
     if (route.method !== '*' && route.method !== method.toUpperCase()) continue;
     if (route.regex.test(path)) return route.config;
@@ -241,7 +249,7 @@ function extractPaymentPayload(req: Request): any | null {
  * @returns Express middleware function
  */
 export function agentPayMiddleware(
-  config: AgentPayMiddlewareConfig,
+  config: AgentPayMiddlewareConfig
 ): (req: Request, res: Response, next: NextFunction) => void {
   // Validate config
   if (!config.networks || config.networks.length === 0) {
@@ -311,19 +319,19 @@ export function agentPayMiddleware(
           },
         });
 
-        const paymentRequired = await server.createPaymentRequiredResponse(
-          requirements,
-          {
-            url: `${config.serviceUrl}${req.path}`,
-            description: routeConfig.description || `Access to ${req.path}`,
-            mimeType: routeConfig.mimeType || 'application/json',
-          },
-        );
+        const paymentRequired = await server.createPaymentRequiredResponse(requirements, {
+          url: `${config.serviceUrl}${req.path}`,
+          description: routeConfig.description || `Access to ${req.path}`,
+          mimeType: routeConfig.mimeType || 'application/json',
+        });
 
         const acceptsBase64 = Buffer.from(JSON.stringify(paymentRequired)).toString('base64');
         return res
           .status(402)
-          .set('WWW-Authenticate', `x402 version=${paymentRequired.x402Version}, accepts="${acceptsBase64}"`)
+          .set(
+            'WWW-Authenticate',
+            `x402 version=${paymentRequired.x402Version}, accepts="${acceptsBase64}"`
+          )
           .set('PAYMENT-REQUIRED', acceptsBase64)
           .json(paymentRequired);
       }
@@ -331,7 +339,12 @@ export function agentPayMiddleware(
       // Payment present — verify
       const accepted = paymentPayload.accepted;
       if (!accepted) {
-        return sendError(res, 400, 'Invalid payment', 'Missing accepted requirements in payment payload');
+        return sendError(
+          res,
+          400,
+          'Invalid payment',
+          'Missing accepted requirements in payment payload'
+        );
       }
 
       const verifyResult = await server.verifyPayment(paymentPayload, accepted);
@@ -360,7 +373,11 @@ export function agentPayMiddleware(
       }
 
       // Set x402 V2 PAYMENT-RESPONSE header for downstream response
-      const settleResponse = { success: true, network: payment.network, transaction: payment.transactionId };
+      const settleResponse = {
+        success: true,
+        network: payment.network,
+        transaction: payment.transactionId,
+      };
       res.set('PAYMENT-RESPONSE', Buffer.from(JSON.stringify(settleResponse)).toString('base64'));
 
       // Attach payment info to request and proceed
@@ -371,7 +388,12 @@ export function agentPayMiddleware(
         config.onError(err, req, res);
       } else {
         console.error('[agent-pay-middleware] Error:', err);
-        sendError(res, 500, 'Internal server error', err instanceof Error ? err.message : String(err));
+        sendError(
+          res,
+          500,
+          'Internal server error',
+          err instanceof Error ? err.message : String(err)
+        );
       }
     });
   };

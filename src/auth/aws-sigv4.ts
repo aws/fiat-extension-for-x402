@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * AWS SigV4 authentication implementation
- * 
+ *
  * Uses @smithy/signature-v4 for real AWS Signature Version 4 request signing.
  * This is the same signing library used by all official AWS SDK clients.
  */
@@ -10,7 +10,12 @@
 import { SignatureV4 } from '@smithy/signature-v4';
 import { HttpRequest } from '@smithy/protocol-http';
 import { Sha256 } from '@aws-crypto/sha256-js';
-import type { AwsSigV4AuthConfig, Authenticator, AuthenticatedRequest, AwsCredentials } from './types';
+import type {
+  AwsSigV4AuthConfig,
+  Authenticator,
+  AuthenticatedRequest,
+  AwsCredentials,
+} from './types';
 import { InvalidCredentialsError, MissingCredentialsError } from './errors';
 
 interface CachedCredentials {
@@ -52,8 +57,8 @@ export class AwsSigV4Authenticator implements Authenticator {
       ...request,
       headers: {
         ...request.headers,
-        ...signedHeaders
-      }
+        ...signedHeaders,
+      },
     };
   }
 
@@ -84,7 +89,7 @@ export class AwsSigV4Authenticator implements Authenticator {
         credentials,
         expiresAt: credentials.sessionToken
           ? Date.now() + 55 * 60 * 1000 // 55 minutes
-          : undefined
+          : undefined,
       };
 
       return credentials;
@@ -176,7 +181,7 @@ export function createEnvCredentialProvider(): () => Promise<AwsCredentials> {
     return {
       accessKeyId,
       secretAccessKey,
-      sessionToken
+      sessionToken,
     };
   };
 }

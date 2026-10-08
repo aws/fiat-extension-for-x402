@@ -27,27 +27,33 @@ describe('buildAgentPayClient (legacy convenience builder)', () => {
   });
 
   it('should throw on empty networks', () => {
-    expect(() => buildAgentPayClient({
-      networks: [],
-      agentPayBaseUrl: 'https://pay.example.com',
-      agentPayId: 'test-agent-pay',
-    })).toThrow(ValidationError);
+    expect(() =>
+      buildAgentPayClient({
+        networks: [],
+        agentPayBaseUrl: 'https://pay.example.com',
+        agentPayId: 'test-agent-pay',
+      })
+    ).toThrow(ValidationError);
   });
 
   it('should throw on invalid agentPayBaseUrl', () => {
-    expect(() => buildAgentPayClient({
-      networks: ['fab:aws'],
-      agentPayBaseUrl: 'not-a-url',
-      agentPayId: 'test-agent-pay',
-    })).toThrow(ValidationError);
+    expect(() =>
+      buildAgentPayClient({
+        networks: ['fab:aws'],
+        agentPayBaseUrl: 'not-a-url',
+        agentPayId: 'test-agent-pay',
+      })
+    ).toThrow(ValidationError);
   });
 
   it('should throw on missing agentPayBaseUrl', () => {
-    expect(buildAgentPayClient({
-      networks: ['fab:aws'],
-      agentPayBaseUrl: '',
-      agentPayId: 'test-agent-pay',
-    })).toBeDefined();
+    expect(
+      buildAgentPayClient({
+        networks: ['fab:aws'],
+        agentPayBaseUrl: '',
+        agentPayId: 'test-agent-pay',
+      })
+    ).toBeDefined();
   });
 });
 
@@ -67,9 +73,7 @@ describe('createAgentPayClient (two-phase API)', () => {
       agentPayBaseUrl: 'https://pay.example.com',
       agentPayId: 'test-agent-pay',
     });
-    const result = apClient
-      .registerNetwork('fab:aws')
-      .registerNetwork('eip155:8453');
+    const result = apClient.registerNetwork('fab:aws').registerNetwork('eip155:8453');
     expect(result).toBe(apClient);
   });
 
@@ -103,16 +107,20 @@ describe('createAgentPayClient (two-phase API)', () => {
   });
 
   it('should throw on invalid agentPayBaseUrl', () => {
-    expect(() => createAgentPayClient({
-      agentPayBaseUrl: 'not-a-url',
-      agentPayId: 'test-agent-pay',
-    })).toThrow(ValidationError);
+    expect(() =>
+      createAgentPayClient({
+        agentPayBaseUrl: 'not-a-url',
+        agentPayId: 'test-agent-pay',
+      })
+    ).toThrow(ValidationError);
   });
 
   it('should use default agentPayBaseUrl when empty', () => {
-    expect(createAgentPayClient({
-      agentPayBaseUrl: '',
-      agentPayId: 'test-agent-pay',
-    })).toBeDefined();
+    expect(
+      createAgentPayClient({
+        agentPayBaseUrl: '',
+        agentPayId: 'test-agent-pay',
+      })
+    ).toBeDefined();
   });
 });

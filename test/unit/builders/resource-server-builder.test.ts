@@ -29,7 +29,7 @@ describe('buildAgentPayResourceServer', () => {
         return {
           ok: true,
           json: async () => ({
-            kinds: networks.map(n => ({
+            kinds: networks.map((n) => ({
               x402Version: 2,
               scheme: 'agent-pay',
               network: n,
@@ -111,9 +111,7 @@ describe('buildAgentPayResourceServer', () => {
 
     expect(server.hasRegisteredScheme('fab:aws', 'agent-pay')).toBe(true);
     // Only the Agent Pay's x402-supported should have been called
-    const supportedCalls = mockFetch.mock.calls.filter(
-      (c: any) => c[0].includes('x402-supported')
-    );
+    const supportedCalls = mockFetch.mock.calls.filter((c: any) => c[0].includes('x402-supported'));
     expect(supportedCalls.length).toBe(1);
   });
 

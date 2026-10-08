@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Tests for Agent Pay API integration (Tasks 32-37)
- * 
+ *
  * Covers:
  * - CreateAgentPayment API shape
  * - Client token (idempotency)
@@ -47,7 +47,9 @@ describe('Agent Pay API Integration', () => {
         payTo: 'seller',
         capture: 'auto',
         reference: 'TEST',
-      } as any).setProtectedHeader({ alg: 'RS256' }).sign(mock.privateKey);
+      } as any)
+        .setProtectedHeader({ alg: 'RS256' })
+        .sign(mock.privateKey);
 
       const requirements: PaymentRequirements = {
         scheme: AGENT_PAY_SCHEME,
@@ -201,16 +203,26 @@ describe('Agent Pay API Integration', () => {
       });
 
       const quoteToken = await new jose.SignJWT({
-        iss: 'https://api.example.com', aud: 'aws-marketplace',
-        iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 300,
-        jti: 'q1', price: { amount: '0.01', currency: 'USD' },
-        payTo: 'seller', capture: 'auto', reference: 'TEST',
-      } as any).setProtectedHeader({ alg: 'RS256' }).sign(mock.privateKey);
+        iss: 'https://api.example.com',
+        aud: 'aws-marketplace',
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 300,
+        jti: 'q1',
+        price: { amount: '0.01', currency: 'USD' },
+        payTo: 'seller',
+        capture: 'auto',
+        reference: 'TEST',
+      } as any)
+        .setProtectedHeader({ alg: 'RS256' })
+        .sign(mock.privateKey);
 
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME, network: 'aws:base',
-        amount: '0.01', asset: 'iso4217:USD',
-        payTo: 'urn:x402:agent-pay:see-quote', maxTimeoutSeconds: 300,
+        scheme: AGENT_PAY_SCHEME,
+        network: 'aws:base',
+        amount: '0.01',
+        asset: 'iso4217:USD',
+        payTo: 'urn:x402:agent-pay:see-quote',
+        maxTimeoutSeconds: 300,
         extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
@@ -240,11 +252,15 @@ describe('Agent Pay API Integration', () => {
         mock.agentPayClient,
         { x402Version: 2, payload: {} as any },
         {
-          scheme: 'agent-pay', network: 'aws:base',
-          amount: '1.00', asset: 'iso4217:USD',
-          payTo: 'seller', maxTimeoutSeconds: 300, extra: {},
+          scheme: 'agent-pay',
+          network: 'aws:base',
+          amount: '1.00',
+          asset: 'iso4217:USD',
+          payTo: 'seller',
+          maxTimeoutSeconds: 300,
+          extra: {},
         },
-        { paymentToken: 'tok', paymentId: 'awsmp-123', transactionId: 'awsmp-123' },
+        { paymentToken: 'tok', paymentId: 'awsmp-123', transactionId: 'awsmp-123' }
       );
 
       expect(result.success).toBe(true);
@@ -256,9 +272,7 @@ describe('Agent Pay API Integration', () => {
   describe('Task 37: Quote token extensions (description, dimensions)', () => {
     it('server scheme includes description in quote token when provided', async () => {
       const { privateKey } = await jose.generateKeyPair('RS256');
-      const publicJWK = await jose.exportJWK(
-        (await jose.generateKeyPair('RS256')).publicKey
-      );
+      const publicJWK = await jose.exportJWK((await jose.generateKeyPair('RS256')).publicKey);
 
       const serverScheme = new AgentPayServerSchemeImpl({
         signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
@@ -281,7 +295,7 @@ describe('Agent Pay API Integration', () => {
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
         { x402Version: 2, scheme: 'agent-pay', network: 'aws:base' as any },
-        [],
+        []
       );
 
       // Decode the quote token to verify description and dimensions
@@ -293,9 +307,7 @@ describe('Agent Pay API Integration', () => {
 
     it('server scheme omits description/dimensions when not provided', async () => {
       const { privateKey } = await jose.generateKeyPair('RS256');
-      const publicJWK = await jose.exportJWK(
-        (await jose.generateKeyPair('RS256')).publicKey
-      );
+      const publicJWK = await jose.exportJWK((await jose.generateKeyPair('RS256')).publicKey);
 
       const serverScheme = new AgentPayServerSchemeImpl({
         signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
@@ -315,7 +327,7 @@ describe('Agent Pay API Integration', () => {
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
         { x402Version: 2, scheme: 'agent-pay', network: 'aws:base' as any },
-        [],
+        []
       );
 
       const quoteToken = (enhanced.extra as any).quoteToken;
@@ -326,9 +338,7 @@ describe('Agent Pay API Integration', () => {
 
     it('dimensions supports mixed string and number values', async () => {
       const { privateKey } = await jose.generateKeyPair('RS256');
-      const publicJWK = await jose.exportJWK(
-        (await jose.generateKeyPair('RS256')).publicKey
-      );
+      const publicJWK = await jose.exportJWK((await jose.generateKeyPair('RS256')).publicKey);
 
       const serverScheme = new AgentPayServerSchemeImpl({
         signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
@@ -349,7 +359,7 @@ describe('Agent Pay API Integration', () => {
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
         { x402Version: 2, scheme: 'agent-pay', network: 'aws:base' as any },
-        [],
+        []
       );
 
       const quoteToken = (enhanced.extra as any).quoteToken;

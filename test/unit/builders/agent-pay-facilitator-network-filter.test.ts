@@ -31,20 +31,12 @@ describe('AgentPayFacilitatorClient networkFilter', () => {
     const supported = await client.getSupported();
 
     expect(supported.kinds).toHaveLength(3);
-    expect(supported.kinds.map(k => k.network)).toEqual([
-      'fab:aws',
-      'fab:test',
-      'eip155:8453',
-    ]);
+    expect(supported.kinds.map((k) => k.network)).toEqual(['fab:aws', 'fab:test', 'eip155:8453']);
   });
 
   it('should filter to only specified networks', async () => {
     const filter = new Set(['fab:aws'] as Network[]);
-    const client = new AgentPayFacilitatorClient(
-      'https://pay.example.com',
-      undefined,
-      filter
-    );
+    const client = new AgentPayFacilitatorClient('https://pay.example.com', undefined, filter);
     const supported = await client.getSupported();
 
     expect(supported.kinds).toHaveLength(1);
@@ -53,11 +45,7 @@ describe('AgentPayFacilitatorClient networkFilter', () => {
 
   it('should return empty kinds when filter matches nothing', async () => {
     const filter = new Set(['solana:mainnet'] as Network[]);
-    const client = new AgentPayFacilitatorClient(
-      'https://pay.example.com',
-      undefined,
-      filter
-    );
+    const client = new AgentPayFacilitatorClient('https://pay.example.com', undefined, filter);
     const supported = await client.getSupported();
 
     expect(supported.kinds).toHaveLength(0);
@@ -65,17 +53,10 @@ describe('AgentPayFacilitatorClient networkFilter', () => {
 
   it('should filter to multiple specified networks', async () => {
     const filter = new Set(['fab:aws', 'eip155:8453'] as Network[]);
-    const client = new AgentPayFacilitatorClient(
-      'https://pay.example.com',
-      undefined,
-      filter
-    );
+    const client = new AgentPayFacilitatorClient('https://pay.example.com', undefined, filter);
     const supported = await client.getSupported();
 
     expect(supported.kinds).toHaveLength(2);
-    expect(supported.kinds.map(k => k.network).sort()).toEqual([
-      'eip155:8453',
-      'fab:aws',
-    ]);
+    expect(supported.kinds.map((k) => k.network).sort()).toEqual(['eip155:8453', 'fab:aws']);
   });
 });

@@ -4,4 +4,8 @@
  * Pre-configured network schemes
  */
 
-export { AgentPayAWSClientScheme, AgentPayAWSServerScheme, AgentPayAWSFacilitatorScheme } from './aws';
+export {
+  AgentPayAWSClientScheme,
+  AgentPayAWSServerScheme,
+  AgentPayAWSFacilitatorScheme,
+} from './aws';

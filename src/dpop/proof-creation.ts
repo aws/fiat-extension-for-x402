@@ -2,25 +2,20 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * DPoP Proof Creation
- * 
+ *
  * Create DPoP proof JWTs and compute JWK thumbprints.
  */
 
 import * as jose from 'jose';
 import * as crypto from 'crypto';
-import {
-  DPoPKeyPair,
-  DPoPProofPayload,
-  DPoPProofOptions,
-  DPoPError
-} from '../types';
+import { DPoPKeyPair, DPoPProofPayload, DPoPProofOptions, DPoPError } from '../types';
 
 /**
  * Compute JWK thumbprint (SHA-256 hash)
- * 
+ *
  * @param jwk - Public key in JWK format
  * @returns Base64url-encoded thumbprint
- * 
+ *
  * @example
  * ```typescript
  * const thumbprint = await computeJWKThumbprint(keyPair.publicKey);
@@ -36,7 +31,7 @@ export async function computeJWKThumbprint(jwk: jose.JWK): Promise<string> {
 
 /**
  * Compute access token hash for DPoP binding
- * 
+ *
  * @param accessToken - Access token to hash
  * @returns Base64url-encoded SHA-256 hash
  */
@@ -47,11 +42,11 @@ function computeAccessTokenHash(accessToken: string): string {
 
 /**
  * Create a DPoP proof JWT
- * 
+ *
  * @param keyPair - DPoP key pair
  * @param options - Proof options (method, url, accessToken, nonce)
  * @returns Signed DPoP proof JWT
- * 
+ *
  * @example
  * ```typescript
  * const proof = await createDPoPProof(keyPair, {

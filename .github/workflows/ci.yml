@@ -47,6 +47,8 @@ jobs:
       # --ignore-scripts: no dependency lifecycle script runs in CI. Only esbuild
       # and fsevents declare one, and every step passes without them.
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      # Fails when a src/ or test/ file differs from `npm run format` output.
+      - run: npm run format:check
       - run: npm run typecheck
       - run: npm run lint
       - id: coverage

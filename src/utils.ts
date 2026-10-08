@@ -12,7 +12,7 @@ import {
   PaymentTokenPayload,
   ValidationError,
   SignatureError,
-  ExpiryError
+  ExpiryError,
 } from './types';
 
 // Use Node.js crypto for UUID generation
@@ -43,13 +43,13 @@ export async function verifyQuoteToken(
 ): Promise<QuoteTokenPayload> {
   try {
     const { payload } = await jose.jwtVerify(token, publicKey);
-    
+
     // Check expiry
     const now = Math.floor(Date.now() / 1000);
     if (payload.exp && payload.exp < now) {
       throw new ExpiryError('Quote token expired', payload.exp, now);
     }
-    
+
     return payload as unknown as QuoteTokenPayload;
   } catch (error) {
     if (error instanceof ExpiryError) throw error;
@@ -69,13 +69,13 @@ export async function verifyPaymentToken(
 ): Promise<PaymentTokenPayload> {
   try {
     const { payload } = await jose.jwtVerify(token, publicKey);
-    
+
     // Check expiry
     const now = Math.floor(Date.now() / 1000);
     if (payload.exp && payload.exp < now) {
       throw new ExpiryError('Payment token expired', payload.exp, now);
     }
-    
+
     return payload as unknown as PaymentTokenPayload;
   } catch (error) {
     if (error instanceof ExpiryError) throw error;
@@ -110,9 +110,7 @@ export function generateTransactionId(network: string, agentPayId: string): stri
  * @param money - Money value (e.g., "$1.50", "1.50 USD", 1.50)
  * @returns Parsed amount and currency
  */
-export function parseMoneyToDecimal(
-  money: string | number
-): { amount: number; currency: string } {
+export function parseMoneyToDecimal(money: string | number): { amount: number; currency: string } {
   if (typeof money === 'number') {
     return { amount: money, currency: 'USD' };
   }
@@ -125,7 +123,7 @@ export function parseMoneyToDecimal(
 
   return {
     amount: parseFloat(match[1]),
-    currency: match[2] || 'USD'
+    currency: match[2] || 'USD',
   };
 }
 
@@ -137,22 +135,20 @@ export function parseMoneyToDecimal(
 export function parseTransactionId(transactionId: string): { network: string; id: string } {
   const parts = transactionId.split(':');
   if (parts.length < 2) {
-    throw new ValidationError(
-      'Invalid transaction ID format. Expected {network}:{id}',
-      { transactionId }
-    );
+    throw new ValidationError('Invalid transaction ID format. Expected {network}:{id}', {
+      transactionId,
+    });
   }
-  
+
   const network = parts.slice(0, -1).join(':');
   const id = parts[parts.length - 1];
-  
+
   if (!network || !id) {
-    throw new ValidationError(
-      'Invalid transaction ID format. Expected {network}:{id}',
-      { transactionId }
-    );
+    throw new ValidationError('Invalid transaction ID format. Expected {network}:{id}', {
+      transactionId,
+    });
   }
-  
+
   return { network, id };
 }
 
@@ -212,9 +208,7 @@ const SERVICE_JWKS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
  * @param serviceUrl - Service URL (the quote token's `iss` claim)
  * @returns A function compatible with jose.jwtVerify's key argument
  */
-export function fetchServiceJWKS(
-  serviceUrl: string
-): ReturnType<typeof jose.createRemoteJWKSet> {
+export function fetchServiceJWKS(serviceUrl: string): ReturnType<typeof jose.createRemoteJWKSet> {
   const jwksUrl = `${serviceUrl.replace(/\/$/, '')}${WELL_KNOWN_JWKS_PATH}`;
   const now = Date.now();
 
@@ -255,6 +249,6 @@ export function clearServiceJWKSCache(serviceUrl?: string): void {
 export async function fetchServicePublicKey(serviceUrl: string): Promise<jose.JWK> {
   throw new Error(
     'fetchServicePublicKey is deprecated. Use fetchServiceJWKS() instead, ' +
-    'which returns a JWKS set compatible with jose.jwtVerify.'
+      'which returns a JWKS set compatible with jose.jwtVerify.'
   );
 }

@@ -56,12 +56,12 @@ export const PAYMENT_JWT_ISSUER = 'awsmp-agentpay.amazonaws.com';
 
 /**
  * Sentinel value for PaymentRequirements.payTo in Agent Pay.
- * 
+ *
  * In Agent Pay, the signed quote token is the authoritative source for the payment
  * recipient. The outer PaymentRequirements.payTo field is required by @x402/core
  * but semantically redundant — the quote token's payTo is signed by the service
  * and cannot be tampered with, whereas the outer field is unsigned.
- * 
+ *
  * This URN signals to any consumer that the quote token should be consulted
  * for the real payment recipient.
  */

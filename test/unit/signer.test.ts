@@ -26,7 +26,7 @@ describe('Agent Pay Signers', () => {
             .sign(privateKey);
         },
         getPublicKey: () => publicKey,
-        getServiceUrl: () => 'https://api.example.com'
+        getServiceUrl: () => 'https://api.example.com',
       };
     });
 
@@ -40,15 +40,15 @@ describe('Agent Pay Signers', () => {
         price: { amount: '1.50', currency: 'USD' },
         payTo: 'agent-pay-test',
         capture: 'manual',
-        reference: 'TEST'
+        reference: 'TEST',
       };
 
       const token = await signer.signQuote(payload);
-      
+
       expect(token).toBeDefined();
       expect(typeof token).toBe('string');
       expect(token.split('.')).toHaveLength(3); // JWT format
-      
+
       // Verify the token can be decoded
       const decoded = jose.decodeJwt(token);
       expect(decoded.iss).toBe(payload.iss);
@@ -87,7 +87,7 @@ describe('Agent Pay Signers', () => {
             .sign(privateKey);
         },
         getPublicKey: () => publicKey,
-        getAddresses: () => ['agent-pay-test-123']
+        getAddresses: () => ['agent-pay-test-123'],
       };
     });
 
@@ -100,16 +100,16 @@ describe('Agent Pay Signers', () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
         payment_context: {
           transaction_id: 'fab:test:txn_789',
-          quote_token: 'eyJhbGc...'
-        }
+          quote_token: 'eyJhbGc...',
+        },
       };
 
       const token = await signer.signPayment(payload);
-      
+
       expect(token).toBeDefined();
       expect(typeof token).toBe('string');
       expect(token.split('.')).toHaveLength(3); // JWT format
-      
+
       // Verify the token can be decoded
       const decoded = jose.decodeJwt(token);
       expect(decoded.iss).toBe(payload.iss);
@@ -135,9 +135,9 @@ describe('Agent Pay Signers', () => {
     it('should create a ServiceAgentPaySigner from jose keys', async () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
-      
+
       const signer = toServiceAgentPaySigner(privateKey, publicJWK, 'https://api.test.com');
-      
+
       expect(signer).toBeDefined();
       expect(signer.getServiceUrl()).toBe('https://api.test.com');
       expect(signer.getPublicKey()).toEqual(publicJWK);
@@ -146,9 +146,9 @@ describe('Agent Pay Signers', () => {
     it('should sign quote tokens correctly', async () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
-      
+
       const signer = toServiceAgentPaySigner(privateKey, publicJWK, 'https://api.test.com');
-      
+
       const payload: QuoteTokenPayload = {
         iss: 'https://api.test.com',
         aud: 'fab:test',
@@ -157,11 +157,11 @@ describe('Agent Pay Signers', () => {
         jti: 'quote_test',
         price: { amount: '5.00', currency: 'USD' },
         payTo: 'agent-pay-id',
-        capture: 'auto'
+        capture: 'auto',
       };
-      
+
       const token = await signer.signQuote(payload);
-      
+
       // Verify token can be verified with public key
       const { payload: verified } = await jose.jwtVerify(token, publicKey);
       expect(verified.jti).toBe('quote_test');
@@ -172,9 +172,9 @@ describe('Agent Pay Signers', () => {
     it('should create a AgentPaySigner from jose keys', async () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
-      
+
       const signer = toAgentPaySigner(privateKey, publicJWK, 'agent-pay-provider-123');
-      
+
       expect(signer).toBeDefined();
       expect(signer.getAddresses()).toEqual(['agent-pay-provider-123']);
       expect(signer.getPublicKey()).toEqual(publicJWK);
@@ -183,9 +183,9 @@ describe('Agent Pay Signers', () => {
     it('should sign payment tokens correctly', async () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
-      
+
       const signer = toAgentPaySigner(privateKey, publicJWK, 'agent-pay-test');
-      
+
       const payload: PaymentTokenPayload = {
         iss: 'agent-pay-test',
         sub: 'client-789',
@@ -194,12 +194,12 @@ describe('Agent Pay Signers', () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
         payment_context: {
           transaction_id: 'fab:test:txn_abc',
-          quote_token: 'eyJhbGc...'
-        }
+          quote_token: 'eyJhbGc...',
+        },
       };
-      
+
       const token = await signer.signPayment(payload);
-      
+
       // Verify token can be verified with public key
       const { payload: verified } = await jose.jwtVerify(token, publicKey);
       expect(verified.sub).toBe('client-789');
@@ -208,9 +208,9 @@ describe('Agent Pay Signers', () => {
     it('should return Agent Pay ID in addresses array', async () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
-      
+
       const signer = toAgentPaySigner(privateKey, publicJWK, 'my-agent-pay-id');
-      
+
       const addresses = signer.getAddresses();
       expect(addresses).toHaveLength(1);
       expect(addresses[0]).toBe('my-agent-pay-id');

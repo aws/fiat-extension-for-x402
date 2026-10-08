@@ -13,7 +13,7 @@ export type {
   CustomAuthConfig,
   AwsCredentials,
   AuthenticatedRequest,
-  Authenticator
+  Authenticator,
 } from './types';
 
 // Errors
@@ -22,7 +22,7 @@ export {
   InvalidCredentialsError,
   ExpiredCredentialsError,
   MissingCredentialsError,
-  AuthenticationTimeoutError
+  AuthenticationTimeoutError,
 } from './errors';
 
 // Authenticators

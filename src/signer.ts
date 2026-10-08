@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Signer interfaces and adapters for Agent Pay JWT operations
- * 
+ *
  * Agent Pay uses JWT signing instead of crypto Agent Pay signing.
  * This module provides interfaces and adapter functions for both
  * service-side (quote token signing) and Agent Pay-side (payment token signing).
@@ -21,13 +21,13 @@ export interface ServiceAgentPaySigner {
    * @returns Signed JWT string
    */
   signQuote(payload: QuoteTokenPayload): Promise<string>;
-  
+
   /**
    * Get the public key for verification (JWK format)
    * @returns Public key in JWK format
    */
   getPublicKey(): jose.JWK;
-  
+
   /**
    * Get the service URL (issuer)
    * @returns Service URL
@@ -45,13 +45,13 @@ export interface AgentPaySigner {
    * @returns Signed JWT string
    */
   signPayment(payload: PaymentTokenPayload): Promise<string>;
-  
+
   /**
    * Get the public key for verification (JWK format)
    * @returns Public key in JWK format
    */
   getPublicKey(): jose.JWK;
-  
+
   /**
    * Get Agent Pay addresses (for facilitator supported endpoint)
    * @returns Array of Agent Pay IDs
@@ -61,19 +61,19 @@ export interface AgentPaySigner {
 
 /**
  * Convert a jose KeyLike to a ServiceAgentPaySigner
- * 
+ *
  * @param privateKey - Private key for signing (RS256 or ES256)
  * @param publicKey - Public key in JWK format
  * @param serviceUrl - Service URL (issuer)
  * @returns ServiceAgentPaySigner instance
- * 
+ *
  * @example
  * ```typescript
  * import { generateKeyPair, exportJWK } from 'jose';
- * 
+ *
  * const { privateKey, publicKey } = await generateKeyPair('RS256');
  * const publicJWK = await exportJWK(publicKey);
- * 
+ *
  * const signer = toServiceAgentPaySigner(
  *   privateKey,
  *   publicJWK,
@@ -97,25 +97,25 @@ export function toServiceAgentPaySigner(
     },
     getServiceUrl(): string {
       return serviceUrl;
-    }
+    },
   };
 }
 
 /**
  * Convert a jose KeyLike to a AgentPaySigner
- * 
+ *
  * @param privateKey - Private key for signing (RS256 or ES256)
  * @param publicKey - Public key in JWK format
  * @param agentPayId - Agent Pay identifier
  * @returns AgentPaySigner instance
- * 
+ *
  * @example
  * ```typescript
  * import { generateKeyPair, exportJWK } from 'jose';
- * 
+ *
  * const { privateKey, publicKey } = await generateKeyPair('RS256');
  * const publicJWK = await exportJWK(publicKey);
- * 
+ *
  * const signer = toAgentPaySigner(
  *   privateKey,
  *   publicJWK,
@@ -139,6 +139,6 @@ export function toAgentPaySigner(
     },
     getAddresses(): string[] {
       return [agentPayId];
-    }
+    },
   };
 }

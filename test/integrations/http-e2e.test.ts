@@ -97,7 +97,14 @@ async function createMockAgentPayServer(): Promise<{
 
   app.get('/.well-known/x402-supported', (_req, res) => {
     res.json({
-      kinds: [{ x402Version: 2, scheme: AGENT_PAY_SCHEME, network: DEFAULT_NETWORK, extra: { agentPayId } }],
+      kinds: [
+        {
+          x402Version: 2,
+          scheme: AGENT_PAY_SCHEME,
+          network: DEFAULT_NETWORK,
+          extra: { agentPayId },
+        },
+      ],
       extensions: [],
     });
   });
@@ -234,7 +241,9 @@ describe.skip('HTTP End-to-End: buyer → seller → Agent Pay → seller', () =
     console.log(`    sub:  ${decodedPayment.sub}  (buyer)`);
     console.log(`    aud:  ${decodedPayment.aud}  (seller)`);
     console.log(`    exp:  ${new Date((decodedPayment.exp || 0) * 1000).toISOString()}`);
-    console.log(`  Wallet state: transaction recorded, captured=${apServer.transactions.get(fabPayload.transactionId)?.captured}`);
+    console.log(
+      `  Wallet state: transaction recorded, captured=${apServer.transactions.get(fabPayload.transactionId)?.captured}`
+    );
 
     expect(paymentPayload.x402Version).toBe(2);
     expect(paymentPayload.accepted.scheme).toBe(DEFAULT_NETWORK);
@@ -269,7 +278,9 @@ describe.skip('HTTP End-to-End: buyer → seller → Agent Pay → seller', () =
     console.log(`    success:     ${settleResult.success}`);
     console.log(`    transaction: ${settleResult.transaction}`);
     console.log(`    network:     ${settleResult.network}`);
-    console.log(`  Wallet state: captured=${apServer.transactions.get(fabPayload.transactionId)?.captured}`);
+    console.log(
+      `  Wallet state: captured=${apServer.transactions.get(fabPayload.transactionId)?.captured}`
+    );
 
     expect(settleResult.success).toBe(true);
     expect(settleResult.transaction).toBe(fabPayload.transactionId);
@@ -289,7 +300,7 @@ describe.skip('HTTP End-to-End: buyer → seller → Agent Pay → seller', () =
       scheme: AGENT_PAY_SCHEME,
       network: DEFAULT_NETWORK,
       payTo: 'seller-wallet-001',
-      price: 0.10,
+      price: 0.1,
       asset: 'iso4217:USD',
     });
 
@@ -323,7 +334,7 @@ describe.skip('HTTP End-to-End: buyer → seller → Agent Pay → seller', () =
       scheme: AGENT_PAY_SCHEME,
       network: DEFAULT_NETWORK,
       payTo: 'seller-wallet-001',
-      price: 0.10,
+      price: 0.1,
       asset: 'iso4217:USD',
     });
 
@@ -342,7 +353,7 @@ describe.skip('HTTP End-to-End: buyer → seller → Agent Pay → seller', () =
       scheme: AGENT_PAY_SCHEME,
       network: DEFAULT_NETWORK,
       payTo: 'seller-wallet-001',
-      price: 0.50,
+      price: 0.5,
       asset: 'iso4217:USD',
     });
 

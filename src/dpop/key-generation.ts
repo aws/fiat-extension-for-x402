@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * DPoP Key Generation
- * 
+ *
  * Generate ephemeral key pairs for DPoP proof-of-possession.
  */
 
@@ -17,13 +17,13 @@ export type DPoPAlgorithm = 'ES256' | 'ES384' | 'ES512' | 'RS256';
 
 /**
  * Generate a DPoP key pair
- * 
+ *
  * For Agent Pay integration, use EC algorithms (ES256, ES384, ES512).
  * RS256 is supported for backward compatibility but not recommended for DPoP.
- * 
+ *
  * @param algorithm - Algorithm to use (ES256 for P-256, ES384 for P-384, ES512 for P-521, RS256 for RSA)
  * @returns Key pair with private key and public JWK
- * 
+ *
  * @example
  * ```typescript
  * const keyPair = await generateDPoPKeyPair('ES256');
@@ -80,7 +80,7 @@ export async function generateDPoPKeyPair(
 /**
  * Convert a DPoP key pair's public key to the DpopJwk format expected by Agent Pay.
  * Agent Pay only accepts EC keys (P-256, P-384, P-521) with kty, crv, x, y fields.
- * 
+ *
  * @param keyPair - DPoP key pair from generateDPoPKeyPair
  * @returns DpopJwk suitable for CreateAgentPayment request
  * @throws DPoPError if the key is not an EC key
@@ -88,9 +88,12 @@ export async function generateDPoPKeyPair(
 export function toDpopJwk(keyPair: DPoPKeyPair): import('../config').DpopJwk {
   const jwk = keyPair.publicKey;
   if (jwk.kty !== 'EC') {
-    throw new DPoPError('Agent Pay only supports EC keys for DPoP binding. Use ES256, ES384, or ES512.', {
-      kty: jwk.kty,
-    });
+    throw new DPoPError(
+      'Agent Pay only supports EC keys for DPoP binding. Use ES256, ES384, or ES512.',
+      {
+        kty: jwk.kty,
+      }
+    );
   }
   if (!jwk.crv || !jwk.x || !jwk.y) {
     throw new DPoPError('Invalid EC key: missing crv, x, or y', { jwk });

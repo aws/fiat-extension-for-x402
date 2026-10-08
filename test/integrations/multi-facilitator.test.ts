@@ -3,10 +3,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { x402Client } from '@x402/core/client';
 import { x402Facilitator } from '@x402/core/facilitator';
-import {
-  x402ResourceServer,
-  FacilitatorClient,
-} from '@x402/core/server';
+import { x402ResourceServer, FacilitatorClient } from '@x402/core/server';
 import type {
   Network,
   PaymentPayload,
@@ -99,8 +96,7 @@ describe('Multi-Facilitator Integration Tests', () => {
         agentPayId,
         agentPayClient: agentPayMock.agentPayClient,
       });
-      const facilitator = new x402Facilitator()
-        .register(['fab:aws', 'eip155:8453'], apFacilitator);
+      const facilitator = new x402Facilitator().register(['fab:aws', 'eip155:8453'], apFacilitator);
 
       const facilitatorClient = new APFacilitatorClient(facilitator);
       server = new x402ResourceServer(facilitatorClient);

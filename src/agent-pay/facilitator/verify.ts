@@ -29,7 +29,7 @@ export interface VerifyPaymentOptions {
 
 /**
  * Verify a Agent Pay payment
- * 
+ *
  * Verification steps:
  * 1. Verify payment token signature via Agent Pay client (Agent Pay's ES384 key)
  * 2. Verify payment ID matches
@@ -38,12 +38,12 @@ export interface VerifyPaymentOptions {
  * 5. Verify quote token expiry
  * 6. Verify payment token expiry
  * 7. If payment token contains cnf.jkt, verify DPoP proof (requestContext required)
- * 
+ *
  * Note: Agent Pay auto-captures on creation — there is no separate settlement step.
  * This function does NOT use requirements.payTo or requirements.maxTimeoutSeconds.
  * In Agent Pay, those fields contain sentinel values (see spec §2.4). The signed quote token
  * is the authoritative source for payment details.
- * 
+ *
  * @param agentPayClient - Agent Pay client for verification
  * @param payload - Payment payload
  * @param requirements - Payment requirements
@@ -64,15 +64,10 @@ export async function verifyPayment(
 
     // 2. Verify payment ID matches
     const payloadPaymentId = apPayload.paymentId || apPayload.transactionId;
-    const tokenPaymentId = paymentJWT.payment_id ||
-      paymentJWT.payment_context?.transaction_id;
+    const tokenPaymentId = paymentJWT.payment_id || paymentJWT.payment_context?.transaction_id;
 
     if (payloadPaymentId && tokenPaymentId && !secureCompare(payloadPaymentId, tokenPaymentId)) {
-      throw new MismatchError(
-        'Payment ID mismatch',
-        tokenPaymentId,
-        payloadPaymentId
-      );
+      throw new MismatchError('Payment ID mismatch', tokenPaymentId, payloadPaymentId);
     }
 
     // 3. Verify quote token exists in requirements
@@ -107,7 +102,7 @@ export async function verifyPayment(
           invalidMessage: `Quote token signature verification failed: Failed to fetch service JWKS from ${jwksUrl}: ${jwksResponse.statusText}`,
         };
       }
-      const jwksData = await jwksResponse.json() as jose.JSONWebKeySet;
+      const jwksData = (await jwksResponse.json()) as jose.JSONWebKeySet;
       // Disable jose's built-in exp check — we check it separately with a specific error reason
       await jose.jwtVerify(extra.quoteToken, jose.createLocalJWKSet(jwksData), {
         clockTolerance: Infinity,
@@ -167,13 +162,13 @@ export async function verifyPayment(
 
     return {
       isValid: true,
-      payer: paymentJWT.sub || paymentJWT.iss
+      payer: paymentJWT.sub || paymentJWT.iss,
     };
   } catch (error) {
     return {
       isValid: false,
       invalidReason: 'verification_failed',
-      invalidMessage: error instanceof Error ? error.message : 'Verification failed'
+      invalidMessage: error instanceof Error ? error.message : 'Verification failed',
     };
   }
 }

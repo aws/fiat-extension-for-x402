@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * aws-agent-pay-x402 - Agent Pay x402 TypeScript Extension
- * 
+ *
  * This module provides the Agent Pay (Federated Application Billing) implementation
  * for the x402 payment protocol.
  */
@@ -11,7 +11,11 @@
 export { AgentPayClientScheme, AgentPayServerScheme, AgentPayFacilitatorScheme } from './agent-pay';
 
 // Pre-configured network schemes
-export { AgentPayAWSClientScheme, AgentPayAWSServerScheme, AgentPayAWSFacilitatorScheme } from './networks';
+export {
+  AgentPayAWSClientScheme,
+  AgentPayAWSServerScheme,
+  AgentPayAWSFacilitatorScheme,
+} from './networks';
 
 // Configuration types
 export type {
@@ -29,7 +33,7 @@ export type {
   CreateAgentPaymentResponse,
   GetAgentPaymentResponse,
   ListAgentPaymentsRequest,
-  ListAgentPaymentsResponse
+  ListAgentPaymentsResponse,
 } from './config';
 
 // Agent Pay client implementation
@@ -38,7 +42,11 @@ export { DefaultAgentPayClient } from './agent-pay-client';
 // Facilitator client implementation
 export { InProcessFacilitatorClient } from './facilitator-client';
 export { AgentPayFacilitatorClient } from './agent-pay-facilitator-client';
-export type { AgentPayFacilitatorAuthConfig, SellerKeyResolver, VerifyRequestContext } from './agent-pay-facilitator-client';
+export type {
+  AgentPayFacilitatorAuthConfig,
+  SellerKeyResolver,
+  VerifyRequestContext,
+} from './agent-pay-facilitator-client';
 
 // Signers
 export { toServiceAgentPaySigner, toAgentPaySigner } from './signer';
@@ -62,7 +70,7 @@ export type {
   DPoPProofPayload,
   DPoPProofOptions,
   DPoPVerificationOptions,
-  DPoPNonceStore
+  DPoPNonceStore,
 } from './types';
 
 // Error classes
@@ -73,7 +81,7 @@ export {
   ExpiryError,
   MismatchError,
   DPoPError,
-  IdempotencyConflictError
+  IdempotencyConflictError,
 } from './types';
 
 // Constants
@@ -108,7 +116,7 @@ export {
   isValidTransactionId,
   extractNetworkFromTransactionId,
   fetchServiceJWKS,
-  clearServiceJWKSCache
+  clearServiceJWKSCache,
 } from './utils';
 
 // Agent Pay Discovery
@@ -117,7 +125,7 @@ export {
   discoverAgentPayEndpoints,
   fetchAgentPayPublicKeys,
   clearDiscoveryCache,
-  clearJWKSCache
+  clearJWKSCache,
 } from './discovery';
 export type { AgentPayDiscoveryMetadata } from './discovery';
 
@@ -152,7 +160,7 @@ export {
   computeJWKThumbprint,
   verifyDPoPProof,
   extractDPoPThumbprint,
-  type DPoPAlgorithm
+  type DPoPAlgorithm,
 } from './dpop';
 
 // Express Middleware
@@ -170,7 +178,7 @@ export {
   createAgentPayClient,
   buildAgentPayResourceServer,
   buildAgentPayClient,
-  registerAgentPayNetworks
+  registerAgentPayNetworks,
 } from './builders';
 export type {
   AgentPayResourceServerOptions,
@@ -180,5 +188,5 @@ export type {
   AgentPayClientOptions,
   AgentPayClientBuilder,
   AgentPayResourceServerConfig,
-  AgentPayClientConfig
+  AgentPayClientConfig,
 } from './builders';

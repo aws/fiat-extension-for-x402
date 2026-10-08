@@ -44,8 +44,8 @@ export class OAuth2Authenticator implements Authenticator {
       ...request,
       headers: {
         ...request.headers,
-        'Authorization': `Bearer ${this.accessToken}`
-      }
+        Authorization: `Bearer ${this.accessToken}`,
+      },
     };
   }
 
@@ -68,7 +68,7 @@ export class OAuth2Authenticator implements Authenticator {
     }
 
     this.refreshInProgress = this._performRefresh();
-    
+
     try {
       await this.refreshInProgress;
     } finally {
@@ -79,7 +79,7 @@ export class OAuth2Authenticator implements Authenticator {
   private async _performRefresh(): Promise<void> {
     const body = new URLSearchParams({
       grant_type: 'refresh_token',
-      refresh_token: this.refreshToken!
+      refresh_token: this.refreshToken!,
     });
 
     if (this.clientId) {
@@ -93,9 +93,9 @@ export class OAuth2Authenticator implements Authenticator {
     const response = await fetch(this.tokenEndpoint!, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: body.toString()
+      body: body.toString(),
     });
 
     if (!response.ok) {
@@ -105,7 +105,7 @@ export class OAuth2Authenticator implements Authenticator {
       );
     }
 
-    const data = await response.json() as Record<string, unknown>;
+    const data = (await response.json()) as Record<string, unknown>;
 
     if (!data.access_token) {
       throw new InvalidCredentialsError('oauth2', 'No access token in refresh response');

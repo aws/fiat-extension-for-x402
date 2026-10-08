@@ -23,8 +23,14 @@ describe('createAgentPayResourceServer', () => {
         return {
           ok: true,
           json: async () => ({
-            kinds: networks.map(n => ({ x402Version: 2, scheme: 'agent-pay', network: n, extra: { agentPayId: 'w' } })),
-            extensions: [], signers: {},
+            kinds: networks.map((n) => ({
+              x402Version: 2,
+              scheme: 'agent-pay',
+              network: n,
+              extra: { agentPayId: 'w' },
+            })),
+            extensions: [],
+            signers: {},
           }),
         };
       }
@@ -35,7 +41,11 @@ describe('createAgentPayResourceServer', () => {
     });
   }
 
-  const base = { agentPayBaseUrl: 'https://pay.example.com', agentPayId: 'w', serviceUrl: 'https://api.example.com' };
+  const base = {
+    agentPayBaseUrl: 'https://pay.example.com',
+    agentPayId: 'w',
+    serviceUrl: 'https://api.example.com',
+  };
 
   it('should create server and register networks individually', async () => {
     mockSupported(['fab:aws', 'eip155:8453']);
@@ -71,10 +81,24 @@ describe('createAgentPayResourceServer', () => {
   });
 
   it('should throw on invalid agentPayBaseUrl', () => {
-    expect(() => createAgentPayResourceServer({ agentPayBaseUrl: 'bad', agentPayId: 'w', signingKeys: keys, serviceUrl: 'https://a.com' })).toThrow(ValidationError);
+    expect(() =>
+      createAgentPayResourceServer({
+        agentPayBaseUrl: 'bad',
+        agentPayId: 'w',
+        signingKeys: keys,
+        serviceUrl: 'https://a.com',
+      })
+    ).toThrow(ValidationError);
   });
 
   it('should throw on missing serviceUrl', () => {
-    expect(() => createAgentPayResourceServer({ agentPayBaseUrl: 'https://w.com', agentPayId: 'w', signingKeys: keys, serviceUrl: '' })).toThrow(ValidationError);
+    expect(() =>
+      createAgentPayResourceServer({
+        agentPayBaseUrl: 'https://w.com',
+        agentPayId: 'w',
+        signingKeys: keys,
+        serviceUrl: '',
+      })
+    ).toThrow(ValidationError);
   });
 });

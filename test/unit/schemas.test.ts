@@ -26,7 +26,10 @@ import {
 describe('Zod Schemas', () => {
   describe('QuoteTokenPriceSchema', () => {
     it('should accept valid price', () => {
-      expect(QuoteTokenPriceSchema.parse({ amount: '0.15', currency: 'USD' })).toEqual({ amount: '0.15', currency: 'USD' });
+      expect(QuoteTokenPriceSchema.parse({ amount: '0.15', currency: 'USD' })).toEqual({
+        amount: '0.15',
+        currency: 'USD',
+      });
     });
 
     it('should reject non-decimal amount', () => {
@@ -42,7 +45,10 @@ describe('Zod Schemas', () => {
   describe('AgentPaySettlementSchema', () => {
     it('should accept valid settlement', () => {
       expect(AgentPaySettlementSchema.parse({ method: 'INST' })).toEqual({ method: 'INST' });
-      expect(AgentPaySettlementSchema.parse({ method: 'CLRG', cycle: 'MNTH' })).toEqual({ method: 'CLRG', cycle: 'MNTH' });
+      expect(AgentPaySettlementSchema.parse({ method: 'CLRG', cycle: 'MNTH' })).toEqual({
+        method: 'CLRG',
+        cycle: 'MNTH',
+      });
     });
 
     it('should reject invalid method', () => {
@@ -52,7 +58,10 @@ describe('Zod Schemas', () => {
 
   describe('AgentPaySupportSchema', () => {
     it('should accept valid support', () => {
-      const result = AgentPaySupportSchema.parse({ uri: 'https://support.example.com', method: 'human' });
+      const result = AgentPaySupportSchema.parse({
+        uri: 'https://support.example.com',
+        method: 'human',
+      });
       expect(result.method).toBe('human');
     });
 
@@ -67,7 +76,10 @@ describe('Zod Schemas', () => {
 
   describe('AgentPayTermsSchema', () => {
     it('should accept valid terms', () => {
-      const result = AgentPayTermsSchema.parse({ description: 'TOS', uri: 'https://example.com/tos' });
+      const result = AgentPayTermsSchema.parse({
+        description: 'TOS',
+        uri: 'https://example.com/tos',
+      });
       expect(result.description).toBe('TOS');
     });
 
@@ -110,13 +122,19 @@ describe('Zod Schemas', () => {
     it('should accept array of prices', () => {
       const result = QuoteTokenPayloadSchema.parse({
         ...validPayload,
-        price: [{ amount: '0.15', currency: 'USD' }, { amount: '0.13', currency: 'EUR' }],
+        price: [
+          { amount: '0.15', currency: 'USD' },
+          { amount: '0.13', currency: 'EUR' },
+        ],
       });
       expect(Array.isArray(result.price)).toBe(true);
     });
 
     it('should accept array aud', () => {
-      const result = QuoteTokenPayloadSchema.parse({ ...validPayload, aud: ['aws:base', 'other:net'] });
+      const result = QuoteTokenPayloadSchema.parse({
+        ...validPayload,
+        aud: ['aws:base', 'other:net'],
+      });
       expect(result.aud).toEqual(['aws:base', 'other:net']);
     });
 
@@ -166,15 +184,21 @@ describe('Zod Schemas', () => {
     });
 
     it('should reject non-EC kty', () => {
-      expect(() => DpopJwkSchema.parse({ kty: 'RSA', crv: 'P-256', x: 'a'.repeat(43), y: 'b'.repeat(43) })).toThrow();
+      expect(() =>
+        DpopJwkSchema.parse({ kty: 'RSA', crv: 'P-256', x: 'a'.repeat(43), y: 'b'.repeat(43) })
+      ).toThrow();
     });
 
     it('should reject unsupported curve', () => {
-      expect(() => DpopJwkSchema.parse({ kty: 'EC', crv: 'P-192', x: 'a'.repeat(43), y: 'b'.repeat(43) })).toThrow();
+      expect(() =>
+        DpopJwkSchema.parse({ kty: 'EC', crv: 'P-192', x: 'a'.repeat(43), y: 'b'.repeat(43) })
+      ).toThrow();
     });
 
     it('should reject short x/y values', () => {
-      expect(() => DpopJwkSchema.parse({ kty: 'EC', crv: 'P-256', x: 'short', y: 'short' })).toThrow();
+      expect(() =>
+        DpopJwkSchema.parse({ kty: 'EC', crv: 'P-256', x: 'short', y: 'short' })
+      ).toThrow();
     });
   });
 
@@ -199,7 +223,9 @@ describe('Zod Schemas', () => {
     });
 
     it('should reject clientToken over 128 chars', () => {
-      expect(() => CreateAgentPaymentRequestSchema.parse({ quoteToken: 'x', clientToken: 'a'.repeat(129) })).toThrow();
+      expect(() =>
+        CreateAgentPaymentRequestSchema.parse({ quoteToken: 'x', clientToken: 'a'.repeat(129) })
+      ).toThrow();
     });
   });
 
@@ -214,19 +240,23 @@ describe('Zod Schemas', () => {
     });
 
     it('should reject invalid paymentId format', () => {
-      expect(() => CreateAgentPaymentResponseSchema.parse({
-        paymentId: 'invalid-id',
-        paymentToken: 'x',
-        createdAt: '2026-01-01T00:00:00Z',
-      })).toThrow();
+      expect(() =>
+        CreateAgentPaymentResponseSchema.parse({
+          paymentId: 'invalid-id',
+          paymentToken: 'x',
+          createdAt: '2026-01-01T00:00:00Z',
+        })
+      ).toThrow();
     });
 
     it('should reject invalid createdAt format', () => {
-      expect(() => CreateAgentPaymentResponseSchema.parse({
-        paymentId: 'awsmp-01970f3e-4b2a-7dc0-8e1f-6a3b9c5d7e2f',
-        paymentToken: 'x',
-        createdAt: 'not-a-date',
-      })).toThrow();
+      expect(() =>
+        CreateAgentPaymentResponseSchema.parse({
+          paymentId: 'awsmp-01970f3e-4b2a-7dc0-8e1f-6a3b9c5d7e2f',
+          paymentToken: 'x',
+          createdAt: 'not-a-date',
+        })
+      ).toThrow();
     });
   });
 
@@ -242,7 +272,9 @@ describe('Zod Schemas', () => {
         price: { amount: '1.00', currency: 'USD' },
         payTo: 'seller',
         reference: 'TEST',
-      } as any).setProtectedHeader({ alg: 'RS256' }).sign(privateKey);
+      } as any)
+        .setProtectedHeader({ alg: 'RS256' })
+        .sign(privateKey);
 
       const result = parseQuoteToken(token);
       expect(result.iss).toBe('https://api.example.com');
@@ -256,7 +288,8 @@ describe('Zod Schemas', () => {
     it('should throw on valid JWT with missing fields', async () => {
       const { privateKey } = await jose.generateKeyPair('RS256');
       const token = await new jose.SignJWT({ iss: 'x' } as any)
-        .setProtectedHeader({ alg: 'RS256' }).sign(privateKey);
+        .setProtectedHeader({ alg: 'RS256' })
+        .sign(privateKey);
       expect(() => parseQuoteToken(token)).toThrow();
     });
   });
@@ -273,7 +306,9 @@ describe('Zod Schemas', () => {
         price: { amount: '0.50', currency: 'USD' },
         payTo: 'seller',
         reference: 'TEST',
-      } as any).setProtectedHeader({ alg: 'RS256' }).sign(privateKey);
+      } as any)
+        .setProtectedHeader({ alg: 'RS256' })
+        .sign(privateKey);
 
       const result = safeParseQuoteToken(token);
       expect(result.success).toBe(true);

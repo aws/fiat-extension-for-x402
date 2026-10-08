@@ -15,7 +15,7 @@ import { clearServiceJWKSCache } from '../../../src/utils';
 
 /**
  * Agent Pay Facilitator Unit Tests
- * 
+ *
  * Tests the facilitator scheme with mock Agent Pay client.
  * In production, the facilitator fetches the Agent Pay's public key from JWKS endpoint
  * and calls the Agent Pay provider's API to verify and capture payments.
@@ -41,7 +41,7 @@ describe('Agent Pay Facilitator Scheme', () => {
 
     scheme = new AgentPayScheme({
       agentPayId,
-      agentPayClient
+      agentPayClient,
     });
 
     // Mock fetch to serve the service's JWKS (using the same key that signs quote tokens)
@@ -92,7 +92,7 @@ describe('Agent Pay Facilitator Scheme', () => {
         price: { amount: '1.50', currency: 'USD' },
         payTo: 'service-pay',
         capture: 'manual',
-        reference: 'TEST'
+        reference: 'TEST',
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -107,8 +107,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
         payment_context: {
           transaction_id: transactionId,
-          quote_token: quoteToken
-        }
+          quote_token: quoteToken,
+        },
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -117,8 +117,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         x402Version: 2,
         payload: {
           paymentToken,
-          transactionId
-        } as unknown as Record<string, unknown>
+          transactionId,
+        } as unknown as Record<string, unknown>,
       };
 
       const requirements: PaymentRequirements = {
@@ -128,7 +128,7 @@ describe('Agent Pay Facilitator Scheme', () => {
         asset: 'iso4217:USD',
         payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
-        extra: { quoteToken } as unknown as Record<string, unknown>
+        extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
       const result = await scheme.verify(payload, requirements);
@@ -146,7 +146,7 @@ describe('Agent Pay Facilitator Scheme', () => {
         price: { amount: '1.50', currency: 'USD' },
         payTo: 'service-pay',
         capture: 'manual',
-        reference: 'TEST'
+        reference: 'TEST',
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -160,8 +160,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
         payment_context: {
           transaction_id: transactionId,
-          quote_token: quoteToken
-        }
+          quote_token: quoteToken,
+        },
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -170,8 +170,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         x402Version: 2,
         payload: {
           paymentToken,
-          transactionId
-        } as unknown as Record<string, unknown>
+          transactionId,
+        } as unknown as Record<string, unknown>,
       };
 
       const requirements: PaymentRequirements = {
@@ -181,7 +181,7 @@ describe('Agent Pay Facilitator Scheme', () => {
         asset: 'iso4217:USD',
         payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
-        extra: { quoteToken } as unknown as Record<string, unknown>
+        extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
       const result = await scheme.settle(payload, requirements);
@@ -202,7 +202,7 @@ describe('Agent Pay Facilitator Scheme', () => {
         price: { amount: '1.50', currency: 'USD' },
         payTo: 'service-pay',
         capture: 'manual',
-        reference: 'TEST'
+        reference: 'TEST',
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -216,8 +216,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
         payment_context: {
           transaction_id: transactionId,
-          quote_token: quoteToken
-        }
+          quote_token: quoteToken,
+        },
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -226,8 +226,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         x402Version: 2,
         payload: {
           paymentToken,
-          transactionId
-        } as unknown as Record<string, unknown>
+          transactionId,
+        } as unknown as Record<string, unknown>,
       };
 
       const requirements: PaymentRequirements = {
@@ -237,12 +237,12 @@ describe('Agent Pay Facilitator Scheme', () => {
         asset: 'iso4217:USD',
         payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
-        extra: { quoteToken } as unknown as Record<string, unknown>
+        extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
       const apPayload: AgentPayPayloadV2 = {
         paymentToken,
-        transactionId
+        transactionId,
       };
 
       const result = await verifyPayment(agentPayClient, payload, requirements, apPayload);
@@ -263,7 +263,7 @@ describe('Agent Pay Facilitator Scheme', () => {
         price: { amount: '1.50', currency: 'USD' },
         payTo: 'service-pay',
         capture: 'manual',
-        reference: 'TEST'
+        reference: 'TEST',
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -278,8 +278,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
         payment_context: {
           transaction_id: transactionId,
-          quote_token: quoteToken
-        }
+          quote_token: quoteToken,
+        },
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(wrongKey);
@@ -288,8 +288,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         x402Version: 2,
         payload: {
           paymentToken,
-          transactionId
-        } as unknown as Record<string, unknown>
+          transactionId,
+        } as unknown as Record<string, unknown>,
       };
 
       const requirements: PaymentRequirements = {
@@ -299,12 +299,12 @@ describe('Agent Pay Facilitator Scheme', () => {
         asset: 'iso4217:USD',
         payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
-        extra: { quoteToken } as unknown as Record<string, unknown>
+        extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
       const apPayload: AgentPayPayloadV2 = {
         paymentToken,
-        transactionId
+        transactionId,
       };
 
       const result = await verifyPayment(agentPayClient, payload, requirements, apPayload);
@@ -322,7 +322,7 @@ describe('Agent Pay Facilitator Scheme', () => {
         price: { amount: '1.50', currency: 'USD' },
         payTo: 'service-pay',
         capture: 'manual',
-        reference: 'TEST'
+        reference: 'TEST',
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -336,8 +336,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) - 3600, // Expired
         payment_context: {
           transaction_id: transactionId,
-          quote_token: quoteToken
-        }
+          quote_token: quoteToken,
+        },
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -346,8 +346,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         x402Version: 2,
         payload: {
           paymentToken,
-          transactionId
-        } as unknown as Record<string, unknown>
+          transactionId,
+        } as unknown as Record<string, unknown>,
       };
 
       const requirements: PaymentRequirements = {
@@ -357,12 +357,12 @@ describe('Agent Pay Facilitator Scheme', () => {
         asset: 'iso4217:USD',
         payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
-        extra: { quoteToken } as unknown as Record<string, unknown>
+        extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
       const apPayload: AgentPayPayloadV2 = {
         paymentToken,
-        transactionId
+        transactionId,
       };
 
       const result = await verifyPayment(agentPayClient, payload, requirements, apPayload);
@@ -380,7 +380,7 @@ describe('Agent Pay Facilitator Scheme', () => {
         price: { amount: '1.50', currency: 'USD' },
         payTo: 'service-pay',
         capture: 'manual',
-        reference: 'TEST'
+        reference: 'TEST',
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -394,8 +394,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
         payment_context: {
           transaction_id: transactionId,
-          quote_token: quoteToken
-        }
+          quote_token: quoteToken,
+        },
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -404,8 +404,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         x402Version: 2,
         payload: {
           paymentToken,
-          transactionId
-        } as unknown as Record<string, unknown>
+          transactionId,
+        } as unknown as Record<string, unknown>,
       };
 
       const requirements: PaymentRequirements = {
@@ -415,12 +415,12 @@ describe('Agent Pay Facilitator Scheme', () => {
         asset: 'iso4217:USD',
         payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
-        extra: { quoteToken } as unknown as Record<string, unknown>
+        extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
       const apPayload: AgentPayPayloadV2 = {
         paymentToken,
-        transactionId
+        transactionId,
       };
 
       const result = await verifyPayment(agentPayClient, payload, requirements, apPayload);
@@ -437,7 +437,7 @@ describe('Agent Pay Facilitator Scheme', () => {
         price: { amount: '1.50', currency: 'USD' },
         payTo: 'service-pay',
         capture: 'manual',
-        reference: 'TEST'
+        reference: 'TEST',
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -451,8 +451,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
         payment_context: {
           transaction_id: transactionId,
-          quote_token: quoteToken
-        }
+          quote_token: quoteToken,
+        },
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -461,8 +461,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         x402Version: 2,
         payload: {
           paymentToken,
-          transactionId
-        } as unknown as Record<string, unknown>
+          transactionId,
+        } as unknown as Record<string, unknown>,
       };
 
       const requirements: PaymentRequirements = {
@@ -472,12 +472,12 @@ describe('Agent Pay Facilitator Scheme', () => {
         asset: 'iso4217:USD',
         payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
-        extra: { quoteToken } as unknown as Record<string, unknown>
+        extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
       const apPayload: AgentPayPayloadV2 = {
         paymentToken,
-        transactionId
+        transactionId,
       };
 
       const result = await verifyPayment(agentPayClient, payload, requirements, apPayload);
@@ -495,7 +495,7 @@ describe('Agent Pay Facilitator Scheme', () => {
         price: { amount: '1.50', currency: 'USD' },
         payTo: 'service-pay',
         capture: 'manual',
-        reference: 'TEST'
+        reference: 'TEST',
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -510,7 +510,7 @@ describe('Agent Pay Facilitator Scheme', () => {
         price: { amount: '0.50', currency: 'USD' }, // Different price!
         payTo: 'service-pay',
         capture: 'manual',
-        reference: 'TEST'
+        reference: 'TEST',
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -525,8 +525,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
         payment_context: {
           transaction_id: transactionId,
-          quote_token: differentQuoteToken // Using different quote!
-        }
+          quote_token: differentQuoteToken, // Using different quote!
+        },
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -535,8 +535,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         x402Version: 2,
         payload: {
           paymentToken,
-          transactionId
-        } as unknown as Record<string, unknown>
+          transactionId,
+        } as unknown as Record<string, unknown>,
       };
 
       const requirements: PaymentRequirements = {
@@ -546,13 +546,13 @@ describe('Agent Pay Facilitator Scheme', () => {
         asset: 'iso4217:USD',
         payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
-        extra: { quoteToken: correctQuoteToken } as unknown as Record<string, unknown> // Expecting correct quote
+        extra: { quoteToken: correctQuoteToken } as unknown as Record<string, unknown>, // Expecting correct quote
       };
 
       const apPayload: AgentPayPayloadV2 = {
         paymentToken,
         paymentId: transactionId,
-        transactionId
+        transactionId,
       };
 
       const result = await verifyPayment(agentPayClient, payload, requirements, apPayload);
@@ -571,7 +571,7 @@ describe('Agent Pay Facilitator Scheme', () => {
         price: { amount: '1.50', currency: 'USD' },
         payTo: 'service-pay',
         capture: 'manual',
-        reference: 'TEST'
+        reference: 'TEST',
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -588,8 +588,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
         payment_context: {
           transaction_id: correctTransactionId,
-          quote_token: quoteToken
-        }
+          quote_token: quoteToken,
+        },
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -598,8 +598,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         x402Version: 2,
         payload: {
           paymentToken,
-          transactionId: differentTransactionId // Different transaction ID in payload!
-        } as unknown as Record<string, unknown>
+          transactionId: differentTransactionId, // Different transaction ID in payload!
+        } as unknown as Record<string, unknown>,
       };
 
       const requirements: PaymentRequirements = {
@@ -609,13 +609,13 @@ describe('Agent Pay Facilitator Scheme', () => {
         asset: 'iso4217:USD',
         payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
-        extra: { quoteToken } as unknown as Record<string, unknown>
+        extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
       const apPayload: AgentPayPayloadV2 = {
         paymentToken,
         paymentId: differentTransactionId,
-        transactionId: differentTransactionId
+        transactionId: differentTransactionId,
       };
 
       const result = await verifyPayment(agentPayClient, payload, requirements, apPayload);
@@ -634,7 +634,7 @@ describe('Agent Pay Facilitator Scheme', () => {
         price: { amount: '1.50', currency: 'USD' },
         payTo: 'service-pay',
         capture: 'manual',
-        reference: 'TEST'
+        reference: 'TEST',
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -648,9 +648,9 @@ describe('Agent Pay Facilitator Scheme', () => {
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
         payment_context: {
-          transaction_id: transactionId
+          transaction_id: transactionId,
           // quote_token is missing!
-        }
+        },
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -659,8 +659,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         x402Version: 2,
         payload: {
           paymentToken,
-          transactionId
-        } as unknown as Record<string, unknown>
+          transactionId,
+        } as unknown as Record<string, unknown>,
       };
 
       const requirements: PaymentRequirements = {
@@ -670,13 +670,13 @@ describe('Agent Pay Facilitator Scheme', () => {
         asset: 'iso4217:USD',
         payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
-        extra: { quoteToken } as unknown as Record<string, unknown>
+        extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
       const apPayload: AgentPayPayloadV2 = {
         paymentToken,
         paymentId: transactionId,
-        transactionId
+        transactionId,
       };
 
       // New verify logic doesn't require quote_token inside payment_context.
@@ -694,8 +694,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         payload: {
           paymentToken: 'token',
           paymentId: transactionId,
-          transactionId
-        } as unknown as Record<string, unknown>
+          transactionId,
+        } as unknown as Record<string, unknown>,
       };
 
       const requirements: PaymentRequirements = {
@@ -705,12 +705,12 @@ describe('Agent Pay Facilitator Scheme', () => {
         asset: 'iso4217:USD',
         payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
-        extra: {}
+        extra: {},
       };
 
       const apPayload: AgentPayPayloadV2 = {
         paymentToken: 'token',
-        transactionId
+        transactionId,
       };
 
       const result = await settlePayment(agentPayClient, payload, requirements, apPayload);
@@ -725,8 +725,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         x402Version: 2,
         payload: {
           paymentToken: 'token',
-          transactionId
-        } as unknown as Record<string, unknown>
+          transactionId,
+        } as unknown as Record<string, unknown>,
       };
 
       const requirements: PaymentRequirements = {
@@ -736,12 +736,12 @@ describe('Agent Pay Facilitator Scheme', () => {
         asset: 'iso4217:USD',
         payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
-        extra: {}
+        extra: {},
       };
 
       const apPayload: AgentPayPayloadV2 = {
         paymentToken: 'token',
-        transactionId
+        transactionId,
       };
 
       const result = await settlePayment(agentPayClient, payload, requirements, apPayload);
@@ -755,8 +755,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         x402Version: 2,
         payload: {
           paymentToken: 'token',
-          transactionId
-        } as unknown as Record<string, unknown>
+          transactionId,
+        } as unknown as Record<string, unknown>,
       };
 
       const requirements: PaymentRequirements = {
@@ -766,12 +766,12 @@ describe('Agent Pay Facilitator Scheme', () => {
         asset: 'iso4217:USD',
         payTo: 'service-pay',
         maxTimeoutSeconds: 3600,
-        extra: {}
+        extra: {},
       };
 
       const apPayload: AgentPayPayloadV2 = {
         paymentToken: 'token',
-        transactionId
+        transactionId,
       };
 
       const result = await settlePayment(agentPayClient, payload, requirements, apPayload);
@@ -793,7 +793,7 @@ describe('Agent Pay Facilitator Scheme', () => {
         price: { amount: '1.50', currency: 'USD' },
         payTo: 'service-pay',
         capture: 'manual',
-        reference: 'TEST'
+        reference: 'TEST',
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -807,8 +807,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
         payment_context: {
           transaction_id: transactionId,
-          quote_token: quoteToken
-        }
+          quote_token: quoteToken,
+        },
       } as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
@@ -817,8 +817,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         x402Version: 2,
         payload: {
           paymentToken,
-          transactionId
-        } as unknown as Record<string, unknown>
+          transactionId,
+        } as unknown as Record<string, unknown>,
       };
 
       // Use sentinel payTo — this is what the server scheme now produces
@@ -829,12 +829,12 @@ describe('Agent Pay Facilitator Scheme', () => {
         asset: 'iso4217:USD',
         payTo: AGENT_PAY_SENTINEL_PAY_TO,
         maxTimeoutSeconds: 300,
-        extra: { quoteToken } as unknown as Record<string, unknown>
+        extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
       const apPayload: AgentPayPayloadV2 = {
         paymentToken,
-        transactionId
+        transactionId,
       };
 
       const result = await verifyPayment(agentPayClient, payload, requirements, apPayload);
@@ -848,8 +848,8 @@ describe('Agent Pay Facilitator Scheme', () => {
         x402Version: 2,
         payload: {
           paymentToken: 'token',
-          transactionId
-        } as unknown as Record<string, unknown>
+          transactionId,
+        } as unknown as Record<string, unknown>,
       };
 
       // Use sentinel payTo
@@ -860,12 +860,12 @@ describe('Agent Pay Facilitator Scheme', () => {
         asset: 'iso4217:USD',
         payTo: AGENT_PAY_SENTINEL_PAY_TO,
         maxTimeoutSeconds: 300,
-        extra: {}
+        extra: {},
       };
 
       const apPayload: AgentPayPayloadV2 = {
         paymentToken: 'token',
-        transactionId
+        transactionId,
       };
 
       const result = await settlePayment(agentPayClient, payload, requirements, apPayload);

@@ -44,7 +44,11 @@ function createMockReq(overrides: Partial<Request> = {}): Request {
   } as unknown as Request;
 }
 
-function createMockRes(): Response & { _status: number; _json: any; _headers: Record<string, string> } {
+function createMockRes(): Response & {
+  _status: number;
+  _json: any;
+  _headers: Record<string, string>;
+} {
   const res: any = {
     _status: 200,
     _json: null,
@@ -99,22 +103,24 @@ describe('agentPayMiddleware', () => {
 
   describe('configuration validation', () => {
     it('throws if networks is empty', () => {
-      expect(() =>
-        agentPayMiddleware({ ...baseConfig, networks: [] })
-      ).toThrow('networks must be a non-empty array');
+      expect(() => agentPayMiddleware({ ...baseConfig, networks: [] })).toThrow(
+        'networks must be a non-empty array'
+      );
     });
 
     it('throws if routes is empty', () => {
-      expect(() =>
-        agentPayMiddleware({ ...baseConfig, routes: {} })
-      ).toThrow('routes must be a non-empty object');
+      expect(() => agentPayMiddleware({ ...baseConfig, routes: {} })).toThrow(
+        'routes must be a non-empty object'
+      );
     });
 
     it('throws on invalid route pattern', () => {
       expect(() =>
         agentPayMiddleware({
           ...baseConfig,
-          routes: { 'GET /api premium extra': { price: 1, network: 'aws:base' as any, payTo: 'x' } },
+          routes: {
+            'GET /api premium extra': { price: 1, network: 'aws:base' as any, payTo: 'x' },
+          },
         })
       ).toThrow('Invalid route pattern');
     });
@@ -226,7 +232,13 @@ describe('agentPayMiddleware', () => {
       const paymentPayload = {
         x402Version: 2,
         payload: { paymentToken: 'tok', transactionId: 'awsmp-tx123' },
-        accepted: { scheme: 'agent-pay', network: 'aws:base', amount: '0.15', asset: 'iso4217:USD', extra: {} },
+        accepted: {
+          scheme: 'agent-pay',
+          network: 'aws:base',
+          amount: '0.15',
+          asset: 'iso4217:USD',
+          extra: {},
+        },
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
@@ -264,7 +276,12 @@ describe('agentPayMiddleware', () => {
       const paymentPayload = {
         x402Version: 2,
         payload: { paymentToken: 'tok', transactionId: 'awsmp-tx123' },
-        accepted: { scheme: 'agent-pay', network: 'aws:base', amount: '0.15', asset: 'iso4217:USD' },
+        accepted: {
+          scheme: 'agent-pay',
+          network: 'aws:base',
+          amount: '0.15',
+          asset: 'iso4217:USD',
+        },
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
@@ -396,7 +413,13 @@ describe('agentPayMiddleware', () => {
       const paymentPayload = {
         x402Version: 2,
         payload: { paymentToken: 'tok', transactionId: 'awsmp-tx123' },
-        accepted: { scheme: 'agent-pay', network: 'aws:base', amount: '0.15', asset: 'iso4217:USD', extra: {} },
+        accepted: {
+          scheme: 'agent-pay',
+          network: 'aws:base',
+          amount: '0.15',
+          asset: 'iso4217:USD',
+          extra: {},
+        },
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
@@ -425,7 +448,12 @@ describe('agentPayMiddleware', () => {
       const paymentPayload = {
         x402Version: 2,
         payload: { paymentToken: 'tok', transactionId: 'awsmp-tx123' },
-        accepted: { scheme: 'agent-pay', network: 'aws:base', amount: '0.15', asset: 'iso4217:USD' },
+        accepted: {
+          scheme: 'agent-pay',
+          network: 'aws:base',
+          amount: '0.15',
+          asset: 'iso4217:USD',
+        },
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 
@@ -478,7 +506,13 @@ describe('agentPayMiddleware', () => {
       const paymentPayload = {
         x402Version: 2,
         payload: { paymentToken: 'tok', transactionId: 'awsmp-tx123' },
-        accepted: { scheme: 'agent-pay', network: 'aws:base', amount: '0.15', asset: 'iso4217:USD', extra: {} },
+        accepted: {
+          scheme: 'agent-pay',
+          network: 'aws:base',
+          amount: '0.15',
+          asset: 'iso4217:USD',
+          extra: {},
+        },
       };
       const encoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
 

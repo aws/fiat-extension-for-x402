@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Agent Pay Endpoint Discovery
- * 
+ *
  * Utilities for discovering Agent Pay provider endpoints via OIDC discovery.
  */
 
@@ -33,18 +33,24 @@ export interface AgentPayDiscoveryMetadata {
 /**
  * Cache for discovery metadata
  */
-const discoveryCache = new Map<string, {
-  metadata: AgentPayDiscoveryMetadata;
-  expiresAt: number;
-}>();
+const discoveryCache = new Map<
+  string,
+  {
+    metadata: AgentPayDiscoveryMetadata;
+    expiresAt: number;
+  }
+>();
 
 /**
  * Cache for JWKS
  */
-const jwksCache = new Map<string, {
-  jwks: any;
-  expiresAt: number;
-}>();
+const jwksCache = new Map<
+  string,
+  {
+    jwks: any;
+    expiresAt: number;
+  }
+>();
 
 /**
  * Registry for network base URLs
@@ -53,18 +59,18 @@ const networkRegistry = new Map<string, string>();
 
 /**
  * Register a network's Agent Pay base URL
- * 
+ *
  * @param network - Network identifier (e.g., 'aws:base')
  * @param baseUrl - Agent Pay base URL (e.g., 'https://pay.aws.amazon.com')
- * 
+ *
  * @example
  * ```typescript
  * // Register AWS Agent Pay network
  * registerNetwork('aws:base', 'https://pay.aws.amazon.com');
- * 
+ *
  * // Register custom Agent Pay network
  * registerNetwork('custom:provider', 'https://custom-pay.example.com');
- * 
+ *
  * // Register internal Agent Pay network
  * registerNetwork('internal:provider', 'https://internal-pay.corp.com');
  * ```
@@ -94,10 +100,10 @@ export function registerNetwork(network: string, baseUrl: string): void {
 
 /**
  * Unregister a network
- * 
+ *
  * @param network - Network identifier to unregister
  * @returns true if the network was unregistered, false if it didn't exist
- * 
+ *
  * @example
  * ```typescript
  * unregisterNetwork('custom:provider');
@@ -109,9 +115,9 @@ export function unregisterNetwork(network: string): boolean {
 
 /**
  * Get all registered networks
- * 
+ *
  * @returns Map of network identifiers to base URLs
- * 
+ *
  * @example
  * ```typescript
  * const networks = getRegisteredNetworks();
@@ -124,7 +130,7 @@ export function getRegisteredNetworks(): Map<string, string> {
 
 /**
  * Clear all registered networks
- * 
+ *
  * @example
  * ```typescript
  * clearNetworkRegistry();
@@ -136,19 +142,19 @@ export function clearNetworkRegistry(): void {
 
 /**
  * Get Agent Pay base URL from network identifier
- * 
+ *
  * Looks up Agent Pay base URL from the registry. If not found, throws an error.
  * You must register networks using registerNetwork() before calling this.
- * 
+ *
  * @param network - Network identifier (e.g., 'aws:base')
  * @returns Agent Pay base URL
  * @throws Error if network identifier is invalid or not registered
- * 
+ *
  * @example
  * ```typescript
  * // Register first
  * registerNetwork('aws:base', 'https://pay.aws.amazon.com');
- * 
+ *
  * // Then get
  * const baseUrl = getAgentPayBaseUrl('aws:base');
  * // → "https://pay.aws.amazon.com"
@@ -178,14 +184,14 @@ export function getAgentPayBaseUrl(network: string): string {
 
 /**
  * Discover Agent Pay endpoints via OIDC discovery
- * 
+ *
  * Fetches the Agent Pay's OIDC discovery document to get endpoint URLs
  * and supported capabilities.
- * 
+ *
  * @param network - Network identifier (e.g., 'aws:base')
  * @param options - Discovery options
  * @returns Agent Pay discovery metadata
- * 
+ *
  * @example
  * ```typescript
  * const metadata = await discoverAgentPayEndpoints('aws:base');
@@ -203,7 +209,7 @@ export async function discoverAgentPayEndpoints(
   } = {}
 ): Promise<AgentPayDiscoveryMetadata> {
   const fetchFn = options.fetch || globalThis.fetch;
-  
+
   // Check cache
   if (!options.skipCache) {
     const cached = discoveryCache.get(network);
@@ -211,43 +217,41 @@ export async function discoverAgentPayEndpoints(
       return cached.metadata;
     }
   }
-  
+
   // Fetch discovery document
   const baseUrl = getAgentPayBaseUrl(network);
   const discoveryUrl = `${baseUrl}${WELL_KNOWN_OIDC_PATH}`;
-  
+
   const response = await fetchFn(discoveryUrl);
   if (!response.ok) {
     throw new Error(
       `Failed to discover Agent Pay endpoints for ${network}: ${response.status} ${response.statusText}`
     );
   }
-  
-  const metadata = await response.json() as AgentPayDiscoveryMetadata;
-  
+
+  const metadata = (await response.json()) as AgentPayDiscoveryMetadata;
+
   // Validate required fields
   if (!metadata.issuer || !metadata.jwks_uri || !metadata.payment_endpoint) {
-    throw new Error(
-      `Invalid discovery metadata for ${network}: missing required fields`
-    );
+    throw new Error(`Invalid discovery metadata for ${network}: missing required fields`);
   }
-  
+
   // Cache for 24 hours
   discoveryCache.set(network, {
     metadata,
-    expiresAt: Date.now() + (24 * 60 * 60 * 1000)
+    expiresAt: Date.now() + 24 * 60 * 60 * 1000,
   });
-  
+
   return metadata;
 }
 
 /**
  * Fetch Agent Pay's public keys (JWKS) for signature verification
- * 
+ *
  * @param network - Network identifier (e.g., 'aws:base')
  * @param options - Fetch options
  * @returns JSON Web Key Set
- * 
+ *
  * @example
  * ```typescript
  * const jwks = await fetchAgentPayPublicKeys('aws:base');
@@ -264,11 +268,11 @@ export async function fetchAgentPayPublicKeys(
   } = {}
 ): Promise<any> {
   const fetchFn = options.fetch || globalThis.fetch;
-  
+
   // Get JWKS URI from discovery
   const metadata = await discoverAgentPayEndpoints(network, options);
   const jwksUri = metadata.jwks_uri;
-  
+
   // Check cache
   if (!options.skipCache) {
     const cached = jwksCache.get(jwksUri);
@@ -276,7 +280,7 @@ export async function fetchAgentPayPublicKeys(
       return cached.jwks;
     }
   }
-  
+
   // Fetch JWKS
   const response = await fetchFn(jwksUri);
   if (!response.ok) {
@@ -284,31 +288,31 @@ export async function fetchAgentPayPublicKeys(
       `Failed to fetch Agent Pay public keys from ${jwksUri}: ${response.status} ${response.statusText}`
     );
   }
-  
+
   const jwks = await response.json();
-  
+
   // Cache for 1 hour (or use Cache-Control header if available)
   const cacheControl = response.headers.get('cache-control');
   let cacheDuration = 60 * 60 * 1000; // 1 hour default
-  
+
   if (cacheControl) {
     const maxAge = /max-age=(\d+)/.exec(cacheControl);
     if (maxAge) {
       cacheDuration = parseInt(maxAge[1], 10) * 1000;
     }
   }
-  
+
   jwksCache.set(jwksUri, {
     jwks,
-    expiresAt: Date.now() + cacheDuration
+    expiresAt: Date.now() + cacheDuration,
   });
-  
+
   return jwks;
 }
 
 /**
  * Clear discovery cache (useful for testing or error recovery)
- * 
+ *
  * @param network - Optional network identifier to clear specific entry
  */
 export function clearDiscoveryCache(network?: string): void {
@@ -321,7 +325,7 @@ export function clearDiscoveryCache(network?: string): void {
 
 /**
  * Clear JWKS cache (useful for testing or error recovery)
- * 
+ *
  * @param jwksUri - Optional JWKS URI to clear specific entry
  */
 export function clearJWKSCache(jwksUri?: string): void {

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Agent Pay Server Scheme Implementation
- * 
+ *
  * In Agent Pay, the "server" role is played by the resource service,
  * which generates 402 responses with quote tokens.
  */
@@ -13,13 +13,22 @@ import {
   Network,
   PaymentRequirements,
   Price,
-  SchemeNetworkServer
+  SchemeNetworkServer,
 } from '@x402/core/types';
-import type { AgentPayServerSchemeConfig, SigningKeysConfig, ServiceAgentPaySigner } from '../../config';
+import type {
+  AgentPayServerSchemeConfig,
+  SigningKeysConfig,
+  ServiceAgentPaySigner,
+} from '../../config';
 import { toServiceAgentPaySigner } from '../../signer';
 import { QuoteTokenPayload, AgentPayPaymentExtra, ValidationError } from '../../types';
 import { parseMoneyToDecimal } from '../../utils';
-import { DEFAULT_QUOTE_VALIDITY_SECONDS, AGENT_PAY_SCHEME, AGENT_PAY_SENTINEL_PAY_TO, AGENT_PAY_AUDIENCE } from '../../constants';
+import {
+  DEFAULT_QUOTE_VALIDITY_SECONDS,
+  AGENT_PAY_SCHEME,
+  AGENT_PAY_SENTINEL_PAY_TO,
+  AGENT_PAY_AUDIENCE,
+} from '../../constants';
 
 // Use Node.js crypto for UUID generation
 const crypto = webcrypto;
@@ -48,13 +57,15 @@ export class AgentPayScheme implements SchemeNetworkServer {
         config.serviceUrl
       );
     } else {
-      throw new ValidationError('AgentPayServerScheme requires either signer or signingKeys + serviceUrl');
+      throw new ValidationError(
+        'AgentPayServerScheme requires either signer or signingKeys + serviceUrl'
+      );
     }
   }
 
   /**
    * Parse a price into an asset amount
-   * 
+   *
    * @param price - Price to parse (string, number, or AssetAmount)
    * @param network - Network identifier
    * @returns Asset amount
@@ -71,13 +82,13 @@ export class AgentPayScheme implements SchemeNetworkServer {
     return {
       amount: amount.toString(),
       asset: `iso4217:${currency}`,
-      extra: {}
+      extra: {},
     };
   }
 
   /**
    * Enhance payment requirements with Agent Pay-specific data
-   * 
+   *
    * @param paymentRequirements - Base payment requirements
    * @param supportedKind - Supported kind from facilitator
    * @param extensionKeys - Extension keys supported by facilitator
@@ -107,15 +118,16 @@ export class AgentPayScheme implements SchemeNetworkServer {
       jti: crypto.randomUUID(),
       price: {
         amount,
-        currency
+        currency,
       },
       payTo: paymentRequirements.payTo,
       reference: (paymentRequirements.extra?.reference as string) || 'RESOURCE',
       description: paymentRequirements.extra?.description as string | undefined,
-      dimensions: paymentRequirements.extra?.dimensions as Record<string, string | number> | undefined,
+      dimensions: paymentRequirements.extra?.dimensions as
+        Record<string, string | number> | undefined,
       settlement: paymentRequirements.extra?.settlement as any,
       support: paymentRequirements.extra?.support as any,
-      terms: paymentRequirements.extra?.terms as any
+      terms: paymentRequirements.extra?.terms as any,
     };
 
     // Sign quote token
@@ -124,7 +136,7 @@ export class AgentPayScheme implements SchemeNetworkServer {
     // Add quote token to extra
     const extra: AgentPayPaymentExtra = {
       ...paymentRequirements.extra,
-      quoteToken
+      quoteToken,
     };
 
     // Return enhanced requirements. payTo is redundant in Agent Pay and carries the
@@ -135,7 +147,7 @@ export class AgentPayScheme implements SchemeNetworkServer {
       ...paymentRequirements,
       payTo: AGENT_PAY_SENTINEL_PAY_TO,
       maxTimeoutSeconds: quotePayload.exp - quotePayload.iat,
-      extra: extra as unknown as Record<string, unknown>
+      extra: extra as unknown as Record<string, unknown>,
     };
   }
 }

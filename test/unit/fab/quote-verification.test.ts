@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Quote Token Signature Verification Tests (Task 27)
- * 
+ *
  * Tests that the in-process facilitator MANDATORILY verifies quote token
  * signatures using the service's JWKS endpoint.
  */
@@ -113,10 +113,17 @@ describe('Quote Token Signature Verification (Task 27)', () => {
       .sign(agentPayPrivateKey);
   }
 
-  function buildPayloadAndRequirements(quoteToken: string, paymentToken: string, paymentId: string) {
+  function buildPayloadAndRequirements(
+    quoteToken: string,
+    paymentToken: string,
+    paymentId: string
+  ) {
     const payload: PaymentPayload = {
       x402Version: 2,
-      payload: { paymentToken, paymentId, transactionId: paymentId } as unknown as Record<string, unknown>,
+      payload: { paymentToken, paymentId, transactionId: paymentId } as unknown as Record<
+        string,
+        unknown
+      >,
     };
     const requirements: PaymentRequirements = {
       scheme: AGENT_PAY_SCHEME,
@@ -135,7 +142,11 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     const quoteToken = await createQuoteToken();
     const paymentId = 'awsmp-00000000-0000-0000-0000-000000000001';
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
-    const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
+    const { payload, requirements, apPayload } = buildPayloadAndRequirements(
+      quoteToken,
+      paymentToken,
+      paymentId
+    );
 
     const result = await verifyPayment(mockAgentPayClient, payload, requirements, apPayload);
 
@@ -156,11 +167,17 @@ describe('Quote Token Signature Verification (Task 27)', () => {
       payTo: 'seller-123',
       capture: 'auto',
       reference: 'TEST',
-    } as any).setProtectedHeader({ alg: 'RS256' }).sign(wrongKeys.privateKey);
+    } as any)
+      .setProtectedHeader({ alg: 'RS256' })
+      .sign(wrongKeys.privateKey);
 
     const paymentId = 'awsmp-00000000-0000-0000-0000-000000000002';
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
-    const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
+    const { payload, requirements, apPayload } = buildPayloadAndRequirements(
+      quoteToken,
+      paymentToken,
+      paymentId
+    );
 
     const result = await verifyPayment(mockAgentPayClient, payload, requirements, apPayload);
 
@@ -180,7 +197,11 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     const quoteToken = await createQuoteToken();
     const paymentId = 'awsmp-00000000-0000-0000-0000-000000000003';
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
-    const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
+    const { payload, requirements, apPayload } = buildPayloadAndRequirements(
+      quoteToken,
+      paymentToken,
+      paymentId
+    );
 
     const result = await verifyPayment(mockAgentPayClient, payload, requirements, apPayload);
 
@@ -201,11 +222,17 @@ describe('Quote Token Signature Verification (Task 27)', () => {
       payTo: 'seller-123',
       capture: 'auto',
       reference: 'TEST',
-    } as any).setProtectedHeader({ alg: 'RS256' }).sign(servicePrivateKey);
+    } as any)
+      .setProtectedHeader({ alg: 'RS256' })
+      .sign(servicePrivateKey);
 
     const paymentId = 'awsmp-00000000-0000-0000-0000-000000000004';
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
-    const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
+    const { payload, requirements, apPayload } = buildPayloadAndRequirements(
+      quoteToken,
+      paymentToken,
+      paymentId
+    );
 
     const result = await verifyPayment(mockAgentPayClient, payload, requirements, apPayload);
 
@@ -223,7 +250,11 @@ describe('Quote Token Signature Verification (Task 27)', () => {
 
     const paymentId = 'awsmp-00000000-0000-0000-0000-000000000005';
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
-    const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
+    const { payload, requirements, apPayload } = buildPayloadAndRequirements(
+      quoteToken,
+      paymentToken,
+      paymentId
+    );
 
     const result = await verifyPayment(mockAgentPayClient, payload, requirements, apPayload);
 
@@ -239,7 +270,11 @@ describe('Quote Token Signature Verification (Task 27)', () => {
 
     const paymentId = 'awsmp-00000000-0000-0000-0000-000000000006';
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
-    const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
+    const { payload, requirements, apPayload } = buildPayloadAndRequirements(
+      quoteToken,
+      paymentToken,
+      paymentId
+    );
 
     const result = await verifyPayment(mockAgentPayClient, payload, requirements, apPayload);
 
@@ -262,7 +297,11 @@ describe('Quote Token Signature Verification (Task 27)', () => {
     const quoteToken = await createQuoteToken();
     const paymentId = 'awsmp-00000000-0000-0000-0000-000000000007';
     const paymentToken = await createPaymentToken(quoteToken, paymentId);
-    const { payload, requirements, apPayload } = buildPayloadAndRequirements(quoteToken, paymentToken, paymentId);
+    const { payload, requirements, apPayload } = buildPayloadAndRequirements(
+      quoteToken,
+      paymentToken,
+      paymentId
+    );
 
     const result = await verifyPayment(mockAgentPayClient, payload, requirements, apPayload, {
       serviceJWKSUrl: customJwksUrl,

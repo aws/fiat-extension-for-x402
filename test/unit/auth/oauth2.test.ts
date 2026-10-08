@@ -80,9 +80,7 @@ describe('OAuth2Authenticator', () => {
       text: async () => 'Unauthorized',
     });
 
-    await expect(authenticator.refreshAccessToken()).rejects.toThrow(
-      'Token refresh failed'
-    );
+    await expect(authenticator.refreshAccessToken()).rejects.toThrow('Token refresh failed');
   });
 
   it('should not modify original request', async () => {

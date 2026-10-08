@@ -31,13 +31,13 @@ export class DefaultAgentPayClient implements AgentPayClient {
 
   /**
    * Create a new default Agent Pay client
-   * 
+   *
    * @param config - Agent Pay configuration with baseUrl and optional auth
    */
   constructor(config: AgentPayConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, ''); // Remove trailing slash
     this.jwks = createRemoteJWKSet(new URL(`${this.baseUrl}${WELL_KNOWN_JWKS_PATH}`));
-    
+
     // Create authenticator if auth config provided
     if (config.auth) {
       this.authenticator = createAuthenticator(config.auth);
@@ -48,7 +48,7 @@ export class DefaultAgentPayClient implements AgentPayClient {
    * Create a payment with the Agent Pay Service.
    * Sends the seller-signed quote token; Agent Pay verifies, captures,
    * and returns a signed payment JWT.
-   * 
+   *
    * Maps to: POST /CreateAgentPayment
    */
   async createPayment(request: CreateAgentPaymentRequest): Promise<CreateAgentPaymentResponse> {
@@ -58,7 +58,7 @@ export class DefaultAgentPayClient implements AgentPayClient {
       ...(request.clientToken && { clientToken: request.clientToken }),
       ...(request.dpopJwk && { dpopJwk: request.dpopJwk }),
     });
-    
+
     try {
       let httpRequest: AuthenticatedRequest = {
         url,
@@ -66,11 +66,11 @@ export class DefaultAgentPayClient implements AgentPayClient {
         headers: { 'Content-Type': 'application/json' },
         body,
       };
-      
+
       if (this.authenticator) {
         httpRequest = await this.authenticator.authenticate(httpRequest);
       }
-      
+
       const response = await fetch(httpRequest.url, {
         method: httpRequest.method,
         headers: httpRequest.headers,
@@ -78,7 +78,9 @@ export class DefaultAgentPayClient implements AgentPayClient {
       });
 
       if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({ message: response.statusText })) as Record<string, unknown>;
+        const errorBody = (await response
+          .json()
+          .catch(() => ({ message: response.statusText }))) as Record<string, unknown>;
         const message = (errorBody.message as string) || response.statusText;
 
         // 409 Conflict: clientToken reused with different parameters
@@ -91,12 +93,10 @@ export class DefaultAgentPayClient implements AgentPayClient {
         );
       }
 
-      const result = await response.json() as CreateAgentPaymentResponse;
-      
+      const result = (await response.json()) as CreateAgentPaymentResponse;
+
       if (!result.paymentId || !result.paymentToken) {
-        throw new ValidationError(
-          'Invalid Agent Pay response: missing paymentId or paymentToken'
-        );
+        throw new ValidationError('Invalid Agent Pay response: missing paymentId or paymentToken');
       }
 
       return result;
@@ -112,57 +112,59 @@ export class DefaultAgentPayClient implements AgentPayClient {
 
   /**
    * Get full payment detail by ID.
-   * 
+   *
    * Maps to: GET /GetAgentPayment/{paymentId}
    */
   async getPayment(paymentId: string): Promise<GetAgentPaymentResponse> {
     const url = `${this.baseUrl}/GetAgentPayment/${paymentId}`;
-    
+
     let httpRequest: AuthenticatedRequest = {
       url,
       method: 'GET',
       headers: {},
     };
-    
+
     if (this.authenticator) {
       httpRequest = await this.authenticator.authenticate(httpRequest);
     }
-    
+
     const response = await fetch(httpRequest.url, {
       method: httpRequest.method,
       headers: httpRequest.headers,
     });
 
     if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({ message: response.statusText })) as Record<string, unknown>;
+      const errorBody = (await response
+        .json()
+        .catch(() => ({ message: response.statusText }))) as Record<string, unknown>;
       throw new ValidationError(
         `Failed to get payment (${response.status}): ${(errorBody.message as string) || response.statusText}`
       );
     }
 
-    return await response.json() as GetAgentPaymentResponse;
+    return (await response.json()) as GetAgentPaymentResponse;
   }
 
   /**
    * List payments for the caller's account.
-   * 
+   *
    * Maps to: POST /ListAgentPayments
    */
   async listPayments(request?: ListAgentPaymentsRequest): Promise<ListAgentPaymentsResponse> {
     const url = `${this.baseUrl}/ListAgentPayments`;
     const body = JSON.stringify(request || {});
-    
+
     let httpRequest: AuthenticatedRequest = {
       url,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body,
     };
-    
+
     if (this.authenticator) {
       httpRequest = await this.authenticator.authenticate(httpRequest);
     }
-    
+
     const response = await fetch(httpRequest.url, {
       method: httpRequest.method,
       headers: httpRequest.headers,
@@ -170,19 +172,21 @@ export class DefaultAgentPayClient implements AgentPayClient {
     });
 
     if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({ message: response.statusText })) as Record<string, unknown>;
+      const errorBody = (await response
+        .json()
+        .catch(() => ({ message: response.statusText }))) as Record<string, unknown>;
       throw new ValidationError(
         `Failed to list payments (${response.status}): ${(errorBody.message as string) || response.statusText}`
       );
     }
 
-    return await response.json() as ListAgentPaymentsResponse;
+    return (await response.json()) as ListAgentPaymentsResponse;
   }
 
   /**
    * Verify a payment token's signature.
    * Fetches Agent Pay's public keys from JWKS endpoint and verifies JWT.
-   * 
+   *
    * @param token - Payment token JWT to verify
    * @returns Decoded and verified payment token payload
    */
@@ -204,14 +208,14 @@ export class DefaultAgentPayClient implements AgentPayClient {
     try {
       const jwks = await this.getJWKS();
       const { payload } = await jwtVerify(token, jwks);
-      
+
       if (!payload.iss || !payload.iat || !payload.exp) {
         throw new ValidationError('Invalid payment token: missing required fields');
       }
 
       // Agent Pay uses payment_id at top level
-      const paymentId = (payload.payment_id as string) ||
-        (payload.payment_context as any)?.transaction_id || '';
+      const paymentId =
+        (payload.payment_id as string) || (payload.payment_context as any)?.transaction_id || '';
 
       return {
         iss: payload.iss as string,

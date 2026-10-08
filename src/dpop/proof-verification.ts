@@ -2,17 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * DPoP Proof Verification
- * 
+ *
  * Verify DPoP proof JWTs with security checks.
  */
 
 import * as jose from 'jose';
 import * as crypto from 'crypto';
-import {
-  DPoPProofPayload,
-  DPoPVerificationOptions,
-  DPoPError
-} from '../types';
+import { DPoPProofPayload, DPoPVerificationOptions, DPoPError } from '../types';
 
 /**
  * Compute access token hash for verification
@@ -24,19 +20,19 @@ function computeAccessTokenHash(accessToken: string): string {
 
 /**
  * Verify a DPoP proof JWT
- * 
+ *
  * Performs comprehensive security checks:
  * - Signature verification using embedded JWK
  * - Freshness check (iat within maxAge seconds)
  * - HTTP method and URL binding
  * - Access token hash verification (if provided)
  * - Replay protection via nonce store (if provided)
- * 
+ *
  * @param proof - DPoP proof JWT
  * @param options - Verification options
  * @returns Verified DPoP proof payload
  * @throws {DPoPError} If verification fails
- * 
+ *
  * @example
  * ```typescript
  * const payload = await verifyDPoPProof(proofJWT, {
@@ -55,7 +51,7 @@ export async function verifyDPoPProof(
   try {
     // Decode header to get JWK
     const header = jose.decodeProtectedHeader(proof);
-    
+
     // Validate header
     if (header.typ !== 'dpop+jwt') {
       throw new DPoPError('Invalid DPoP proof type', { typ: header.typ });
@@ -84,7 +80,7 @@ export async function verifyDPoPProof(
     const maxAge = options.maxAge ?? 60; // Default 60 seconds
     const now = Math.floor(Date.now() / 1000);
     const age = now - dpopPayload.iat;
-    
+
     if (age > maxAge) {
       throw new DPoPError('DPoP proof is stale', {
         iat: dpopPayload.iat,
@@ -152,14 +148,14 @@ export async function verifyDPoPProof(
 
 /**
  * Extract JWK thumbprint from DPoP proof
- * 
+ *
  * @param proof - DPoP proof JWT
  * @returns JWK thumbprint (jkt)
  */
 export async function extractDPoPThumbprint(proof: string): Promise<string> {
   try {
     const header = jose.decodeProtectedHeader(proof);
-    
+
     if (!header.jwk) {
       throw new DPoPError('Missing JWK in DPoP proof header');
     }

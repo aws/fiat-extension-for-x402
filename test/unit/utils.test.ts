@@ -17,28 +17,28 @@ import type { PaymentTokenPayload } from '../../src/types';
 describe('Utils', () => {
   describe('parseMoneyToDecimal', () => {
     it('should parse number to USD', () => {
-      const result = parseMoneyToDecimal(1.50);
-      expect(result).toEqual({ amount: 1.50, currency: 'USD' });
+      const result = parseMoneyToDecimal(1.5);
+      expect(result).toEqual({ amount: 1.5, currency: 'USD' });
     });
 
     it('should parse dollar string', () => {
       const result = parseMoneyToDecimal('$1.50');
-      expect(result).toEqual({ amount: 1.50, currency: 'USD' });
+      expect(result).toEqual({ amount: 1.5, currency: 'USD' });
     });
 
     it('should parse amount with currency', () => {
       const result = parseMoneyToDecimal('1.50 USD');
-      expect(result).toEqual({ amount: 1.50, currency: 'USD' });
+      expect(result).toEqual({ amount: 1.5, currency: 'USD' });
     });
 
     it('should parse amount with EUR currency', () => {
       const result = parseMoneyToDecimal('2.50 EUR');
-      expect(result).toEqual({ amount: 2.50, currency: 'EUR' });
+      expect(result).toEqual({ amount: 2.5, currency: 'EUR' });
     });
 
     it('should parse plain number string', () => {
       const result = parseMoneyToDecimal('1.50');
-      expect(result).toEqual({ amount: 1.50, currency: 'USD' });
+      expect(result).toEqual({ amount: 1.5, currency: 'USD' });
     });
 
     it('should throw ValidationError for invalid format', () => {
@@ -66,7 +66,7 @@ describe('Utils', () => {
       const result = parseTransactionId('fab:aws:abc123def456');
       expect(result).toEqual({
         network: 'fab:aws',
-        id: 'abc123def456'
+        id: 'abc123def456',
       });
     });
 
@@ -74,7 +74,7 @@ describe('Utils', () => {
       const result = parseTransactionId('fab:aws:us-east-1:abc123');
       expect(result).toEqual({
         network: 'fab:aws:us-east-1',
-        id: 'abc123'
+        id: 'abc123',
       });
     });
 
@@ -218,7 +218,7 @@ describe('Utils', () => {
       const txId1 = generateTransactionId('fab:aws', 'agent-pay-1');
       const txId2 = generateTransactionId('fab:google', 'agent-pay-2');
       const txId3 = generateTransactionId('fab:custom:network', 'agent-pay-3');
-      
+
       expect(txId1).toMatch(/^fab:aws:[a-f0-9]{16}$/);
       expect(txId2).toMatch(/^fab:google:[a-f0-9]{16}$/);
       expect(txId3).toMatch(/^fab:custom:network:[a-f0-9]{16}$/);
@@ -228,7 +228,7 @@ describe('Utils', () => {
       const txId = generateTransactionId('fab:test', 'agent-pay');
       const parts = txId.split(':');
       const id = parts[parts.length - 1];
-      
+
       expect(id).toHaveLength(16);
       expect(id).toMatch(/^[a-f0-9]{16}$/);
     });
@@ -239,7 +239,7 @@ describe('Utils', () => {
       const result = parseTransactionId('fab:aws:us-east-1:prod:service:abc123');
       expect(result).toEqual({
         network: 'fab:aws:us-east-1:prod:service',
-        id: 'abc123'
+        id: 'abc123',
       });
     });
 

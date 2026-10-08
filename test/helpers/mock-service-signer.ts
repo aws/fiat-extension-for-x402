@@ -11,29 +11,31 @@ import type { ServiceAgentPaySigner } from '../../src/config';
 /**
  * Create a mock service signer for testing
  */
-export async function createMockServiceSigner(serviceUrl: string = 'https://api.example.com'): Promise<{
+export async function createMockServiceSigner(
+  serviceUrl: string = 'https://api.example.com'
+): Promise<{
   signer: ServiceAgentPaySigner;
   privateKey: jose.KeyLike;
   publicKey: jose.KeyLike;
 }> {
   // Generate test key pair
   const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
-  
+
   const signer: ServiceAgentPaySigner = {
     signQuote: async (payload) => {
       return await new jose.SignJWT(payload as any)
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
     },
-    
+
     getPublicKey: () => publicKey,
-    
-    getServiceUrl: () => serviceUrl
+
+    getServiceUrl: () => serviceUrl,
   };
-  
+
   return {
     signer,
     privateKey,
-    publicKey
+    publicKey,
   };
 }
