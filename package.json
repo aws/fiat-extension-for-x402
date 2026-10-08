@@ -23,24 +23,24 @@
         "default": "./dist/index.cjs"
       }
     },
-    "./agent-pay/server": {
+    "./agentic-commerce/server": {
       "import": {
-        "types": "./dist/agent-pay/server/index.d.ts",
-        "default": "./dist/agent-pay/server/index.js"
+        "types": "./dist/agentic-commerce/server/index.d.ts",
+        "default": "./dist/agentic-commerce/server/index.js"
       },
       "require": {
-        "types": "./dist/agent-pay/server/index.d.cts",
-        "default": "./dist/agent-pay/server/index.cjs"
+        "types": "./dist/agentic-commerce/server/index.d.cts",
+        "default": "./dist/agentic-commerce/server/index.cjs"
       }
     },
-    "./agent-pay/facilitator": {
+    "./agentic-commerce/facilitator": {
       "import": {
-        "types": "./dist/agent-pay/facilitator/index.d.ts",
-        "default": "./dist/agent-pay/facilitator/index.js"
+        "types": "./dist/agentic-commerce/facilitator/index.d.ts",
+        "default": "./dist/agentic-commerce/facilitator/index.js"
       },
       "require": {
-        "types": "./dist/agent-pay/facilitator/index.d.cts",
-        "default": "./dist/agent-pay/facilitator/index.cjs"
+        "types": "./dist/agentic-commerce/facilitator/index.d.cts",
+        "default": "./dist/agentic-commerce/facilitator/index.cjs"
       }
     }
   },

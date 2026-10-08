@@ -2,24 +2,24 @@
 // SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import {
-  AGENT_PAY_SCHEME,
+  AGENTIC_COMMERCE_SCHEME,
   SETTLEMENT_METHODS,
   SETTLEMENT_CYCLES,
   DEFAULT_QUOTE_VALIDITY_SECONDS,
   DEFAULT_PAYMENT_VALIDITY_SECONDS,
-  AGENT_PAY_CAIP_FAMILY,
+  AGENTIC_COMMERCE_CAIP_FAMILY,
 } from '../../src/constants';
 
 describe('Constants', () => {
-  describe('AGENT_PAY_SCHEME', () => {
+  describe('AGENTIC_COMMERCE_SCHEME', () => {
     it('should be "aws:base"', () => {
-      expect(AGENT_PAY_SCHEME).toBe('agent-pay');
+      expect(AGENTIC_COMMERCE_SCHEME).toBe('agent-pay');
     });
   });
 
-  describe('AGENT_PAY_CAIP_FAMILY', () => {
+  describe('AGENTIC_COMMERCE_CAIP_FAMILY', () => {
     it('should be "fab:*"', () => {
-      expect(AGENT_PAY_CAIP_FAMILY).toBe('aws:*');
+      expect(AGENTIC_COMMERCE_CAIP_FAMILY).toBe('aws:*');
     });
   });
 

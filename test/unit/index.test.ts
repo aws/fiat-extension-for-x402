@@ -1,44 +1,44 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
-import * as AgentPay from '../../src/index';
+import * as AgenticCommerce from '../../src/index';
 
-describe('Agent Pay Package Exports', () => {
-  it('should export AgentPayServerScheme', () => {
-    expect(AgentPay.AgentPayServerScheme).toBeDefined();
+describe('Agentic Commerce Package Exports', () => {
+  it('should export AgenticCommerceServerScheme', () => {
+    expect(AgenticCommerce.AgenticCommerceServerScheme).toBeDefined();
   });
 
-  it('should export AgentPayFacilitatorScheme', () => {
-    expect(AgentPay.AgentPayFacilitatorScheme).toBeDefined();
+  it('should export AgenticCommerceFacilitatorScheme', () => {
+    expect(AgenticCommerce.AgenticCommerceFacilitatorScheme).toBeDefined();
   });
 
   it('should export signer functions', () => {
-    expect(AgentPay.toServiceAgentPaySigner).toBeDefined();
-    expect(AgentPay.toAgentPaySigner).toBeDefined();
+    expect(AgenticCommerce.toQuoteSigner).toBeDefined();
+    expect(AgenticCommerce.toPaymentTokenSigner).toBeDefined();
   });
 
   it('should export error classes', () => {
-    expect(AgentPay.AgentPayError).toBeDefined();
-    expect(AgentPay.ValidationError).toBeDefined();
-    expect(AgentPay.SignatureError).toBeDefined();
-    expect(AgentPay.ExpiryError).toBeDefined();
-    expect(AgentPay.MismatchError).toBeDefined();
-    expect(AgentPay.DPoPError).toBeDefined();
+    expect(AgenticCommerce.AgenticCommerceError).toBeDefined();
+    expect(AgenticCommerce.ValidationError).toBeDefined();
+    expect(AgenticCommerce.SignatureError).toBeDefined();
+    expect(AgenticCommerce.ExpiryError).toBeDefined();
+    expect(AgenticCommerce.MismatchError).toBeDefined();
+    expect(AgenticCommerce.DPoPError).toBeDefined();
   });
 
   it('should export constants', () => {
-    expect(AgentPay.AGENT_PAY_SCHEME).toBe('agent-pay');
-    expect(AgentPay.AGENT_PAY_CAIP_FAMILY).toBe('aws:*');
-    expect(AgentPay.SETTLEMENT_METHODS).toBeDefined();
-    expect(AgentPay.SETTLEMENT_CYCLES).toBeDefined();
+    expect(AgenticCommerce.AGENTIC_COMMERCE_SCHEME).toBe('agent-pay');
+    expect(AgenticCommerce.AGENTIC_COMMERCE_CAIP_FAMILY).toBe('aws:*');
+    expect(AgenticCommerce.SETTLEMENT_METHODS).toBeDefined();
+    expect(AgenticCommerce.SETTLEMENT_CYCLES).toBeDefined();
   });
 
   it('should export utility functions', () => {
-    expect(AgentPay.decodeQuoteToken).toBeDefined();
-    expect(AgentPay.verifyQuoteToken).toBeDefined();
-    expect(AgentPay.verifyPaymentToken).toBeDefined();
-    expect(AgentPay.extractQuoteFromPayment).toBeDefined();
-    expect(AgentPay.generateTransactionId).toBeDefined();
-    expect(AgentPay.parseMoneyToDecimal).toBeDefined();
+    expect(AgenticCommerce.decodeQuoteToken).toBeDefined();
+    expect(AgenticCommerce.verifyQuoteToken).toBeDefined();
+    expect(AgenticCommerce.verifyPaymentToken).toBeDefined();
+    expect(AgenticCommerce.extractQuoteFromPayment).toBeDefined();
+    expect(AgenticCommerce.generateTransactionId).toBeDefined();
+    expect(AgenticCommerce.parseMoneyToDecimal).toBeDefined();
   });
 });

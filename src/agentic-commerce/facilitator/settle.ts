@@ -1,38 +1,38 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Agent Pay Payment Settlement Logic
+ * Agentic Commerce Payment Settlement Logic
  *
- * In the Agent Pay model, payments are auto-captured during CreateAgentPayment.
+ * In the Agentic Commerce model, payments are auto-captured when the service creates the payment.
  * There is no separate capture/settle step. This function returns success
  * immediately — the payment was already settled when it was created.
  */
 
 import { PaymentPayload, PaymentRequirements, SettleResponse } from '@x402/core/types';
-import type { AgentPayClientForFacilitator } from '../../config';
-import { AgentPayPayloadV2 } from '../../types';
+import type { AgenticCommerceClientForFacilitator } from '../../config';
+import { AgenticCommercePayloadV2 } from '../../types';
 
 /**
- * Settle a Agent Pay payment
+ * Settle a Agentic Commerce payment
  *
- * Agent Pay auto-captures on creation — there is no separate /capture endpoint.
+ * Agentic Commerce auto-captures on creation — there is no separate /capture endpoint.
  * This function is a no-op that returns success, since the payment was already
- * settled when the Agent Pay Service processed CreateAgentPayment.
+ * settled when the Agentic Commerce Service created the payment.
  *
- * @param agentPayClient - Agent Pay client (unused — no capture call needed)
+ * @param agenticCommerceClient - Agentic Commerce client (unused — no capture call needed)
  * @param payload - Payment payload
  * @param requirements - Payment requirements
- * @param apPayload - Agent Pay-specific payload
+ * @param apPayload - Agentic Commerce-specific payload
  * @returns Settlement response (always success for auto-captured payments)
  */
 export async function settlePayment(
-  _agentPayClient: AgentPayClientForFacilitator,
+  _agenticCommerceClient: AgenticCommerceClientForFacilitator,
   _payload: PaymentPayload,
   requirements: PaymentRequirements,
-  apPayload: AgentPayPayloadV2
+  apPayload: AgenticCommercePayloadV2
 ): Promise<SettleResponse> {
-  // Agent Pay auto-captures — no HTTP call needed.
-  // The payment was already settled during CreateAgentPayment.
+  // Agentic Commerce auto-captures — no HTTP call needed.
+  // The payment was already settled when the service created it.
   return {
     success: true,
     transaction: apPayload.paymentId || apPayload.transactionId || '',

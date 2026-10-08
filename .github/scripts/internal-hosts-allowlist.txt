@@ -8,13 +8,9 @@
 #   removes a token (or moves its file) must delete or update the entry.
 # Do not add entries for new code: use example.com or a placeholder instead.
 
-# Service constants, removed or renamed by PR 7 (rename and new layout).
-src/constants.ts agentpay-test-2026 # PR 7: hard-coded JWKS WAF access key (AGENT_PAY_JWKS_ACCESS_KEY) removed
-src/constants.ts d3aeb2cjjowogc.cloudfront.net # PR 7: hard-coded JWKS host (AGENT_PAY_JWKS_BASE_URL) removed or renamed
-src/agent-pay-facilitator-client.ts agentpay.marketplace.aws.dev # PR 7: file renamed; the JSDoc example uses example.com
-test/unit/security.test.ts pay.aws.amazon.com # PR 7: renamed test uses example.com
-test/unit/types.test.ts pay.aws.amazon.com # PR 7: renamed test uses example.com
-test/unit/utils.test.ts pay.aws.amazon.com # PR 7: renamed test uses example.com
+# Default payment-token JWKS host, kept by PR 7 because the facilitator client
+# uses it at runtime. PR 10 (single verifier) takes over the JWKS fetch.
+src/constants.ts d3aeb2cjjowogc.cloudfront.net # PR 10: default JWKS host (DEFAULT_PAYMENT_TOKEN_JWKS_BASE_URL) moves to the verifier's configuration
 
 # Docs, rewritten for seller and facilitator by PR 14.
 README.md agentpay.marketplace.aws.dev # PR 14: README rewrite

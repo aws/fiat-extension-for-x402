@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import { generateDPoPKeyPair, createDPoPProof } from '../../helpers/dpop';
-import { verifyDPoPProof, extractDPoPThumbprint } from '../../../src/dpop/proof-verification';
+import { verifyDPoPProof, extractDPoPThumbprint } from '../../../src/dpop/verification';
 import { DPoPError, DPoPNonceStore } from '../../../src/types';
 
 // Simple in-memory nonce store for testing

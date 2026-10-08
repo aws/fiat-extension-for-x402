@@ -21,15 +21,15 @@ When a buyer requests a paid resource without payment, return a signed quote:
 ### Option A: KMS-hosted keys (recommended for AWS sellers)
 
 ```typescript
-import { createKmsSigner, AgentPayScheme } from '@aws/fiat-extension-for-x402';
+import { createKmsQuoteSigner, AgenticCommerceServerScheme } from '@aws/fiat-extension-for-x402';
 
 // Once at startup
-const signer = createKmsSigner({
+const signer = createKmsQuoteSigner({
   keyArn: 'arn:aws:kms:us-east-1:YOUR_ACCOUNT:alias/your-signing-key',
   region: 'us-east-1',
   serviceUrl: 'https://api.your-service.com',
 });
-const agentPay = new AgentPayScheme({ signer });
+const agentPay = new AgenticCommerceServerScheme({ signer });
 
 // In your API handler:
 const requirements = await agentPay.enhancePaymentRequirements({
@@ -48,12 +48,12 @@ res.status(402).json({ x402Version: 2, accepts: [requirements] });
 ### Option B: Self-hosted keys
 
 ```typescript
-import { AgentPayScheme } from '@aws/fiat-extension-for-x402';
+import { AgenticCommerceServerScheme } from '@aws/fiat-extension-for-x402';
 import * as jose from 'jose';
 
 const { privateKey, publicKey } = await jose.generateKeyPair('ES384');
 
-const agentPay = new AgentPayScheme({
+const agentPay = new AgenticCommerceServerScheme({
   signer: {
     signQuote: async (payload) =>
       new jose.SignJWT(payload)
@@ -110,10 +110,10 @@ When the buyer retries with a payment token, verify it before delivering the res
 **Important:** For JWKS URLs, pass only the **base URL** — the SDK automatically appends `/.well-known/jwks.json`.
 
 ```typescript
-import { AgentPayFacilitatorClient } from '@aws/fiat-extension-for-x402';
+import { AgenticCommerceFacilitatorClient } from '@aws/fiat-extension-for-x402';
 
 // Option 1: KMS-hosted key
-const verifier = new AgentPayFacilitatorClient(
+const verifier = new AgenticCommerceFacilitatorClient(
   'https://agentpay.marketplace.aws.dev',
   undefined, undefined, undefined,
   {
@@ -125,7 +125,7 @@ const verifier = new AgentPayFacilitatorClient(
 );
 
 // Option 2: Self-hosted JWKS endpoint
-const verifier2 = new AgentPayFacilitatorClient(
+const verifier2 = new AgenticCommerceFacilitatorClient(
   'https://agentpay.marketplace.aws.dev',
   undefined, undefined, undefined,
   {
@@ -137,7 +137,7 @@ const verifier2 = new AgentPayFacilitatorClient(
 
 // Option 3: No config — auto-discovers from quote token's iss claim
 // SDK fetches: {iss}/.well-known/jwks.json
-const verifier3 = new AgentPayFacilitatorClient('https://agentpay.marketplace.aws.dev');
+const verifier3 = new AgenticCommerceFacilitatorClient('https://agentpay.marketplace.aws.dev');
 ```
 
 ```typescript
@@ -157,7 +157,7 @@ await verifier.settle(paymentPayload, originalRequirements);
 
 ## HTTP Middleware
 
-This package does not ship HTTP middleware. To protect routes, register `AgentPayServerScheme` on the stock x402 `x402ResourceServer` and use x402's own server middleware for your framework. Known gap: with the current `agent-pay` scheme the stock middleware mints a new quote token on the paid retry, so it does not match the payment and the request gets 402 again; the `exact` scheme rewrite fixes this.
+This package does not ship HTTP middleware. To protect routes, register `AgenticCommerceServerScheme` on the stock x402 `x402ResourceServer` and use x402's own server middleware for your framework. Known gap: with the current `agent-pay` scheme the stock middleware mints a new quote token on the paid retry, so it does not match the payment and the request gets 402 again; the `exact` scheme rewrite fixes this.
 
 ---
 
@@ -183,8 +183,8 @@ Buyer Agent                    Seller API                  Agent Pay Service
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| `AGENT_PAY_AUDIENCE` | `aws:marketplace` | Required `aud` in quote tokens |
-| `PAYMENT_JWT_ISSUER` | `awsmp-agentpay.amazonaws.com` | `iss` in payment tokens |
+| `QUOTE_TOKEN_AUDIENCE` | `aws:marketplace` | Required `aud` in quote tokens |
+| `PAYMENT_TOKEN_ISSUER` | `awsmp-agentpay.amazonaws.com` | `iss` in payment tokens |
 | `DEFAULT_NETWORK` | `aws:base` | Network identifier for AWS Marketplace |
 
 ## Supported Algorithms

@@ -4,18 +4,19 @@ import { describe, it, expect } from 'vitest';
 import * as jose from 'jose';
 import { computeJWKThumbprint } from '../../../src/dpop';
 import { generateDPoPKeyPair, createDPoPProof } from '../../helpers/dpop';
-import { AgentPayFacilitatorClient } from '../../../src/agent-pay-facilitator-client';
+import { AgenticCommerceFacilitatorClient } from '../../../src/agentic-commerce/facilitator-client';
 import { setupMockServer } from './helpers';
+import { AGENTIC_COMMERCE_SCHEME } from '../../../src/constants';
 import http from 'http';
 
 /**
  * Helper: create a minimal mock JWKS server + signed payment token with cnf.jkt
  */
 async function createDPoPBoundScenario() {
-  // Generate Agent Pay's signing key
+  // Generate Agentic Commerce's signing key
   const { privateKey: apPrivateKey, publicKey: apPublicKey } = await jose.generateKeyPair('ES384');
   const apJwk = await jose.exportJWK(apPublicKey);
-  apJwk.kid = 'agentpay-key-1';
+  apJwk.kid = 'service-key-1';
   apJwk.use = 'sig';
   apJwk.alg = 'ES384';
 
@@ -45,7 +46,7 @@ async function createDPoPBoundScenario() {
     .setJti('quote-123')
     .sign(sellerPrivateKey);
 
-  // Create Agent Pay's payment token (with cnf.jkt binding)
+  // Create Agentic Commerce's payment token (with cnf.jkt binding)
   const paymentToken = await new jose.SignJWT({
     iss: 'awsmp-agentpay.amazonaws.com',
     sub: 'buyer-account-123',
@@ -53,13 +54,13 @@ async function createDPoPBoundScenario() {
     quote_token: quoteToken,
     cnf: { jkt },
   })
-    .setProtectedHeader({ alg: 'ES384', typ: 'JWT', kid: 'agentpay-key-1' })
+    .setProtectedHeader({ alg: 'ES384', typ: 'JWT', kid: 'service-key-1' })
     .setIssuedAt()
     .setExpirationTime('1h')
     .sign(apPrivateKey);
 
   // Start mock JWKS servers
-  const agentPayServer = http.createServer((req, res) => {
+  const agenticCommerceServer = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ keys: [apJwk] }));
   });
@@ -68,10 +69,10 @@ async function createDPoPBoundScenario() {
     res.end(JSON.stringify({ keys: [sellerJwk] }));
   });
 
-  await new Promise<void>((resolve) => agentPayServer.listen(0, resolve));
+  await new Promise<void>((resolve) => agenticCommerceServer.listen(0, resolve));
   await new Promise<void>((resolve) => sellerServer.listen(0, resolve));
 
-  const apPort = (agentPayServer.address() as any).port;
+  const apPort = (agenticCommerceServer.address() as any).port;
   const sellerPort = (sellerServer.address() as any).port;
 
   return {
@@ -82,7 +83,7 @@ async function createDPoPBoundScenario() {
     apPort,
     sellerPort,
     cleanup: () => {
-      agentPayServer.close();
+      agenticCommerceServer.close();
       sellerServer.close();
     },
   };
@@ -94,7 +95,7 @@ describe('DPoP verification in seller verify flow', () => {
       await createDPoPBoundScenario();
 
     try {
-      const verifier = new AgentPayFacilitatorClient(
+      const verifier = new AgenticCommerceFacilitatorClient(
         `http://localhost:${apPort}`,
         undefined,
         undefined,
@@ -111,13 +112,13 @@ describe('DPoP verification in seller verify flow', () => {
         {
           payload: { paymentId: 'awsmp-test', paymentToken },
           x402Version: 2,
-          scheme: 'agent-pay',
+          scheme: AGENTIC_COMMERCE_SCHEME,
           network: 'aws:base',
         } as any,
         {
           amount: '0.05',
           asset: 'iso4217:USD',
-          scheme: 'agent-pay',
+          scheme: AGENTIC_COMMERCE_SCHEME,
           network: 'aws:base',
           payTo: 'x',
           maxTimeoutSeconds: 300,
@@ -137,7 +138,7 @@ describe('DPoP verification in seller verify flow', () => {
       await createDPoPBoundScenario();
 
     try {
-      const verifier = new AgentPayFacilitatorClient(
+      const verifier = new AgenticCommerceFacilitatorClient(
         `http://localhost:${apPort}`,
         undefined,
         undefined,
@@ -149,13 +150,13 @@ describe('DPoP verification in seller verify flow', () => {
         {
           payload: { paymentId: 'awsmp-test', paymentToken },
           x402Version: 2,
-          scheme: 'agent-pay',
+          scheme: AGENTIC_COMMERCE_SCHEME,
           network: 'aws:base',
         } as any,
         {
           amount: '0.05',
           asset: 'iso4217:USD',
-          scheme: 'agent-pay',
+          scheme: AGENTIC_COMMERCE_SCHEME,
           network: 'aws:base',
           payTo: 'x',
           maxTimeoutSeconds: 300,
@@ -176,7 +177,7 @@ describe('DPoP verification in seller verify flow', () => {
       await createDPoPBoundScenario();
 
     try {
-      const verifier = new AgentPayFacilitatorClient(
+      const verifier = new AgenticCommerceFacilitatorClient(
         `http://localhost:${apPort}`,
         undefined,
         undefined,
@@ -195,13 +196,13 @@ describe('DPoP verification in seller verify flow', () => {
         {
           payload: { paymentId: 'awsmp-test', paymentToken },
           x402Version: 2,
-          scheme: 'agent-pay',
+          scheme: AGENTIC_COMMERCE_SCHEME,
           network: 'aws:base',
         } as any,
         {
           amount: '0.05',
           asset: 'iso4217:USD',
-          scheme: 'agent-pay',
+          scheme: AGENTIC_COMMERCE_SCHEME,
           network: 'aws:base',
           payTo: 'x',
           maxTimeoutSeconds: 300,
@@ -222,7 +223,7 @@ describe('DPoP verification in seller verify flow', () => {
     const { privateKey: apPrivateKey, publicKey: apPublicKey } =
       await jose.generateKeyPair('ES384');
     const apJwk = await jose.exportJWK(apPublicKey);
-    apJwk.kid = 'agentpay-key-1';
+    apJwk.kid = 'service-key-1';
     apJwk.use = 'sig';
     apJwk.alg = 'ES384';
 
@@ -253,7 +254,7 @@ describe('DPoP verification in seller verify flow', () => {
       payment_id: 'awsmp-no-dpop',
       quote_token: quoteToken,
     })
-      .setProtectedHeader({ alg: 'ES384', typ: 'JWT', kid: 'agentpay-key-1' })
+      .setProtectedHeader({ alg: 'ES384', typ: 'JWT', kid: 'service-key-1' })
       .setIssuedAt()
       .setExpirationTime('1h')
       .sign(apPrivateKey);
@@ -272,7 +273,7 @@ describe('DPoP verification in seller verify flow', () => {
     const sellerPort = (sellerServer.address() as any).port;
 
     try {
-      const verifier = new AgentPayFacilitatorClient(
+      const verifier = new AgenticCommerceFacilitatorClient(
         `http://localhost:${apPort}`,
         undefined,
         undefined,
@@ -285,13 +286,13 @@ describe('DPoP verification in seller verify flow', () => {
         {
           payload: { paymentId: 'awsmp-no-dpop', paymentToken },
           x402Version: 2,
-          scheme: 'agent-pay',
+          scheme: AGENTIC_COMMERCE_SCHEME,
           network: 'aws:base',
         } as any,
         {
           amount: '0.05',
           asset: 'iso4217:USD',
-          scheme: 'agent-pay',
+          scheme: AGENTIC_COMMERCE_SCHEME,
           network: 'aws:base',
           payTo: 'x',
           maxTimeoutSeconds: 300,

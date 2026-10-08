@@ -1,9 +1,9 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Agent Pay-specific types for the x402 protocol
+ * Agentic Commerce-specific types for the x402 protocol
  *
- * This module contains all type definitions for the Agent Pay payment scheme,
+ * This module contains all type definitions for the Agentic Commerce payment scheme,
  * including settlement types, payment structures, and error classes.
  */
 
@@ -12,9 +12,9 @@
 // ============================================================================
 
 /**
- * Settlement method codes (Agent Pay-specific, with ISO 20022 mapping intent)
+ * Settlement method codes (Agentic Commerce-specific, with ISO 20022 mapping intent)
  *
- * Note: These are Agent Pay conceptual codes, not official ISO 20022 settlement method codes.
+ * Note: These are Agentic Commerce conceptual codes, not official ISO 20022 settlement method codes.
  * The actual ISO 20022 settlement methods are: INDA, INGA, COVE, CLRG.
  *
  * - INST: Instant settlement (maps to immediate fund transfer via FedNow/SEPA)
@@ -34,7 +34,7 @@ export type SettlementCycle = 'MNTH' | 'WEEK' | 'QRTR';
 /**
  * Settlement terms for a payment
  */
-export interface AgentPaySettlement {
+export interface AgenticCommerceSettlement {
   /** Settlement method (required) */
   method: SettlementMethod;
   /** Settlement cycle (optional) */
@@ -44,7 +44,7 @@ export interface AgentPaySettlement {
 /**
  * Support contact information for disputes
  */
-export interface AgentPaySupport {
+export interface AgenticCommerceSupport {
   /** URI for support/dispute resolution */
   uri: string;
   /** Support method type */
@@ -54,7 +54,7 @@ export interface AgentPaySupport {
 /**
  * Terms and conditions reference
  */
-export interface AgentPayTerms {
+export interface AgenticCommerceTerms {
   /** Human-readable description of the terms */
   description: string;
   /** URI to the full terms document */
@@ -66,20 +66,20 @@ export interface AgentPayTerms {
 // ============================================================================
 
 /**
- * Agent Pay-specific payment extra data
+ * Agentic Commerce-specific payment extra data
  * This is stored in the `extra` field of x402 PaymentRequirements
  */
-export interface AgentPayPaymentExtra {
+export interface AgenticCommercePaymentExtra {
   /** Quote token (signed JWT from service) - REQUIRED */
   quoteToken: string;
   /** Product/service reference identifier - OPTIONAL */
   reference?: string;
   /** Settlement terms - OPTIONAL */
-  settlement?: AgentPaySettlement;
+  settlement?: AgenticCommerceSettlement;
   /** Support/dispute contact information - OPTIONAL */
-  support?: AgentPaySupport;
+  support?: AgenticCommerceSupport;
   /** Terms and conditions references - OPTIONAL */
-  terms?: AgentPayTerms[];
+  terms?: AgenticCommerceTerms[];
 }
 
 /**
@@ -94,12 +94,12 @@ export interface QuoteTokenPrice {
 
 /**
  * Quote token JWT payload
- * This is the structure of the signed JWT in AgentPayPaymentExtra.quoteToken
+ * This is the structure of the signed JWT in AgenticCommercePaymentExtra.quoteToken
  */
 export interface QuoteTokenPayload {
   /** Issuer - service identity */
   iss: string;
-  /** Audience - target Agent Pay provider(s) */
+  /** Audience - target Agentic Commerce provider(s) */
   aud: string | string[];
   /** Issued at timestamp */
   iat: number;
@@ -109,7 +109,7 @@ export interface QuoteTokenPayload {
   jti: string;
   /** Price (single or multiple currency options) */
   price: QuoteTokenPrice | QuoteTokenPrice[];
-  /** Payment recipient - seller's Agent Pay ID */
+  /** Payment recipient - seller's Agentic Commerce ID */
   payTo: string;
   /** Product/service reference identifier */
   reference: string;
@@ -118,18 +118,18 @@ export interface QuoteTokenPayload {
   /** Key-value dimensions describing units consumed (e.g., { tokens: 1500, model: "claude-4" }) - OPTIONAL */
   dimensions?: Record<string, string | number>;
   /** Settlement terms - OPTIONAL */
-  settlement?: AgentPaySettlement;
+  settlement?: AgenticCommerceSettlement;
   /** Support/dispute contact information - OPTIONAL */
-  support?: AgentPaySupport;
+  support?: AgenticCommerceSupport;
   /** Terms and conditions references - OPTIONAL */
-  terms?: AgentPayTerms[];
+  terms?: AgenticCommerceTerms[];
 }
 
 /**
  * Payment context embedded in payment token
  */
 export interface PaymentContext {
-  /** Transaction ID from Agent Pay (format: {network}:{id}) */
+  /** Transaction ID from Agentic Commerce (format: {network}:{id}) */
   transaction_id: string;
   /** Original quote token (signed JWT from service) */
   quote_token: string;
@@ -137,12 +137,12 @@ export interface PaymentContext {
 
 /**
  * Payment token JWT payload
- * This is the structure of the signed JWT from Agent Pay
+ * This is the structure of the signed JWT from Agentic Commerce
  */
 export interface PaymentTokenPayload {
-  /** Issuer - Agent Pay provider identity (awsmp-agentpay.amazonaws.com) */
+  /** Issuer - Agentic Commerce provider identity (awsmp-agentpay.amazonaws.com) */
   iss: string;
-  /** Subject - client/buyer identity (optional — Agent Pay may not include) */
+  /** Subject - client/buyer identity (optional — Agentic Commerce may not include) */
   sub?: string;
   /** Audience - seller service URL */
   aud: string;
@@ -156,7 +156,7 @@ export interface PaymentTokenPayload {
   quote_token?: string;
   /** JWT ID (same as payment_id) */
   jti?: string;
-  /** @deprecated Legacy payment context — Agent Pay now uses top-level fields */
+  /** @deprecated Legacy payment context — Agentic Commerce now uses top-level fields */
   payment_context?: PaymentContext;
   /** Confirmation claim for DPoP (optional) */
   cnf?: {
@@ -166,12 +166,12 @@ export interface PaymentTokenPayload {
 }
 
 /**
- * Agent Pay payload for x402 PaymentPayload
+ * Agentic Commerce payload for x402 PaymentPayload
  */
-export interface AgentPayPayloadV2 {
-  /** Payment token (signed JWT from Agent Pay) */
+export interface AgenticCommercePayloadV2 {
+  /** Payment token (signed JWT from Agentic Commerce) */
   paymentToken: string;
-  /** Payment ID from Agent Pay (format: awsmp-{UUIDv7}) */
+  /** Payment ID from Agentic Commerce (format: awsmp-{UUIDv7}) */
   paymentId: string;
   /** @deprecated Use paymentId. Kept for backward compatibility. */
   transactionId?: string;
@@ -230,11 +230,11 @@ export interface DPoPNonceStore {
 // ============================================================================
 
 /**
- * Base error class for all Agent Pay-related errors
+ * Base error class for all Agentic Commerce-related errors
  */
-export class AgentPayError extends Error {
+export class AgenticCommerceError extends Error {
   /**
-   * Create a new Agent Pay error
+   * Create a new Agentic Commerce error
    * @param message - Human-readable error message
    * @param code - Machine-readable error code
    * @param details - Additional error context
@@ -245,9 +245,9 @@ export class AgentPayError extends Error {
     public details?: Record<string, unknown>
   ) {
     super(message);
-    this.name = 'AgentPayError';
+    this.name = 'AgenticCommerceError';
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, AgentPayError);
+      Error.captureStackTrace(this, AgenticCommerceError);
     }
   }
 }
@@ -255,7 +255,7 @@ export class AgentPayError extends Error {
 /**
  * Error thrown when validation fails
  */
-export class ValidationError extends AgentPayError {
+export class ValidationError extends AgenticCommerceError {
   constructor(message: string, details?: Record<string, unknown>) {
     super(message, 'VALIDATION_ERROR', details);
     this.name = 'ValidationError';
@@ -268,7 +268,7 @@ export class ValidationError extends AgentPayError {
 /**
  * Error thrown when JWT signature verification fails
  */
-export class SignatureError extends AgentPayError {
+export class SignatureError extends AgenticCommerceError {
   constructor(
     message: string,
     public tokenType: 'quote' | 'payment'
@@ -284,7 +284,7 @@ export class SignatureError extends AgentPayError {
 /**
  * Error thrown when a token has expired
  */
-export class ExpiryError extends AgentPayError {
+export class ExpiryError extends AgenticCommerceError {
   constructor(
     message: string,
     public expiry: number,
@@ -301,7 +301,7 @@ export class ExpiryError extends AgentPayError {
 /**
  * Error thrown when data values don't match expected values
  */
-export class MismatchError extends AgentPayError {
+export class MismatchError extends AgenticCommerceError {
   constructor(
     message: string,
     public expected: unknown,
@@ -318,7 +318,7 @@ export class MismatchError extends AgentPayError {
 /**
  * Error thrown when DPoP proof verification fails
  */
-export class DPoPError extends AgentPayError {
+export class DPoPError extends AgenticCommerceError {
   constructor(message: string, details?: Record<string, unknown>) {
     super(message, 'DPOP_ERROR', details);
     this.name = 'DPoPError';

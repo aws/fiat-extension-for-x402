@@ -1,20 +1,20 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Signer interfaces and adapters for Agent Pay JWT operations
+ * Signer interfaces and adapters for Agentic Commerce JWT operations
  *
- * Agent Pay uses JWT signing instead of crypto Agent Pay signing.
+ * Agentic Commerce uses JWT signing instead of crypto Agentic Commerce signing.
  * This module provides interfaces and adapter functions for both
- * service-side (quote token signing) and Agent Pay-side (payment token signing).
+ * service-side (quote token signing) and Agentic Commerce-side (payment token signing).
  */
 
 import * as jose from 'jose';
-import { QuoteTokenPayload, PaymentTokenPayload } from './types';
+import { QuoteTokenPayload, PaymentTokenPayload } from '../types';
 
 /**
  * Signer for service-side operations (quote token signing)
  */
-export interface ServiceAgentPaySigner {
+export interface QuoteSigner {
   /**
    * Sign a quote token JWT
    * @param payload - Quote token payload to sign
@@ -36,9 +36,9 @@ export interface ServiceAgentPaySigner {
 }
 
 /**
- * Signer for Agent Pay-side operations (payment token signing)
+ * Signer for Agentic Commerce-side operations (payment token signing)
  */
-export interface AgentPaySigner {
+export interface PaymentTokenSigner {
   /**
    * Sign a payment token JWT
    * @param payload - Payment token payload to sign
@@ -53,19 +53,19 @@ export interface AgentPaySigner {
   getPublicKey(): jose.JWK;
 
   /**
-   * Get Agent Pay addresses (for facilitator supported endpoint)
-   * @returns Array of Agent Pay IDs
+   * Get Agentic Commerce addresses (for facilitator supported endpoint)
+   * @returns Array of Agentic Commerce IDs
    */
   getAddresses(): string[];
 }
 
 /**
- * Convert a jose KeyLike to a ServiceAgentPaySigner
+ * Convert a jose KeyLike to a QuoteSigner
  *
  * @param privateKey - Private key for signing (RS256 or ES256)
  * @param publicKey - Public key in JWK format
  * @param serviceUrl - Service URL (issuer)
- * @returns ServiceAgentPaySigner instance
+ * @returns QuoteSigner instance
  *
  * @example
  * ```typescript
@@ -74,18 +74,18 @@ export interface AgentPaySigner {
  * const { privateKey, publicKey } = await generateKeyPair('RS256');
  * const publicJWK = await exportJWK(publicKey);
  *
- * const signer = toServiceAgentPaySigner(
+ * const signer = toQuoteSigner(
  *   privateKey,
  *   publicJWK,
  *   'https://api.service.com'
  * );
  * ```
  */
-export function toServiceAgentPaySigner(
+export function toQuoteSigner(
   privateKey: jose.KeyLike,
   publicKey: jose.JWK,
   serviceUrl: string
-): ServiceAgentPaySigner {
+): QuoteSigner {
   return {
     async signQuote(payload: QuoteTokenPayload): Promise<string> {
       return await new jose.SignJWT(payload as any)
@@ -102,12 +102,12 @@ export function toServiceAgentPaySigner(
 }
 
 /**
- * Convert a jose KeyLike to a AgentPaySigner
+ * Convert a jose KeyLike to a PaymentTokenSigner
  *
  * @param privateKey - Private key for signing (RS256 or ES256)
  * @param publicKey - Public key in JWK format
- * @param agentPayId - Agent Pay identifier
- * @returns AgentPaySigner instance
+ * @param agenticCommerceId - Agentic Commerce identifier
+ * @returns PaymentTokenSigner instance
  *
  * @example
  * ```typescript
@@ -116,18 +116,18 @@ export function toServiceAgentPaySigner(
  * const { privateKey, publicKey } = await generateKeyPair('RS256');
  * const publicJWK = await exportJWK(publicKey);
  *
- * const signer = toAgentPaySigner(
+ * const signer = toPaymentTokenSigner(
  *   privateKey,
  *   publicJWK,
- *   'agent-pay-provider-id'
+ *   'agentic-commerce-provider-id'
  * );
  * ```
  */
-export function toAgentPaySigner(
+export function toPaymentTokenSigner(
   privateKey: jose.KeyLike,
   publicKey: jose.JWK,
-  agentPayId: string
-): AgentPaySigner {
+  agenticCommerceId: string
+): PaymentTokenSigner {
   return {
     async signPayment(payload: PaymentTokenPayload): Promise<string> {
       return await new jose.SignJWT(payload as any)
@@ -138,7 +138,7 @@ export function toAgentPaySigner(
       return publicKey;
     },
     getAddresses(): string[] {
-      return [agentPayId];
+      return [agenticCommerceId];
     },
   };
 }

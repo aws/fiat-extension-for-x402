@@ -55,9 +55,9 @@ describe('Security Utilities', () => {
 
   describe('validateUrl', () => {
     it('should accept valid HTTPS URLs', () => {
-      const url = validateUrl('https://pay.aws.amazon.com');
+      const url = validateUrl('https://pay.example.com');
       expect(url.protocol).toBe('https:');
-      expect(url.hostname).toBe('pay.aws.amazon.com');
+      expect(url.hostname).toBe('pay.example.com');
     });
 
     it('should accept HTTP localhost', () => {
@@ -72,7 +72,7 @@ describe('Security Utilities', () => {
     });
 
     it('should reject HTTP for non-localhost', () => {
-      expect(() => validateUrl('http://pay.aws.amazon.com')).toThrow('Insecure URL protocol');
+      expect(() => validateUrl('http://pay.example.com')).toThrow('Insecure URL protocol');
     });
 
     it('should reject invalid URLs', () => {
@@ -81,7 +81,7 @@ describe('Security Utilities', () => {
     });
 
     it('should allow HTTP when allowHttp is true', () => {
-      const url = validateUrl('http://pay.aws.amazon.com', true);
+      const url = validateUrl('http://pay.example.com', true);
       expect(url.protocol).toBe('http:');
     });
 

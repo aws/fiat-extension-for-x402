@@ -31,13 +31,13 @@ import type {
  * ```typescript
  * import { x402Facilitator } from '@x402/core/facilitator';
  * import { x402ResourceServer } from '@x402/core/server';
- * import { InProcessFacilitatorClient, AgentPayFacilitatorScheme } from '@aws/fiat-extension-for-x402';
+ * import { InProcessFacilitatorClient, AgenticCommerceFacilitatorScheme } from '@aws/fiat-extension-for-x402';
  *
- * // Create facilitator with Agent Pay scheme
+ * // Create facilitator with Agentic Commerce scheme
  * const facilitator = new x402Facilitator()
- *   .register('aws:base', new AgentPayFacilitatorSchemeImpl({
- *     agentPayId: 'my-agent-pay',
- *     agentPay: { baseUrl: 'https://pay.example.com' }
+ *   .register('aws:base', new AgenticCommerceFacilitatorScheme({
+ *     agenticCommerceId: 'my-agentic-commerce',
+ *     agenticCommerce: { baseUrl: 'https://pay.example.com' }
  *   }));
  *
  * // Wrap in client

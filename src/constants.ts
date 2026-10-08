@@ -1,16 +1,16 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Constants for the Agent Pay x402 extension
+ * Constants for the Agentic Commerce x402 extension
  */
 
 /**
- * Agent Pay scheme identifier
+ * Agentic Commerce scheme identifier
  */
-export const AGENT_PAY_SCHEME = 'agent-pay';
+export const AGENTIC_COMMERCE_SCHEME = 'agent-pay';
 
 /**
- * Agent Pay settlement method codes (Agent Pay-specific, not official ISO 20022)
+ * Agentic Commerce settlement method codes (Agentic Commerce-specific, not official ISO 20022)
  */
 export const SETTLEMENT_METHODS = {
   INST: 'INST', // Instant settlement
@@ -38,26 +38,27 @@ export const DEFAULT_QUOTE_VALIDITY_SECONDS = 300;
 export const DEFAULT_PAYMENT_VALIDITY_SECONDS = 3600;
 
 /**
- * CAIP family for Agent Pay (used in facilitator)
+ * CAIP family for Agentic Commerce (used in facilitator)
  */
-export const AGENT_PAY_CAIP_FAMILY = 'aws:*';
+export const AGENTIC_COMMERCE_CAIP_FAMILY = 'aws:*';
 
 /**
- * Default network identifier for AWS Marketplace Agent Pay.
+ * Default network identifier for AWS Marketplace Agentic Commerce.
  * Use this constant instead of hardcoding the network string.
  */
 export const DEFAULT_NETWORK = 'aws:base';
 
 /**
- * Payment JWT issuer claim value used by the AWS Marketplace Agent Pay Service.
- * This is the `iss` field in Payment JWTs signed by Agent Pay.
+ * `iss` claim of every payment token issued by the AWS Marketplace Agentic
+ * Commerce service. The value is set by the service and is the only service
+ * literal in this package.
  */
-export const PAYMENT_JWT_ISSUER = 'awsmp-agentpay.amazonaws.com';
+export const PAYMENT_TOKEN_ISSUER = 'awsmp-agentpay.amazonaws.com';
 
 /**
- * Sentinel value for PaymentRequirements.payTo in Agent Pay.
+ * Sentinel value for PaymentRequirements.payTo in Agentic Commerce.
  *
- * In Agent Pay, the signed quote token is the authoritative source for the payment
+ * In Agentic Commerce, the signed quote token is the authoritative source for the payment
  * recipient. The outer PaymentRequirements.payTo field is required by @x402/core
  * but semantically redundant — the quote token's payTo is signed by the service
  * and cannot be tampered with, whereas the outer field is unsigned.
@@ -65,7 +66,7 @@ export const PAYMENT_JWT_ISSUER = 'awsmp-agentpay.amazonaws.com';
  * This URN signals to any consumer that the quote token should be consulted
  * for the real payment recipient.
  */
-export const AGENT_PAY_SENTINEL_PAY_TO = 'urn:x402:agent-pay:see-quote';
+export const SENTINEL_PAY_TO = 'urn:x402:agentic-commerce:see-quote';
 
 // ============================================================================
 // Well-Known Paths
@@ -84,22 +85,16 @@ export const WELL_KNOWN_JWKS_PATH = '/.well-known/jwks.json';
 export const WELL_KNOWN_X402_SUPPORTED_PATH = '/.well-known/x402-supported';
 
 /**
- * The audience identifier for the AWS Marketplace Agent Pay Service.
+ * The audience identifier for the AWS Marketplace Agentic Commerce Service.
  * This is the `aud` claim in quote tokens — it identifies WHO processes the token,
- * not which network/rail is used. A single audience (the Agent Pay service) can
+ * not which network/rail is used. A single audience (the Agentic Commerce service) can
  * support multiple networks.
  */
-export const AGENT_PAY_AUDIENCE = 'aws:marketplace';
+export const QUOTE_TOKEN_AUDIENCE = 'aws:marketplace';
 
 /**
- * Default base URL for Agent Pay's JWKS (signing key) endpoint.
+ * Default base URL for Agentic Commerce's JWKS (signing key) endpoint.
  * The SDK appends /.well-known/jwks.json to this automatically.
  * Override via the jwksBaseUrl constructor parameter for beta/testing.
  */
-export const AGENT_PAY_JWKS_BASE_URL = 'https://d3aeb2cjjowogc.cloudfront.net';
-
-/**
- * Default WAF access header for Agent Pay's JWKS endpoint.
- * Required to fetch the public keys for payment token verification.
- */
-export const AGENT_PAY_JWKS_ACCESS_KEY = 'agentpay-test-2026';
+export const DEFAULT_PAYMENT_TOKEN_JWKS_BASE_URL = 'https://d3aeb2cjjowogc.cloudfront.net';

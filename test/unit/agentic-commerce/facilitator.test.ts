@@ -2,46 +2,46 @@
 // SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as jose from 'jose';
-import { AgentPayScheme } from '../../../src/agent-pay/facilitator/scheme';
-import { verifyPayment } from '../../../src/agent-pay/facilitator/verify';
-import { settlePayment } from '../../../src/agent-pay/facilitator/settle';
-import type { MockAgentPayClient } from '../../helpers/mock-agent-pay-client';
+import { AgenticCommerceScheme } from '../../../src/agentic-commerce/facilitator/scheme';
+import { verifyPayment } from '../../../src/agentic-commerce/facilitator/verify';
+import { settlePayment } from '../../../src/agentic-commerce/facilitator/settle';
+import type { MockAgenticCommerceClient } from '../../helpers/mock-agentic-commerce-client';
 import type { PaymentPayload, PaymentRequirements } from '@x402/core/types';
-import type { AgentPayPayloadV2 } from '../../../src/types';
-import { AGENT_PAY_SCHEME } from '../../../src/constants';
-import { AGENT_PAY_SENTINEL_PAY_TO } from '../../../src/constants';
-import { createMockAgentPayClient } from '../../helpers/mock-agent-pay-client';
+import type { AgenticCommercePayloadV2 } from '../../../src/types';
+import { AGENTIC_COMMERCE_SCHEME } from '../../../src/constants';
+import { SENTINEL_PAY_TO } from '../../../src/constants';
+import { createMockAgenticCommerceClient } from '../../helpers/mock-agentic-commerce-client';
 import { clearServiceJWKSCache } from '../../../src/utils';
 
 /**
- * Agent Pay Facilitator Unit Tests
+ * Agentic Commerce Facilitator Unit Tests
  *
- * Tests the facilitator scheme with mock Agent Pay client.
- * In production, the facilitator fetches the Agent Pay's public key from JWKS endpoint
- * and calls the Agent Pay provider's API to verify and capture payments.
+ * Tests the facilitator scheme with mock Agentic Commerce client.
+ * In production, the facilitator fetches the Agentic Commerce's public key from JWKS endpoint
+ * and calls the Agentic Commerce provider's API to verify and capture payments.
  */
 
-describe('Agent Pay Facilitator Scheme', () => {
-  let agentPayClient: MockAgentPayClient;
+describe('Agentic Commerce Facilitator Scheme', () => {
+  let agenticCommerceClient: MockAgenticCommerceClient;
   let privateKey: jose.KeyLike;
   let publicKey: jose.KeyLike;
-  let scheme: AgentPayScheme;
-  const agentPayId = 'agent-pay-test-456';
+  let scheme: AgenticCommerceScheme;
+  const agenticCommerceId = 'agentic-commerce-test-456';
   const mockFetch = vi.fn();
 
   beforeEach(async () => {
     vi.stubGlobal('fetch', mockFetch);
     clearServiceJWKSCache();
 
-    // Create mock Agent Pay client
-    const mock = await createMockAgentPayClient(agentPayId);
-    agentPayClient = mock.agentPayClient;
+    // Create mock Agentic Commerce client
+    const mock = await createMockAgenticCommerceClient(agenticCommerceId);
+    agenticCommerceClient = mock.agenticCommerceClient;
     privateKey = mock.privateKey;
     publicKey = mock.publicKey;
 
-    scheme = new AgentPayScheme({
-      agentPayId,
-      agentPayClient,
+    scheme = new AgenticCommerceScheme({
+      agenticCommerceId,
+      agenticCommerceClient,
     });
 
     // Mock fetch to serve the service's JWKS (using the same key that signs quote tokens)
@@ -67,10 +67,10 @@ describe('Agent Pay Facilitator Scheme', () => {
   });
 
   describe('Scheme', () => {
-    it('should return correct extra data with Agent Pay ID', () => {
+    it('should return correct extra data with Agentic Commerce ID', () => {
       const extra = scheme.getExtra('fab:test');
       expect(extra).toBeDefined();
-      expect(extra?.agentPayId).toBe(agentPayId);
+      expect(extra?.agentPayId).toBe(agenticCommerceId);
     });
 
     it('should return signer addresses', () => {
@@ -78,7 +78,7 @@ describe('Agent Pay Facilitator Scheme', () => {
       expect(addresses).toBeDefined();
       expect(Array.isArray(addresses)).toBe(true);
       expect(addresses).toHaveLength(1);
-      expect(addresses[0]).toBe(agentPayId);
+      expect(addresses[0]).toBe(agenticCommerceId);
     });
 
     it('should verify payment payload', async () => {
@@ -97,11 +97,11 @@ describe('Agent Pay Facilitator Scheme', () => {
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
 
-      // Create payment token (signed by Agent Pay)
+      // Create payment token (signed by Agentic Commerce)
       const transactionId = 'fab:test:txn_123';
       const paymentToken = await new jose.SignJWT({
-        iss: agentPayId,
-        sub: agentPayId,
+        iss: agenticCommerceId,
+        sub: agenticCommerceId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -122,7 +122,7 @@ describe('Agent Pay Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -133,7 +133,7 @@ describe('Agent Pay Facilitator Scheme', () => {
 
       const result = await scheme.verify(payload, requirements);
       expect(result.isValid).toBe(true);
-      expect(result.payer).toBe(agentPayId);
+      expect(result.payer).toBe(agenticCommerceId);
     });
 
     it('should settle payment', async () => {
@@ -153,8 +153,8 @@ describe('Agent Pay Facilitator Scheme', () => {
 
       const transactionId = 'fab:test:txn_123';
       const paymentToken = await new jose.SignJWT({
-        iss: agentPayId,
-        sub: agentPayId,
+        iss: agenticCommerceId,
+        sub: agenticCommerceId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -175,7 +175,7 @@ describe('Agent Pay Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -209,8 +209,8 @@ describe('Agent Pay Facilitator Scheme', () => {
 
       const transactionId = 'fab:test:txn_123';
       const paymentToken = await new jose.SignJWT({
-        iss: agentPayId,
-        sub: agentPayId,
+        iss: agenticCommerceId,
+        sub: agenticCommerceId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -231,7 +231,7 @@ describe('Agent Pay Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -240,14 +240,14 @@ describe('Agent Pay Facilitator Scheme', () => {
         extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
-      const apPayload: AgentPayPayloadV2 = {
+      const apPayload: AgenticCommercePayloadV2 = {
         paymentToken,
         transactionId,
       };
 
-      const result = await verifyPayment(agentPayClient, payload, requirements, apPayload);
+      const result = await verifyPayment(agenticCommerceClient, payload, requirements, apPayload);
       expect(result.isValid).toBe(true);
-      expect(result.payer).toBe(agentPayId);
+      expect(result.payer).toBe(agenticCommerceId);
     });
 
     it('should reject payment with invalid signature', async () => {
@@ -271,8 +271,8 @@ describe('Agent Pay Facilitator Scheme', () => {
       const transactionId = 'fab:test:txn_123';
       // Sign with wrong key
       const paymentToken = await new jose.SignJWT({
-        iss: agentPayId,
-        sub: agentPayId,
+        iss: agenticCommerceId,
+        sub: agenticCommerceId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -293,7 +293,7 @@ describe('Agent Pay Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -302,12 +302,12 @@ describe('Agent Pay Facilitator Scheme', () => {
         extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
-      const apPayload: AgentPayPayloadV2 = {
+      const apPayload: AgenticCommercePayloadV2 = {
         paymentToken,
         transactionId,
       };
 
-      const result = await verifyPayment(agentPayClient, payload, requirements, apPayload);
+      const result = await verifyPayment(agenticCommerceClient, payload, requirements, apPayload);
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe('verification_failed');
     });
@@ -329,8 +329,8 @@ describe('Agent Pay Facilitator Scheme', () => {
 
       const transactionId = 'fab:test:txn_123';
       const paymentToken = await new jose.SignJWT({
-        iss: agentPayId,
-        sub: agentPayId,
+        iss: agenticCommerceId,
+        sub: agenticCommerceId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000) - 7200,
         exp: Math.floor(Date.now() / 1000) - 3600, // Expired
@@ -351,7 +351,7 @@ describe('Agent Pay Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -360,12 +360,12 @@ describe('Agent Pay Facilitator Scheme', () => {
         extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
-      const apPayload: AgentPayPayloadV2 = {
+      const apPayload: AgenticCommercePayloadV2 = {
         paymentToken,
         transactionId,
       };
 
-      const result = await verifyPayment(agentPayClient, payload, requirements, apPayload);
+      const result = await verifyPayment(agenticCommerceClient, payload, requirements, apPayload);
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe('verification_failed');
     });
@@ -387,8 +387,8 @@ describe('Agent Pay Facilitator Scheme', () => {
 
       const transactionId = 'fab:test:txn_123';
       const paymentToken = await new jose.SignJWT({
-        iss: agentPayId,
-        sub: agentPayId,
+        iss: agenticCommerceId,
+        sub: agenticCommerceId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -409,7 +409,7 @@ describe('Agent Pay Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -418,12 +418,12 @@ describe('Agent Pay Facilitator Scheme', () => {
         extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
-      const apPayload: AgentPayPayloadV2 = {
+      const apPayload: AgenticCommercePayloadV2 = {
         paymentToken,
         transactionId,
       };
 
-      const result = await verifyPayment(agentPayClient, payload, requirements, apPayload);
+      const result = await verifyPayment(agenticCommerceClient, payload, requirements, apPayload);
       expect(result.isValid).toBe(true);
     });
 
@@ -444,8 +444,8 @@ describe('Agent Pay Facilitator Scheme', () => {
 
       const transactionId = 'fab:test:txn_123';
       const paymentToken = await new jose.SignJWT({
-        iss: agentPayId,
-        sub: agentPayId,
+        iss: agenticCommerceId,
+        sub: agenticCommerceId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -466,7 +466,7 @@ describe('Agent Pay Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -475,12 +475,12 @@ describe('Agent Pay Facilitator Scheme', () => {
         extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
-      const apPayload: AgentPayPayloadV2 = {
+      const apPayload: AgenticCommercePayloadV2 = {
         paymentToken,
         transactionId,
       };
 
-      const result = await verifyPayment(agentPayClient, payload, requirements, apPayload);
+      const result = await verifyPayment(agenticCommerceClient, payload, requirements, apPayload);
       expect(result.isValid).toBe(true);
     });
 
@@ -518,8 +518,8 @@ describe('Agent Pay Facilitator Scheme', () => {
       const transactionId = 'fab:test:txn_123';
       // Payment token contains different quote token than requirements
       const paymentToken = await new jose.SignJWT({
-        iss: agentPayId,
-        sub: agentPayId,
+        iss: agenticCommerceId,
+        sub: agenticCommerceId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -540,7 +540,7 @@ describe('Agent Pay Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -549,13 +549,13 @@ describe('Agent Pay Facilitator Scheme', () => {
         extra: { quoteToken: correctQuoteToken } as unknown as Record<string, unknown>, // Expecting correct quote
       };
 
-      const apPayload: AgentPayPayloadV2 = {
+      const apPayload: AgenticCommercePayloadV2 = {
         paymentToken,
         paymentId: transactionId,
         transactionId,
       };
 
-      const result = await verifyPayment(agentPayClient, payload, requirements, apPayload);
+      const result = await verifyPayment(agenticCommerceClient, payload, requirements, apPayload);
       // New verify logic doesn't compare quote tokens from payment_context vs requirements
       // It only checks that requirements.extra.quoteToken exists and verifies the payment token signature
       expect(result.isValid).toBe(true);
@@ -581,8 +581,8 @@ describe('Agent Pay Facilitator Scheme', () => {
 
       // Payment token contains one transaction ID
       const paymentToken = await new jose.SignJWT({
-        iss: agentPayId,
-        sub: agentPayId,
+        iss: agenticCommerceId,
+        sub: agenticCommerceId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -603,7 +603,7 @@ describe('Agent Pay Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -612,13 +612,13 @@ describe('Agent Pay Facilitator Scheme', () => {
         extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
-      const apPayload: AgentPayPayloadV2 = {
+      const apPayload: AgenticCommercePayloadV2 = {
         paymentToken,
         paymentId: differentTransactionId,
         transactionId: differentTransactionId,
       };
 
-      const result = await verifyPayment(agentPayClient, payload, requirements, apPayload);
+      const result = await verifyPayment(agenticCommerceClient, payload, requirements, apPayload);
       expect(result.isValid).toBe(false);
       expect(result.invalidReason).toBe('verification_failed');
       expect(result.invalidMessage).toContain('Payment ID mismatch');
@@ -642,8 +642,8 @@ describe('Agent Pay Facilitator Scheme', () => {
       const transactionId = 'fab:test:txn_123';
       // Payment token missing quote_token in payment_context
       const paymentToken = await new jose.SignJWT({
-        iss: agentPayId,
-        sub: agentPayId,
+        iss: agenticCommerceId,
+        sub: agenticCommerceId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -664,7 +664,7 @@ describe('Agent Pay Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -673,7 +673,7 @@ describe('Agent Pay Facilitator Scheme', () => {
         extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
-      const apPayload: AgentPayPayloadV2 = {
+      const apPayload: AgenticCommercePayloadV2 = {
         paymentToken,
         paymentId: transactionId,
         transactionId,
@@ -681,7 +681,7 @@ describe('Agent Pay Facilitator Scheme', () => {
 
       // New verify logic doesn't require quote_token inside payment_context.
       // It only checks requirements.extra.quoteToken exists and verifies the payment token signature.
-      const result = await verifyPayment(agentPayClient, payload, requirements, apPayload);
+      const result = await verifyPayment(agenticCommerceClient, payload, requirements, apPayload);
       expect(result.isValid).toBe(true);
     });
   });
@@ -699,7 +699,7 @@ describe('Agent Pay Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -708,12 +708,12 @@ describe('Agent Pay Facilitator Scheme', () => {
         extra: {},
       };
 
-      const apPayload: AgentPayPayloadV2 = {
+      const apPayload: AgenticCommercePayloadV2 = {
         paymentToken: 'token',
         transactionId,
       };
 
-      const result = await settlePayment(agentPayClient, payload, requirements, apPayload);
+      const result = await settlePayment(agenticCommerceClient, payload, requirements, apPayload);
       expect(result.success).toBe(true);
       expect(result.transaction).toBe(transactionId);
       expect(result.network).toBe('fab:test');
@@ -730,7 +730,7 @@ describe('Agent Pay Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:test',
         amount: '2.50',
         asset: 'iso4217:USD',
@@ -739,12 +739,12 @@ describe('Agent Pay Facilitator Scheme', () => {
         extra: {},
       };
 
-      const apPayload: AgentPayPayloadV2 = {
+      const apPayload: AgenticCommercePayloadV2 = {
         paymentToken: 'token',
         transactionId,
       };
 
-      const result = await settlePayment(agentPayClient, payload, requirements, apPayload);
+      const result = await settlePayment(agenticCommerceClient, payload, requirements, apPayload);
       expect(result.success).toBe(true);
       expect(result.transaction).toBe(transactionId);
     });
@@ -760,7 +760,7 @@ describe('Agent Pay Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:test',
         amount: '3.50',
         asset: 'iso4217:USD',
@@ -769,12 +769,12 @@ describe('Agent Pay Facilitator Scheme', () => {
         extra: {},
       };
 
-      const apPayload: AgentPayPayloadV2 = {
+      const apPayload: AgenticCommercePayloadV2 = {
         paymentToken: 'token',
         transactionId,
       };
 
-      const result = await settlePayment(agentPayClient, payload, requirements, apPayload);
+      const result = await settlePayment(agenticCommerceClient, payload, requirements, apPayload);
       // Current implementation always succeeds, but structure is correct
       expect(result).toHaveProperty('success');
       expect(result).toHaveProperty('transaction');
@@ -800,8 +800,8 @@ describe('Agent Pay Facilitator Scheme', () => {
 
       const transactionId = 'fab:test:txn_sentinel';
       const paymentToken = await new jose.SignJWT({
-        iss: agentPayId,
-        sub: agentPayId,
+        iss: agenticCommerceId,
+        sub: agenticCommerceId,
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
@@ -823,23 +823,23 @@ describe('Agent Pay Facilitator Scheme', () => {
 
       // Use sentinel payTo — this is what the server scheme now produces
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
-        payTo: AGENT_PAY_SENTINEL_PAY_TO,
+        payTo: SENTINEL_PAY_TO,
         maxTimeoutSeconds: 300,
         extra: { quoteToken } as unknown as Record<string, unknown>,
       };
 
-      const apPayload: AgentPayPayloadV2 = {
+      const apPayload: AgenticCommercePayloadV2 = {
         paymentToken,
         transactionId,
       };
 
-      const result = await verifyPayment(agentPayClient, payload, requirements, apPayload);
+      const result = await verifyPayment(agenticCommerceClient, payload, requirements, apPayload);
       expect(result.isValid).toBe(true);
-      expect(result.payer).toBe(agentPayId);
+      expect(result.payer).toBe(agenticCommerceId);
     });
 
     it('should settle payment when requirements.payTo is the sentinel value', async () => {
@@ -854,21 +854,21 @@ describe('Agent Pay Facilitator Scheme', () => {
 
       // Use sentinel payTo
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
-        payTo: AGENT_PAY_SENTINEL_PAY_TO,
+        payTo: SENTINEL_PAY_TO,
         maxTimeoutSeconds: 300,
         extra: {},
       };
 
-      const apPayload: AgentPayPayloadV2 = {
+      const apPayload: AgenticCommercePayloadV2 = {
         paymentToken: 'token',
         transactionId,
       };
 
-      const result = await settlePayment(agentPayClient, payload, requirements, apPayload);
+      const result = await settlePayment(agenticCommerceClient, payload, requirements, apPayload);
       expect(result.success).toBe(true);
       expect(result.transaction).toBe(transactionId);
     });

@@ -1,7 +1,9 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Signer helpers for Agent Pay quote token signing.
+ * Quote token and payment token signers.
  */
 
-export { createKmsSigner, type KmsSignerConfig } from './kms-signer';
+export { createKmsQuoteSigner, type KmsQuoteSignerConfig } from './kms';
+export { toQuoteSigner, toPaymentTokenSigner } from './protocol';
+export type { QuoteSigner, PaymentTokenSigner } from './protocol';

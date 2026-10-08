@@ -14,18 +14,18 @@ import type {
 } from '@x402/core/types';
 import * as jose from 'jose';
 import { FakeBuyerScheme } from '../helpers/fake-buyer-scheme';
-import { AgentPayScheme as APServer } from '../../src/agent-pay/server/scheme';
-import { AgentPayScheme as APFacilitator } from '../../src/agent-pay/facilitator/scheme';
+import { AgenticCommerceScheme as APServer } from '../../src/agentic-commerce/server/scheme';
+import { AgenticCommerceScheme as APFacilitator } from '../../src/agentic-commerce/facilitator/scheme';
 import { InProcessFacilitatorClient } from '../../src/facilitator-client';
-import { AGENT_PAY_SCHEME, AGENT_PAY_SENTINEL_PAY_TO } from '../../src/constants';
-import { createMockAgentPayClient } from '../helpers/mock-agent-pay-client';
+import { AGENTIC_COMMERCE_SCHEME, SENTINEL_PAY_TO } from '../../src/constants';
+import { createMockAgenticCommerceClient } from '../helpers/mock-agentic-commerce-client';
 import { createMockServiceSigner } from '../helpers/mock-service-signer';
 import { clearServiceJWKSCache } from '../../src/utils';
 
 /**
  * Multi-Facilitator Integration Tests
  *
- * Tests the network-aware facilitator routing: Agent Pay handles registered
+ * Tests the network-aware facilitator routing: Agentic Commerce handles registered
  * networks, unregistered networks fall back to other facilitators.
  */
 
@@ -46,7 +46,7 @@ class APFacilitatorClient implements FacilitatorClient {
 
 describe('Multi-Facilitator Integration Tests', () => {
   const serviceUrl = 'https://api.example.com';
-  const agentPayId = 'agent-pay-test-123';
+  const agenticCommerceId = 'agentic-commerce-test-123';
   const mockFetch = vi.fn();
 
   beforeEach(() => {
@@ -59,12 +59,12 @@ describe('Multi-Facilitator Integration Tests', () => {
     clearServiceJWKSCache();
   });
 
-  describe('Agent Pay facilitator handles registered networks', () => {
+  describe('Agentic Commerce facilitator handles registered networks', () => {
     let client: x402Client;
     let server: x402ResourceServer;
 
     beforeEach(async () => {
-      const agentPayMock = await createMockAgentPayClient(agentPayId);
+      const agenticCommerceMock = await createMockAgenticCommerceClient(agenticCommerceId);
       const serviceMock = await createMockServiceSigner(serviceUrl);
 
       // Mock fetch to serve service JWKS for quote token verification
@@ -82,22 +82,22 @@ describe('Multi-Facilitator Integration Tests', () => {
       // Build client using the builder for two networks
       client = new x402Client();
       const apClientScheme = new FakeBuyerScheme({
-        agentPayClient: agentPayMock.agentPayClient,
+        agenticCommerceClient: agenticCommerceMock.agenticCommerceClient,
       });
       client.register('fab:aws', apClientScheme);
       client.register('eip155:8453', apClientScheme);
 
       // Build facilitator for two networks
       const apFacilitator = new APFacilitator({
-        agentPayId,
-        agentPayClient: agentPayMock.agentPayClient,
+        agenticCommerceId,
+        agenticCommerceClient: agenticCommerceMock.agenticCommerceClient,
       });
       const facilitator = new x402Facilitator().register(['fab:aws', 'eip155:8453'], apFacilitator);
 
       const facilitatorClient = new APFacilitatorClient(facilitator);
       server = new x402ResourceServer(facilitatorClient);
 
-      // Register the Agent Pay server scheme with the mock signer on both networks
+      // Register the Agentic Commerce server scheme with the mock signer on both networks
       server.register('fab:aws', new APServer({ signer: serviceMock.signer }));
       server.register('eip155:8453', new APServer({ signer: serviceMock.signer }));
 
@@ -106,14 +106,14 @@ describe('Multi-Facilitator Integration Tests', () => {
 
     it('should complete full payment flow on fab:aws', async () => {
       const accepts = await server.buildPaymentRequirements({
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:aws',
         payTo: 'service-pay',
         price: 0.15,
       });
 
       expect(accepts).toHaveLength(1);
-      expect(accepts[0].payTo).toBe(AGENT_PAY_SENTINEL_PAY_TO);
+      expect(accepts[0].payTo).toBe(SENTINEL_PAY_TO);
 
       const paymentRequired = await server.createPaymentRequiredResponse(accepts, {
         url: 'https://example.com/resource',
@@ -122,7 +122,7 @@ describe('Multi-Facilitator Integration Tests', () => {
       });
 
       const paymentPayload = await client.createPaymentPayload(paymentRequired);
-      expect(paymentPayload.accepted.scheme).toBe(AGENT_PAY_SCHEME);
+      expect(paymentPayload.accepted.scheme).toBe(AGENTIC_COMMERCE_SCHEME);
       expect(paymentPayload.accepted.network).toBe('fab:aws');
 
       const accepted = server.findMatchingRequirements(accepts, paymentPayload);
@@ -136,9 +136,9 @@ describe('Multi-Facilitator Integration Tests', () => {
       expect(settleResult.network).toBe('fab:aws');
     });
 
-    it('should complete full payment flow on eip155:8453 via Agent Pay', async () => {
+    it('should complete full payment flow on eip155:8453 via Agentic Commerce', async () => {
       const accepts = await server.buildPaymentRequirements({
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'eip155:8453',
         payTo: 'merchant-pay',
         price: 0.15,
@@ -148,7 +148,7 @@ describe('Multi-Facilitator Integration Tests', () => {
 
       const paymentRequired = await server.createPaymentRequiredResponse(accepts, {
         url: 'https://example.com/evm-resource',
-        description: 'EVM resource via Agent Pay',
+        description: 'EVM resource via Agentic Commerce',
         mimeType: 'application/json',
       });
 
@@ -162,13 +162,13 @@ describe('Multi-Facilitator Integration Tests', () => {
   });
 
   describe('stock x402ResourceServer.register', () => {
-    it('should register an Agent Pay server scheme built from signing keys', async () => {
+    it('should register an Agentic Commerce server scheme built from signing keys', async () => {
       const serviceMock = await createMockServiceSigner(serviceUrl);
-      const agentPayMock = await createMockAgentPayClient(agentPayId);
+      const agenticCommerceMock = await createMockAgenticCommerceClient(agenticCommerceId);
 
       const apFacilitator = new APFacilitator({
-        agentPayId,
-        agentPayClient: agentPayMock.agentPayClient,
+        agenticCommerceId,
+        agenticCommerceClient: agenticCommerceMock.agenticCommerceClient,
       });
       const facilitator = new x402Facilitator().register('fab:aws', apFacilitator);
       const facilitatorClient = new APFacilitatorClient(facilitator);
@@ -186,12 +186,12 @@ describe('Multi-Facilitator Integration Tests', () => {
         })
       );
 
-      expect(server.hasRegisteredScheme('fab:aws', 'agent-pay')).toBe(true);
+      expect(server.hasRegisteredScheme('fab:aws', AGENTIC_COMMERCE_SCHEME)).toBe(true);
 
       // The signing-keys scheme signs quotes that verify against the service key.
       await server.initialize();
       const [accept] = await server.buildPaymentRequirements({
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:aws',
         payTo: 'service-pay',
         price: 0.15,

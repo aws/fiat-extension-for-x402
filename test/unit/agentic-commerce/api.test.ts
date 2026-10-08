@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Tests for Agent Pay API integration (Tasks 35-37)
+ * Tests for Agentic Commerce API integration (Tasks 35-37)
  *
  * Covers:
  * - DEFAULT_NETWORK constant
@@ -11,33 +11,33 @@
 
 import { describe, it, expect } from 'vitest';
 import * as jose from 'jose';
-import { createMockAgentPayClient } from '../helpers/mock-agent-pay-client';
-import { AgentPayScheme as AgentPayServerSchemeImpl } from '../../src/agent-pay/server/scheme';
-import { settlePayment } from '../../src/agent-pay/facilitator/settle';
-import { DEFAULT_NETWORK, AGENT_PAY_SCHEME } from '../../src/constants';
+import { createMockAgenticCommerceClient } from '../../helpers/mock-agentic-commerce-client';
+import { AgenticCommerceScheme as AgenticCommerceServerSchemeImpl } from '../../../src/agentic-commerce/server/scheme';
+import { settlePayment } from '../../../src/agentic-commerce/facilitator/settle';
+import { DEFAULT_NETWORK, AGENTIC_COMMERCE_SCHEME } from '../../../src/constants';
 import type { PaymentRequirements } from '@x402/core/types';
 
-describe('Agent Pay API Integration', () => {
+describe('Agentic Commerce API Integration', () => {
   describe('Task 35: DEFAULT_NETWORK constant', () => {
     it('DEFAULT_NETWORK is aws:base', () => {
       expect(DEFAULT_NETWORK).toBe('aws:base');
     });
 
     it('is exported from the package', async () => {
-      const pkg = await import('../../src/index');
+      const pkg = await import('../../../src/index');
       expect(pkg.DEFAULT_NETWORK).toBe('aws:base');
     });
   });
 
   describe('Task 36: Auto-capture (no settle call)', () => {
     it('settlePayment returns success immediately without HTTP call', async () => {
-      const mock = await createMockAgentPayClient('test-pay');
+      const mock = await createMockAgenticCommerceClient('test-pay');
 
       const result = await settlePayment(
-        mock.agentPayClient,
+        mock.agenticCommerceClient,
         { x402Version: 2, payload: {} as any },
         {
-          scheme: 'agent-pay',
+          scheme: AGENTIC_COMMERCE_SCHEME,
           network: 'aws:base',
           amount: '1.00',
           asset: 'iso4217:USD',
@@ -59,13 +59,13 @@ describe('Agent Pay API Integration', () => {
       const { privateKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK((await jose.generateKeyPair('RS256')).publicKey);
 
-      const serverScheme = new AgentPayServerSchemeImpl({
+      const serverScheme = new AgenticCommerceServerSchemeImpl({
         signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
         serviceUrl: 'https://api.example.com',
       });
 
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'aws:base',
         amount: '0.50',
         asset: 'iso4217:USD',
@@ -79,7 +79,7 @@ describe('Agent Pay API Integration', () => {
 
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
-        { x402Version: 2, scheme: 'agent-pay', network: 'aws:base' as any },
+        { x402Version: 2, scheme: AGENTIC_COMMERCE_SCHEME, network: 'aws:base' as any },
         []
       );
 
@@ -94,13 +94,13 @@ describe('Agent Pay API Integration', () => {
       const { privateKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK((await jose.generateKeyPair('RS256')).publicKey);
 
-      const serverScheme = new AgentPayServerSchemeImpl({
+      const serverScheme = new AgenticCommerceServerSchemeImpl({
         signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
         serviceUrl: 'https://api.example.com',
       });
 
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'aws:base',
         amount: '0.50',
         asset: 'iso4217:USD',
@@ -111,7 +111,7 @@ describe('Agent Pay API Integration', () => {
 
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
-        { x402Version: 2, scheme: 'agent-pay', network: 'aws:base' as any },
+        { x402Version: 2, scheme: AGENTIC_COMMERCE_SCHEME, network: 'aws:base' as any },
         []
       );
 
@@ -125,14 +125,14 @@ describe('Agent Pay API Integration', () => {
       const { privateKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK((await jose.generateKeyPair('RS256')).publicKey);
 
-      const serverScheme = new AgentPayServerSchemeImpl({
+      const serverScheme = new AgenticCommerceServerSchemeImpl({
         signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
         serviceUrl: 'https://api.example.com',
       });
 
       const dimensions = { tokens: 1500, model: 'claude-4', region: 'us-east-1' };
       const requirements: PaymentRequirements = {
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'aws:base',
         amount: '0.02',
         asset: 'iso4217:USD',
@@ -143,7 +143,7 @@ describe('Agent Pay API Integration', () => {
 
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
-        { x402Version: 2, scheme: 'agent-pay', network: 'aws:base' as any },
+        { x402Version: 2, scheme: AGENTIC_COMMERCE_SCHEME, network: 'aws:base' as any },
         []
       );
 

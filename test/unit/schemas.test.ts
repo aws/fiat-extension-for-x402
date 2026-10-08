@@ -9,11 +9,10 @@ import * as jose from 'jose';
 import {
   QuoteTokenPayloadSchema,
   QuoteTokenPriceSchema,
-  AgentPaySettlementSchema,
-  AgentPaySupportSchema,
-  AgentPayTermsSchema,
-  AgentPayPaymentExtraSchema,
-  AgentPayPayloadV2Schema,
+  AgenticCommerceSettlementSchema,
+  AgenticCommerceSupportSchema,
+  AgenticCommerceTermsSchema,
+  AgenticCommercePayloadV2Schema,
   parseQuoteToken,
   safeParseQuoteToken,
   parsePaymentPayload,
@@ -38,23 +37,23 @@ describe('Zod Schemas', () => {
     });
   });
 
-  describe('AgentPaySettlementSchema', () => {
+  describe('AgenticCommerceSettlementSchema', () => {
     it('should accept valid settlement', () => {
-      expect(AgentPaySettlementSchema.parse({ method: 'INST' })).toEqual({ method: 'INST' });
-      expect(AgentPaySettlementSchema.parse({ method: 'CLRG', cycle: 'MNTH' })).toEqual({
+      expect(AgenticCommerceSettlementSchema.parse({ method: 'INST' })).toEqual({ method: 'INST' });
+      expect(AgenticCommerceSettlementSchema.parse({ method: 'CLRG', cycle: 'MNTH' })).toEqual({
         method: 'CLRG',
         cycle: 'MNTH',
       });
     });
 
     it('should reject invalid method', () => {
-      expect(() => AgentPaySettlementSchema.parse({ method: 'INVALID' })).toThrow();
+      expect(() => AgenticCommerceSettlementSchema.parse({ method: 'INVALID' })).toThrow();
     });
   });
 
-  describe('AgentPaySupportSchema', () => {
+  describe('AgenticCommerceSupportSchema', () => {
     it('should accept valid support', () => {
-      const result = AgentPaySupportSchema.parse({
+      const result = AgenticCommerceSupportSchema.parse({
         uri: 'https://support.example.com',
         method: 'human',
       });
@@ -62,17 +61,21 @@ describe('Zod Schemas', () => {
     });
 
     it('should reject invalid URI', () => {
-      expect(() => AgentPaySupportSchema.parse({ uri: 'not-a-url', method: 'human' })).toThrow();
+      expect(() =>
+        AgenticCommerceSupportSchema.parse({ uri: 'not-a-url', method: 'human' })
+      ).toThrow();
     });
 
     it('should reject invalid method', () => {
-      expect(() => AgentPaySupportSchema.parse({ uri: 'https://x.com', method: 'bot' })).toThrow();
+      expect(() =>
+        AgenticCommerceSupportSchema.parse({ uri: 'https://x.com', method: 'bot' })
+      ).toThrow();
     });
   });
 
-  describe('AgentPayTermsSchema', () => {
+  describe('AgenticCommerceTermsSchema', () => {
     it('should accept valid terms', () => {
-      const result = AgentPayTermsSchema.parse({
+      const result = AgenticCommerceTermsSchema.parse({
         description: 'TOS',
         uri: 'https://example.com/tos',
       });
@@ -80,7 +83,9 @@ describe('Zod Schemas', () => {
     });
 
     it('should reject empty description', () => {
-      expect(() => AgentPayTermsSchema.parse({ description: '', uri: 'https://x.com' })).toThrow();
+      expect(() =>
+        AgenticCommerceTermsSchema.parse({ description: '', uri: 'https://x.com' })
+      ).toThrow();
     });
   });
 
@@ -144,9 +149,9 @@ describe('Zod Schemas', () => {
     });
   });
 
-  describe('AgentPayPayloadV2Schema', () => {
+  describe('AgenticCommercePayloadV2Schema', () => {
     it('should accept valid payload', () => {
-      const result = AgentPayPayloadV2Schema.parse({
+      const result = AgenticCommercePayloadV2Schema.parse({
         paymentToken: 'eyJ...',
         paymentId: 'awsmp-123',
       });
@@ -154,7 +159,7 @@ describe('Zod Schemas', () => {
     });
 
     it('should accept with transactionId', () => {
-      const result = AgentPayPayloadV2Schema.parse({
+      const result = AgenticCommercePayloadV2Schema.parse({
         paymentToken: 'eyJ...',
         paymentId: 'awsmp-123',
         transactionId: 'awsmp-123',
@@ -163,7 +168,7 @@ describe('Zod Schemas', () => {
     });
 
     it('should reject missing paymentToken', () => {
-      expect(() => AgentPayPayloadV2Schema.parse({ paymentId: 'x' })).toThrow();
+      expect(() => AgenticCommercePayloadV2Schema.parse({ paymentId: 'x' })).toThrow();
     });
   });
 

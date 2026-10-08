@@ -26,8 +26,8 @@ vi.mock('jose', async (importOriginal) => {
   };
 });
 
-import { JwksPaymentTokenVerifier } from '../../../src/agent-pay/facilitator/payment-token-verifier';
-import { AgentPayScheme as AgentPayFacilitatorScheme } from '../../../src/agent-pay/facilitator/scheme';
+import { JwksPaymentTokenVerifier } from '../../../src/agentic-commerce/facilitator/payment-token-verifier';
+import { AgenticCommerceScheme as AgenticCommerceFacilitatorScheme } from '../../../src/agentic-commerce/facilitator/scheme';
 import { ValidationError } from '../../../src/types';
 
 describe('JwksPaymentTokenVerifier', () => {
@@ -161,19 +161,19 @@ describe('JwksPaymentTokenVerifier', () => {
     );
   });
 
-  describe('AgentPayFacilitatorScheme wiring', () => {
-    it('should verify with the JWKS at agentPay.baseUrl', () => {
-      new AgentPayFacilitatorScheme({
-        agentPayId: 'pay-id',
-        agentPay: { baseUrl: 'https://pay.example.com' },
+  describe('AgenticCommerceFacilitatorScheme wiring', () => {
+    it('should verify with the JWKS at agenticCommerce.baseUrl', () => {
+      new AgenticCommerceFacilitatorScheme({
+        agenticCommerceId: 'pay-id',
+        agenticCommerce: { baseUrl: 'https://pay.example.com' },
       });
       expect(remoteJwks.urls).toEqual(['https://pay.example.com/.well-known/jwks.json']);
     });
 
-    it('should reject a config with neither agentPayClient nor agentPay', () => {
-      expect(() => new AgentPayFacilitatorScheme({ agentPayId: 'pay-id' } as never)).toThrow(
-        'requires either agentPayClient or Agent Pay configuration'
-      );
+    it('should reject a config with neither agenticCommerceClient nor agenticCommerce', () => {
+      expect(
+        () => new AgenticCommerceFacilitatorScheme({ agenticCommerceId: 'pay-id' } as never)
+      ).toThrow('requires either agenticCommerceClient or Agentic Commerce configuration');
     });
   });
 });

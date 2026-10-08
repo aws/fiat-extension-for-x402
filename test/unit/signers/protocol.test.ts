@@ -2,15 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as jose from 'jose';
-import { toServiceAgentPaySigner, toAgentPaySigner } from '../../src/signer';
-import type { ServiceAgentPaySigner, AgentPaySigner } from '../../src/signer';
-import type { QuoteTokenPayload, PaymentTokenPayload } from '../../src/types';
+import { toQuoteSigner, toPaymentTokenSigner } from '../../../src/signers/protocol';
+import type { QuoteSigner, PaymentTokenSigner } from '../../../src/signers/protocol';
+import type { QuoteTokenPayload, PaymentTokenPayload } from '../../../src/types';
 
-describe('Agent Pay Signers', () => {
-  describe('ServiceAgentPaySigner', () => {
+describe('Agentic Commerce Signers', () => {
+  describe('QuoteSigner', () => {
     let privateKey: jose.KeyLike;
     let publicKey: jose.KeyLike;
-    let signer: ServiceAgentPaySigner;
+    let signer: QuoteSigner;
 
     beforeEach(async () => {
       // Generate test key pair
@@ -38,7 +38,7 @@ describe('Agent Pay Signers', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_123',
         price: { amount: '1.50', currency: 'USD' },
-        payTo: 'agent-pay-test',
+        payTo: 'agentic-commerce-test',
         capture: 'manual',
         reference: 'TEST',
       };
@@ -68,10 +68,10 @@ describe('Agent Pay Signers', () => {
     });
   });
 
-  describe('AgentPaySigner', () => {
+  describe('PaymentTokenSigner', () => {
     let privateKey: jose.KeyLike;
     let publicKey: jose.KeyLike;
-    let signer: AgentPaySigner;
+    let signer: PaymentTokenSigner;
 
     beforeEach(async () => {
       // Generate test key pair
@@ -87,13 +87,13 @@ describe('Agent Pay Signers', () => {
             .sign(privateKey);
         },
         getPublicKey: () => publicKey,
-        getAddresses: () => ['agent-pay-test-123'],
+        getAddresses: () => ['agentic-commerce-test-123'],
       };
     });
 
     it('should sign payment tokens', async () => {
       const payload: PaymentTokenPayload = {
-        iss: 'agent-pay-test-123',
+        iss: 'agentic-commerce-test-123',
         sub: 'client-456',
         aud: 'https://api.example.com',
         iat: Math.floor(Date.now() / 1000),
@@ -116,12 +116,12 @@ describe('Agent Pay Signers', () => {
       expect(decoded.sub).toBe(payload.sub);
     });
 
-    it('should return Agent Pay addresses', () => {
+    it('should return Agentic Commerce addresses', () => {
       const addresses = signer.getAddresses();
       expect(addresses).toBeDefined();
       expect(Array.isArray(addresses)).toBe(true);
       expect(addresses).toHaveLength(1);
-      expect(addresses[0]).toBe('agent-pay-test-123');
+      expect(addresses[0]).toBe('agentic-commerce-test-123');
     });
 
     it('should return public key', () => {
@@ -131,12 +131,12 @@ describe('Agent Pay Signers', () => {
     });
   });
 
-  describe('toServiceAgentPaySigner adapter', () => {
-    it('should create a ServiceAgentPaySigner from jose keys', async () => {
+  describe('toQuoteSigner adapter', () => {
+    it('should create a QuoteSigner from jose keys', async () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
 
-      const signer = toServiceAgentPaySigner(privateKey, publicJWK, 'https://api.test.com');
+      const signer = toQuoteSigner(privateKey, publicJWK, 'https://api.test.com');
 
       expect(signer).toBeDefined();
       expect(signer.getServiceUrl()).toBe('https://api.test.com');
@@ -147,7 +147,7 @@ describe('Agent Pay Signers', () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
 
-      const signer = toServiceAgentPaySigner(privateKey, publicJWK, 'https://api.test.com');
+      const signer = toQuoteSigner(privateKey, publicJWK, 'https://api.test.com');
 
       const payload: QuoteTokenPayload = {
         iss: 'https://api.test.com',
@@ -156,7 +156,7 @@ describe('Agent Pay Signers', () => {
         exp: Math.floor(Date.now() / 1000) + 300,
         jti: 'quote_test',
         price: { amount: '5.00', currency: 'USD' },
-        payTo: 'agent-pay-id',
+        payTo: 'agentic-commerce-id',
         capture: 'auto',
       };
 
@@ -168,15 +168,15 @@ describe('Agent Pay Signers', () => {
     });
   });
 
-  describe('toAgentPaySigner adapter', () => {
-    it('should create a AgentPaySigner from jose keys', async () => {
+  describe('toPaymentTokenSigner adapter', () => {
+    it('should create a PaymentTokenSigner from jose keys', async () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
 
-      const signer = toAgentPaySigner(privateKey, publicJWK, 'agent-pay-provider-123');
+      const signer = toPaymentTokenSigner(privateKey, publicJWK, 'agentic-commerce-provider-123');
 
       expect(signer).toBeDefined();
-      expect(signer.getAddresses()).toEqual(['agent-pay-provider-123']);
+      expect(signer.getAddresses()).toEqual(['agentic-commerce-provider-123']);
       expect(signer.getPublicKey()).toEqual(publicJWK);
     });
 
@@ -184,10 +184,10 @@ describe('Agent Pay Signers', () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
 
-      const signer = toAgentPaySigner(privateKey, publicJWK, 'agent-pay-test');
+      const signer = toPaymentTokenSigner(privateKey, publicJWK, 'agentic-commerce-test');
 
       const payload: PaymentTokenPayload = {
-        iss: 'agent-pay-test',
+        iss: 'agentic-commerce-test',
         sub: 'client-789',
         aud: 'https://api.test.com',
         iat: Math.floor(Date.now() / 1000),
@@ -205,15 +205,15 @@ describe('Agent Pay Signers', () => {
       expect(verified.sub).toBe('client-789');
     });
 
-    it('should return Agent Pay ID in addresses array', async () => {
+    it('should return Agentic Commerce ID in addresses array', async () => {
       const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
       const publicJWK = await jose.exportJWK(publicKey);
 
-      const signer = toAgentPaySigner(privateKey, publicJWK, 'my-agent-pay-id');
+      const signer = toPaymentTokenSigner(privateKey, publicJWK, 'my-agentic-commerce-id');
 
       const addresses = signer.getAddresses();
       expect(addresses).toHaveLength(1);
-      expect(addresses[0]).toBe('my-agent-pay-id');
+      expect(addresses[0]).toBe('my-agentic-commerce-id');
     });
   });
 });

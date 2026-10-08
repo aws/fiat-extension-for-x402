@@ -23,7 +23,7 @@ vi.mock('@aws-sdk/client-kms', () => ({
   },
 }));
 
-import { createKmsSigner } from '../../../src/signers/kms-signer';
+import { createKmsQuoteSigner } from '../../../src/signers/kms';
 
 const keyArn = 'arn:aws:kms:us-east-1:123456789012:alias/quote-key';
 const serviceUrl = 'https://api.example.com';
@@ -48,7 +48,7 @@ function der(r: number[], s: number[]): Uint8Array {
   return Uint8Array.from([0x30, body.length, ...body]);
 }
 
-describe('createKmsSigner', () => {
+describe('createKmsQuoteSigner', () => {
   beforeEach(() => {
     sendMock.mockReset();
     clientConfigs.length = 0;
@@ -60,7 +60,7 @@ describe('createKmsSigner', () => {
       const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve });
       signLocallyWith(privateKey, hash);
 
-      const signer = createKmsSigner({ keyArn, region: 'us-east-1', serviceUrl, algorithm });
+      const signer = createKmsQuoteSigner({ keyArn, region: 'us-east-1', serviceUrl, algorithm });
       // Several tokens, so r and s of varying DER lengths go through the conversion.
       for (let i = 0; i < 8; i++) {
         const token = await signer.signQuote({ iss: serviceUrl, n: i });
@@ -80,7 +80,9 @@ describe('createKmsSigner', () => {
 
   it('defaults to ECDSA_SHA_384', async () => {
     sendMock.mockResolvedValue({ Signature: der([1], [2]) });
-    const token = await createKmsSigner({ keyArn, region: 'us-east-1', serviceUrl }).signQuote({});
+    const token = await createKmsQuoteSigner({ keyArn, region: 'us-east-1', serviceUrl }).signQuote(
+      {}
+    );
 
     expect(jose.decodeProtectedHeader(token).alg).toBe('ES384');
     expect(sendMock.mock.calls[0][0].input.SigningAlgorithm).toBe('ECDSA_SHA_384');
@@ -91,7 +93,7 @@ describe('createKmsSigner', () => {
     const s = Array<number>(31).fill(0xbb); // 31 bytes: one short
     sendMock.mockResolvedValue({ Signature: der(r, s) });
 
-    const signer = createKmsSigner({
+    const signer = createKmsQuoteSigner({
       keyArn,
       region: 'us-east-1',
       serviceUrl,
@@ -109,10 +111,15 @@ describe('createKmsSigner', () => {
   it('uses an explicit kid, and the key id from a key ARN', async () => {
     sendMock.mockResolvedValue({ Signature: der([1], [2]) });
 
-    const explicit = createKmsSigner({ keyArn, region: 'us-east-1', serviceUrl, kid: 'kid-1' });
+    const explicit = createKmsQuoteSigner({
+      keyArn,
+      region: 'us-east-1',
+      serviceUrl,
+      kid: 'kid-1',
+    });
     expect(jose.decodeProtectedHeader(await explicit.signQuote({})).kid).toBe('kid-1');
 
-    const byKey = createKmsSigner({
+    const byKey = createKmsQuoteSigner({
       keyArn: 'arn:aws:kms:us-east-1:123456789012:key/abc-123',
       region: 'us-east-1',
       serviceUrl,
@@ -122,22 +129,22 @@ describe('createKmsSigner', () => {
 
   it('passes credentials to the KMS client only when given', () => {
     const credentials = vi.fn();
-    createKmsSigner({ keyArn, region: 'us-west-2', serviceUrl });
-    createKmsSigner({ keyArn, region: 'us-west-2', serviceUrl, credentials });
+    createKmsQuoteSigner({ keyArn, region: 'us-west-2', serviceUrl });
+    createKmsQuoteSigner({ keyArn, region: 'us-west-2', serviceUrl, credentials });
 
     expect(clientConfigs).toEqual([{ region: 'us-west-2' }, { region: 'us-west-2', credentials }]);
   });
 
   it('throws when KMS returns no signature', async () => {
     sendMock.mockResolvedValue({});
-    const signer = createKmsSigner({ keyArn, region: 'us-east-1', serviceUrl });
+    const signer = createKmsQuoteSigner({ keyArn, region: 'us-east-1', serviceUrl });
 
     await expect(signer.signQuote({})).rejects.toThrow('KMS Sign returned no signature');
   });
 
   it('rejects an unsupported algorithm', () => {
     expect(() =>
-      createKmsSigner({
+      createKmsQuoteSigner({
         keyArn,
         region: 'us-east-1',
         serviceUrl,
@@ -147,7 +154,7 @@ describe('createKmsSigner', () => {
   });
 
   it('exposes the service URL and an empty public key', () => {
-    const signer = createKmsSigner({ keyArn, region: 'us-east-1', serviceUrl });
+    const signer = createKmsQuoteSigner({ keyArn, region: 'us-east-1', serviceUrl });
 
     expect(signer.getServiceUrl()).toBe(serviceUrl);
     expect(signer.getPublicKey()).toEqual({});

@@ -1,15 +1,15 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Agent Pay Payment Verification Logic
+ * Agentic Commerce Payment Verification Logic
  */
 
 import * as jose from 'jose';
 import { ALLOWED_ALGORITHMS, secureCompare } from '../../security';
 import { WELL_KNOWN_JWKS_PATH } from '../../constants';
 import { PaymentPayload, PaymentRequirements, VerifyResponse } from '@x402/core/types';
-import type { AgentPayClientForFacilitator } from '../../config';
-import { AgentPayPayloadV2, AgentPayPaymentExtra, MismatchError } from '../../types';
+import type { AgenticCommerceClientForFacilitator } from '../../config';
+import { AgenticCommercePayloadV2, AgenticCommercePaymentExtra, MismatchError } from '../../types';
 import { decodeQuoteToken } from '../../utils';
 import { verifyDPoPProof, extractDPoPThumbprint } from '../../dpop';
 
@@ -28,10 +28,10 @@ export interface VerifyPaymentOptions {
 }
 
 /**
- * Verify a Agent Pay payment
+ * Verify a Agentic Commerce payment
  *
  * Verification steps:
- * 1. Verify payment token signature via Agent Pay client (Agent Pay's ES384 key)
+ * 1. Verify payment token signature via Agentic Commerce client (Agentic Commerce's ES384 key)
  * 2. Verify payment ID matches
  * 3. Verify quote token exists in requirements
  * 4. Verify quote token signature (service's key via JWKS) — MANDATORY
@@ -39,28 +39,28 @@ export interface VerifyPaymentOptions {
  * 6. Verify payment token expiry
  * 7. If payment token contains cnf.jkt, verify DPoP proof (requestContext required)
  *
- * Note: Agent Pay auto-captures on creation — there is no separate settlement step.
+ * Note: Agentic Commerce auto-captures on creation — there is no separate settlement step.
  * This function does NOT use requirements.payTo or requirements.maxTimeoutSeconds.
- * In Agent Pay, those fields contain sentinel values (see spec §2.4). The signed quote token
+ * In Agentic Commerce, those fields contain sentinel values (see spec §2.4). The signed quote token
  * is the authoritative source for payment details.
  *
- * @param agentPayClient - Agent Pay client for verification
+ * @param agenticCommerceClient - Agentic Commerce client for verification
  * @param payload - Payment payload
  * @param requirements - Payment requirements
- * @param apPayload - Agent Pay-specific payload
+ * @param apPayload - Agentic Commerce-specific payload
  * @param options - Optional verification options (serviceJWKSUrl override, requestContext for DPoP)
  * @returns Verification response
  */
 export async function verifyPayment(
-  agentPayClient: AgentPayClientForFacilitator,
+  agenticCommerceClient: AgenticCommerceClientForFacilitator,
   payload: PaymentPayload,
   requirements: PaymentRequirements,
-  apPayload: AgentPayPayloadV2,
+  apPayload: AgenticCommercePayloadV2,
   options?: VerifyPaymentOptions
 ): Promise<VerifyResponse> {
   try {
-    // 1. Verify payment token signature (Agent Pay's ES384 key)
-    const paymentJWT = await agentPayClient.verifyPaymentToken(apPayload.paymentToken);
+    // 1. Verify payment token signature (Agentic Commerce's ES384 key)
+    const paymentJWT = await agenticCommerceClient.verifyPaymentToken(apPayload.paymentToken);
 
     // 2. Verify payment ID matches
     const payloadPaymentId = apPayload.paymentId || apPayload.transactionId;
@@ -71,7 +71,7 @@ export async function verifyPayment(
     }
 
     // 3. Verify quote token exists in requirements
-    const extra = requirements.extra as unknown as AgentPayPaymentExtra;
+    const extra = requirements.extra as unknown as AgenticCommercePaymentExtra;
     if (!extra?.quoteToken) {
       return {
         isValid: false,

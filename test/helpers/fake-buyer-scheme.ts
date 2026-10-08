@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Test-only buyer scheme
- * Stands in for the buyer: forwards the quote token to the fake Agent Pay Service
+ * Stands in for the buyer: forwards the quote token to the fake Agentic Commerce Service
  * and wraps the payment token into an x402 PaymentPayload, so tests can drive the
  * seller and facilitator through x402Client.
  */
@@ -12,17 +12,20 @@ import type {
   PaymentRequirements,
   SchemeNetworkClient,
 } from '@x402/core/types';
-import { AGENT_PAY_SCHEME } from '../../src/constants';
-import type { AgentPayPaymentExtra, AgentPayPayloadV2 } from '../../src/types';
-import type { CreateAgentPaymentRequest, MockAgentPayClient } from './mock-agent-pay-client';
+import { AGENTIC_COMMERCE_SCHEME } from '../../src/constants';
+import type { AgenticCommercePaymentExtra, AgenticCommercePayloadV2 } from '../../src/types';
+import type {
+  CreatePaymentRequest,
+  MockAgenticCommerceClient,
+} from './mock-agentic-commerce-client';
 
 export class FakeBuyerScheme implements SchemeNetworkClient {
-  readonly scheme = AGENT_PAY_SCHEME;
+  readonly scheme = AGENTIC_COMMERCE_SCHEME;
 
   constructor(
     private readonly config: {
-      agentPayClient: Pick<MockAgentPayClient, 'createPayment'>;
-      dpopJwk?: CreateAgentPaymentRequest['dpopJwk'];
+      agenticCommerceClient: Pick<MockAgenticCommerceClient, 'createPayment'>;
+      dpopJwk?: CreatePaymentRequest['dpopJwk'];
     }
   ) {}
 
@@ -30,16 +33,16 @@ export class FakeBuyerScheme implements SchemeNetworkClient {
     x402Version: number,
     paymentRequirements: PaymentRequirements
   ): Promise<PaymentPayloadResult> {
-    const extra = paymentRequirements.extra as unknown as AgentPayPaymentExtra;
+    const extra = paymentRequirements.extra as unknown as AgenticCommercePaymentExtra;
     if (!extra?.quoteToken) {
       throw new Error('Missing quoteToken in payment requirements');
     }
-    const result = await this.config.agentPayClient.createPayment({
+    const result = await this.config.agenticCommerceClient.createPayment({
       quoteToken: extra.quoteToken,
       clientToken: crypto.randomUUID(),
       dpopJwk: this.config.dpopJwk,
     });
-    const payload: AgentPayPayloadV2 = {
+    const payload: AgenticCommercePayloadV2 = {
       paymentToken: result.paymentToken,
       paymentId: result.paymentId,
       transactionId: result.paymentId,

@@ -20,31 +20,31 @@ import {
 } from '@x402/core/types';
 import * as jose from 'jose';
 import { FakeBuyerScheme } from '../helpers/fake-buyer-scheme';
-import { AgentPayScheme as APServer } from '../../src/agent-pay/server/scheme';
-import { AgentPayScheme as APFacilitator } from '../../src/agent-pay/facilitator/scheme';
-import type { AgentPayPayloadV2 } from '../../src/types';
-import { AGENT_PAY_SCHEME } from '../../src/constants';
-import { AGENT_PAY_SENTINEL_PAY_TO } from '../../src/constants';
-import { createMockAgentPayClient } from '../helpers/mock-agent-pay-client';
+import { AgenticCommerceScheme as APServer } from '../../src/agentic-commerce/server/scheme';
+import { AgenticCommerceScheme as APFacilitator } from '../../src/agentic-commerce/facilitator/scheme';
+import type { AgenticCommercePayloadV2 } from '../../src/types';
+import { AGENTIC_COMMERCE_SCHEME } from '../../src/constants';
+import { SENTINEL_PAY_TO } from '../../src/constants';
+import { createMockAgenticCommerceClient } from '../helpers/mock-agentic-commerce-client';
 import { createMockServiceSigner } from '../helpers/mock-service-signer';
 import { clearServiceJWKSCache } from '../../src/utils';
 
 /**
- * Agent Pay Integration Tests
+ * Agentic Commerce Integration Tests
  *
- * Tests use mock Agent Pay client and service signer to simulate the complete Agent Pay flow.
+ * Tests use mock Agentic Commerce client and service signer to simulate the complete Agentic Commerce flow.
  * In production:
- * - Client calls Agent Pay provider API to get payment tokens
- * - Facilitator fetches Agent Pay's public key from JWKS endpoint
+ * - Client calls Agentic Commerce provider API to get payment tokens
+ * - Facilitator fetches Agentic Commerce's public key from JWKS endpoint
  * - Service signs quote tokens with its own keys
  */
 
 /**
- * Agent Pay Facilitator Client wrapper
+ * Agentic Commerce Facilitator Client wrapper
  * Wraps the x402Facilitator for use with x402ResourceServer
  */
 class APFacilitatorClient implements FacilitatorClient {
-  readonly scheme = AGENT_PAY_SCHEME;
+  readonly scheme = AGENTIC_COMMERCE_SCHEME;
   readonly network = 'fab:aws';
   readonly x402Version = 2;
 
@@ -70,7 +70,7 @@ class APFacilitatorClient implements FacilitatorClient {
 }
 
 /**
- * Build Agent Pay payment requirements for testing
+ * Build Agentic Commerce payment requirements for testing
  */
 function buildPaymentRequirements(
   payTo: string,
@@ -78,7 +78,7 @@ function buildPaymentRequirements(
   network: Network = 'fab:aws'
 ): PaymentRequirements {
   return {
-    scheme: AGENT_PAY_SCHEME,
+    scheme: AGENTIC_COMMERCE_SCHEME,
     network,
     asset: 'iso4217:USD',
     amount,
@@ -91,13 +91,13 @@ function buildPaymentRequirements(
   };
 }
 
-describe('Agent Pay Integration Tests', () => {
+describe('Agentic Commerce Integration Tests', () => {
   let servicePrivateKey: jose.KeyLike;
   let servicePublicKey: jose.KeyLike;
-  let agentPayPrivateKey: jose.KeyLike;
-  let agentPayPublicKey: jose.KeyLike;
+  let agenticCommercePrivateKey: jose.KeyLike;
+  let agenticCommercePublicKey: jose.KeyLike;
   const serviceUrl = 'https://api.example.com';
-  const agentPayId = 'agent-pay-test-123';
+  const agenticCommerceId = 'agentic-commerce-test-123';
   const mockFetch = vi.fn();
 
   beforeEach(async () => {
@@ -109,10 +109,10 @@ describe('Agent Pay Integration Tests', () => {
     servicePrivateKey = serviceKeys.privateKey;
     servicePublicKey = serviceKeys.publicKey;
 
-    // Generate Agent Pay key pair (for mock signing in tests)
-    const agentPayKeys = await jose.generateKeyPair('RS256');
-    agentPayPrivateKey = agentPayKeys.privateKey;
-    agentPayPublicKey = agentPayKeys.publicKey;
+    // Generate Agentic Commerce key pair (for mock signing in tests)
+    const agenticCommerceKeys = await jose.generateKeyPair('RS256');
+    agenticCommercePrivateKey = agenticCommerceKeys.privateKey;
+    agenticCommercePublicKey = agenticCommerceKeys.publicKey;
 
     // Mock fetch to serve service JWKS for quote token verification
     const servicePublicJWK = await jose.exportJWK(servicePublicKey);
@@ -133,13 +133,13 @@ describe('Agent Pay Integration Tests', () => {
     clearServiceJWKSCache();
   });
 
-  describe('x402Client / x402ResourceServer / x402Facilitator - Agent Pay Flow', () => {
+  describe('x402Client / x402ResourceServer / x402Facilitator - Agentic Commerce Flow', () => {
     let client: x402Client;
     let server: x402ResourceServer;
 
     beforeEach(async () => {
-      // Create mock Agent Pay client
-      const agentPayMock = await createMockAgentPayClient(agentPayId);
+      // Create mock Agentic Commerce client
+      const agenticCommerceMock = await createMockAgenticCommerceClient(agenticCommerceId);
 
       // Create mock service signer
       const serviceMock = await createMockServiceSigner(serviceUrl);
@@ -157,16 +157,16 @@ describe('Agent Pay Integration Tests', () => {
       });
       clearServiceJWKSCache();
 
-      // Create client with Agent Pay client
+      // Create client with Agentic Commerce client
       const apClient = new FakeBuyerScheme({
-        agentPayClient: agentPayMock.agentPayClient,
+        agenticCommerceClient: agenticCommerceMock.agenticCommerceClient,
       });
       client = new x402Client().register('fab:aws', apClient);
 
-      // Create facilitator with Agent Pay client
+      // Create facilitator with Agentic Commerce client
       const apFacilitator = new APFacilitator({
-        agentPayId,
-        agentPayClient: agentPayMock.agentPayClient,
+        agenticCommerceId,
+        agenticCommerceClient: agenticCommerceMock.agenticCommerceClient,
       });
       const facilitator = new x402Facilitator().register('fab:aws', apFacilitator);
 
@@ -176,10 +176,10 @@ describe('Agent Pay Integration Tests', () => {
       await server.initialize();
     });
 
-    it('server should successfully verify and settle a Agent Pay payment from a client', async () => {
+    it('server should successfully verify and settle a Agentic Commerce payment from a client', async () => {
       // Server - builds PaymentRequired response using buildPaymentRequirements
       const accepts = await server.buildPaymentRequirements({
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         network: 'fab:aws',
         payTo: 'service-pay-789',
         price: 0.15,
@@ -200,18 +200,18 @@ describe('Agent Pay Integration Tests', () => {
 
       expect(paymentPayload).toBeDefined();
       expect(paymentPayload.x402Version).toBe(2);
-      expect(paymentPayload.accepted.scheme).toBe(AGENT_PAY_SCHEME);
+      expect(paymentPayload.accepted.scheme).toBe(AGENTIC_COMMERCE_SCHEME);
 
       // Verify the payload structure
-      const apPayload = paymentPayload.payload as unknown as AgentPayPayloadV2;
+      const apPayload = paymentPayload.payload as unknown as AgenticCommercePayloadV2;
       expect(apPayload.paymentToken).toBeDefined();
       expect(apPayload.transactionId).toBeDefined();
       expect(apPayload.transactionId).toMatch(/^awsmp-/);
 
-      // Decode and verify payment token structure (Agent Pay format)
+      // Decode and verify payment token structure (Agentic Commerce format)
       const decodedPayment = jose.decodeJwt(apPayload.paymentToken);
       expect(decodedPayment.iss).toBe('awsmp-agentpay.amazonaws.com');
-      expect(decodedPayment.sub).toBe(agentPayId);
+      expect(decodedPayment.sub).toBe(agenticCommerceId);
       expect((decodedPayment as any).payment_context).toBeDefined();
       expect((decodedPayment as any).payment_context.transaction_id).toBe(apPayload.transactionId);
       expect((decodedPayment as any).payment_context.quote_token).toBeDefined();
@@ -227,12 +227,12 @@ describe('Agent Pay Integration Tests', () => {
         console.log('Invalid reason:', verifyResponse.invalidReason);
         console.log('Invalid message:', verifyResponse.invalidMessage);
         console.log('Payer:', verifyResponse.payer);
-        console.log('Agent Pay ID:', agentPayId);
+        console.log('Agentic Commerce ID:', agenticCommerceId);
         console.log('Payload:', JSON.stringify(paymentPayload, null, 2));
       }
 
       expect(verifyResponse.isValid).toBe(true);
-      expect(verifyResponse.payer).toBe(agentPayId);
+      expect(verifyResponse.payer).toBe(agenticCommerceId);
 
       // Server does work here
 
@@ -243,14 +243,14 @@ describe('Agent Pay Integration Tests', () => {
     });
   });
 
-  describe('x402HTTPClient / x402HTTPResourceServer / x402Facilitator - Agent Pay Flow', () => {
+  describe('x402HTTPClient / x402HTTPResourceServer / x402Facilitator - Agentic Commerce Flow', () => {
     let client: x402HTTPClient;
     let httpServer: x402HTTPResourceServer;
 
     const routes = {
       '/api/protected': {
         accepts: {
-          scheme: AGENT_PAY_SCHEME,
+          scheme: AGENTIC_COMMERCE_SCHEME,
           payTo: 'service-pay-789',
           price: 0.15,
           network: 'fab:aws' as Network,
@@ -272,24 +272,24 @@ describe('Agent Pay Integration Tests', () => {
     };
 
     beforeEach(async () => {
-      // Create mock Agent Pay client
-      const agentPayMock = await createMockAgentPayClient(agentPayId);
+      // Create mock Agentic Commerce client
+      const agenticCommerceMock = await createMockAgenticCommerceClient(agenticCommerceId);
 
       // Create mock service signer
       const serviceMock = await createMockServiceSigner(serviceUrl);
 
-      // Create facilitator with Agent Pay client
+      // Create facilitator with Agentic Commerce client
       const apFacilitator = new APFacilitator({
-        agentPayId,
-        agentPayClient: agentPayMock.agentPayClient,
+        agenticCommerceId,
+        agenticCommerceClient: agenticCommerceMock.agenticCommerceClient,
       });
       const facilitator = new x402Facilitator().register('fab:aws', apFacilitator);
 
       const facilitatorClient = new APFacilitatorClient(facilitator);
 
-      // Create client with Agent Pay client
+      // Create client with Agentic Commerce client
       const apClient = new FakeBuyerScheme({
-        agentPayClient: agentPayMock.agentPayClient,
+        agenticCommerceClient: agenticCommerceMock.agenticCommerceClient,
       });
       const paymentClient = new x402Client().register('fab:aws', apClient);
       client = new x402HTTPClient(paymentClient) as x402HTTPClient;
@@ -310,7 +310,7 @@ describe('Agent Pay Integration Tests', () => {
     // 1. Cache requirements in the HTTP server for a short time
     // 2. Change findMatchingRequirements to match on core fields only (scheme, network, amount, asset, payTo)
     // 3. Have the server verify the quote token signature instead of rebuilding requirements
-    it.skip('middleware should successfully verify and settle a Agent Pay payment from an http client', async () => {
+    it.skip('middleware should successfully verify and settle a Agentic Commerce payment from an http client', async () => {
       // Middleware creates a PaymentRequired response
       const context = {
         adapter: mockAdapter,
@@ -341,7 +341,7 @@ describe('Agent Pay Integration Tests', () => {
       const paymentPayload = await client.createPaymentPayload(paymentRequired);
 
       expect(paymentPayload).toBeDefined();
-      expect(paymentPayload.accepted.scheme).toBe(AGENT_PAY_SCHEME);
+      expect(paymentPayload.accepted.scheme).toBe(AGENTIC_COMMERCE_SCHEME);
 
       const requestHeaders = await client.encodePaymentSignatureHeader(paymentPayload);
 
@@ -390,15 +390,15 @@ describe('Agent Pay Integration Tests', () => {
     let apServer: APServer;
 
     beforeEach(async () => {
-      // Create mock Agent Pay client
-      const agentPayMock = await createMockAgentPayClient(agentPayId);
+      // Create mock Agentic Commerce client
+      const agenticCommerceMock = await createMockAgenticCommerceClient(agenticCommerceId);
 
       // Create mock service signer
       const serviceMock = await createMockServiceSigner(serviceUrl);
 
       const apFacilitator = new APFacilitator({
-        agentPayId,
-        agentPayClient: agentPayMock.agentPayClient,
+        agenticCommerceId,
+        agenticCommerceClient: agenticCommerceMock.agenticCommerceClient,
       });
       const facilitator = new x402Facilitator().register('fab:aws', apFacilitator);
 
@@ -420,7 +420,7 @@ describe('Agent Pay Integration Tests', () => {
 
       for (const testCase of testCases) {
         const requirements = await server.buildPaymentRequirements({
-          scheme: AGENT_PAY_SCHEME,
+          scheme: AGENTIC_COMMERCE_SCHEME,
           payTo: 'service-pay',
           price: testCase.input,
           network: 'fab:aws' as Network,
@@ -441,7 +441,7 @@ describe('Agent Pay Integration Tests', () => {
       };
 
       const requirements = await server.buildPaymentRequirements({
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         payTo: 'service-pay',
         price: customAsset,
         network: 'fab:aws' as Network,
@@ -463,7 +463,7 @@ describe('Agent Pay Integration Tests', () => {
 
       for (const testCase of testCases) {
         const requirements = await server.buildPaymentRequirements({
-          scheme: AGENT_PAY_SCHEME,
+          scheme: AGENTIC_COMMERCE_SCHEME,
           payTo: 'service-pay',
           price: testCase.input,
           network: 'fab:aws' as Network,
@@ -476,7 +476,7 @@ describe('Agent Pay Integration Tests', () => {
 
     it('should include quote token in all payment requirements', async () => {
       const requirements = await server.buildPaymentRequirements({
-        scheme: AGENT_PAY_SCHEME,
+        scheme: AGENTIC_COMMERCE_SCHEME,
         payTo: 'service-pay',
         price: 0.15,
         network: 'fab:aws' as Network,
@@ -486,7 +486,7 @@ describe('Agent Pay Integration Tests', () => {
       expect((requirements[0].extra as any).quoteToken).toBeDefined();
 
       // Sentinel values: payTo should be sentinel, maxTimeoutSeconds should match quote validity
-      expect(requirements[0].payTo).toBe(AGENT_PAY_SENTINEL_PAY_TO);
+      expect(requirements[0].payTo).toBe(SENTINEL_PAY_TO);
       expect(requirements[0].maxTimeoutSeconds).toBe(300); // DEFAULT_QUOTE_VALIDITY_SECONDS
 
       // Decode and verify quote token
@@ -531,9 +531,9 @@ describe('Agent Pay Integration Tests', () => {
     });
 
     it('should create valid payment token referencing quote token', async () => {
-      // Create mock service signer and Agent Pay client
+      // Create mock service signer and Agentic Commerce client
       const serviceMock = await createMockServiceSigner(serviceUrl);
-      const agentPayMock = await createMockAgentPayClient(agentPayId);
+      const agenticCommerceMock = await createMockAgenticCommerceClient(agenticCommerceId);
 
       // First create quote token
       const quoteToken = await serviceMock.signer.signQuote({
@@ -548,8 +548,8 @@ describe('Agent Pay Integration Tests', () => {
         reference: 'TEST',
       });
 
-      // Then create payment token using Agent Pay client
-      const result = await agentPayMock.agentPayClient.createPayment({
+      // Then create payment token using Agentic Commerce client
+      const result = await agenticCommerceMock.agenticCommerceClient.createPayment({
         quoteToken,
       });
 
@@ -560,7 +560,7 @@ describe('Agent Pay Integration Tests', () => {
       // Verify token can be decoded
       const decoded = jose.decodeJwt(result.paymentToken);
       expect(decoded.iss).toBe('awsmp-agentpay.amazonaws.com');
-      expect(decoded.sub).toBe(agentPayId);
+      expect(decoded.sub).toBe(agenticCommerceId);
       expect((decoded as any).payment_context.quote_token).toBe(quoteToken);
     });
   });
