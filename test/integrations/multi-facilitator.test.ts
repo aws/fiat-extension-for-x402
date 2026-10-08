@@ -13,12 +13,10 @@ import type {
   SupportedResponse,
 } from '@x402/core/types';
 import * as jose from 'jose';
-import { AgentPayScheme as APClient } from '../../src/agent-pay/client/scheme';
+import { FakeBuyerScheme } from '../helpers/fake-buyer-scheme';
 import { AgentPayScheme as APServer } from '../../src/agent-pay/server/scheme';
 import { AgentPayScheme as APFacilitator } from '../../src/agent-pay/facilitator/scheme';
 import { InProcessFacilitatorClient } from '../../src/facilitator-client';
-import { buildAgentPayClient } from '../../src/builders/client-builder';
-import { createAgentPayClient } from '../../src/builders/client-builder';
 import { registerAgentPayNetworks } from '../../src/builders/register';
 import { AGENT_PAY_SCHEME, AGENT_PAY_SENTINEL_PAY_TO } from '../../src/constants';
 import { createMockAgentPayClient } from '../helpers/mock-agent-pay-client';
@@ -84,8 +82,7 @@ describe('Multi-Facilitator Integration Tests', () => {
 
       // Build client using the builder for two networks
       client = new x402Client();
-      const apClientScheme = new APClient({
-        agentPayId,
+      const apClientScheme = new FakeBuyerScheme({
         agentPayClient: agentPayMock.agentPayClient,
       });
       client.register('fab:aws', apClientScheme);
@@ -209,71 +206,6 @@ describe('Multi-Facilitator Integration Tests', () => {
           serviceUrl: 'https://api.example.com',
         })
       ).toThrow('non-empty');
-    });
-  });
-
-  describe('createAgentPayClient two-phase API', () => {
-    it('should work with registerNetwork for payment flow', async () => {
-      const agentPayMock = await createMockAgentPayClient(agentPayId);
-      const serviceMock = await createMockServiceSigner(serviceUrl);
-
-      // Update mock fetch to serve this test's service JWKS
-      const servicePublicJWK = await jose.exportJWK(serviceMock.publicKey);
-      servicePublicJWK.kid = 'test-service-key';
-      servicePublicJWK.alg = 'RS256';
-      servicePublicJWK.use = 'sig';
-      mockFetch.mockImplementation(async (url: string) => {
-        if (typeof url === 'string' && url.includes('/.well-known/jwks.json')) {
-          return { ok: true, json: async () => ({ keys: [servicePublicJWK] }) };
-        }
-        return { ok: false, statusText: 'Not Found' };
-      });
-      clearServiceJWKSCache();
-
-      // Two-phase client: create then register
-      const apClient = createAgentPayClient({
-        agentPayBaseUrl: 'https://pay.example.com',
-        agentPayId,
-      });
-      // Override the internal scheme with our mock Agent Pay client
-      const apClientScheme = new APClient({
-        agentPayId,
-        agentPayClient: agentPayMock.agentPayClient,
-      });
-      const client = new x402Client();
-      client.register('fab:aws', apClientScheme);
-
-      // Server setup (same as before)
-      const apFacilitator = new APFacilitator({
-        agentPayId,
-        agentPayClient: agentPayMock.agentPayClient,
-      });
-      const facilitator = new x402Facilitator().register('fab:aws', apFacilitator);
-      const facilitatorClient = new APFacilitatorClient(facilitator);
-      const server = new x402ResourceServer(facilitatorClient);
-
-      server.register('fab:aws', new APServer({ signer: serviceMock.signer }));
-      await server.initialize();
-
-      const accepts = await server.buildPaymentRequirements({
-        scheme: AGENT_PAY_SCHEME,
-        network: 'fab:aws',
-        payTo: 'service-pay',
-        price: 0.15,
-      });
-
-      const paymentRequired = await server.createPaymentRequiredResponse(accepts, {
-        url: 'https://example.com/resource',
-        description: 'Test',
-        mimeType: 'application/json',
-      });
-
-      const paymentPayload = await client.createPaymentPayload(paymentRequired);
-      expect(paymentPayload.accepted.scheme).toBe(AGENT_PAY_SCHEME);
-
-      const accepted = server.findMatchingRequirements(accepts, paymentPayload);
-      const verifyResult = await server.verifyPayment(paymentPayload, accepted!);
-      expect(verifyResult.isValid).toBe(true);
     });
   });
 });

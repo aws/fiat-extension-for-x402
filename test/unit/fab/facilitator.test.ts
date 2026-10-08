@@ -5,7 +5,7 @@ import * as jose from 'jose';
 import { AgentPayScheme } from '../../../src/agent-pay/facilitator/scheme';
 import { verifyPayment } from '../../../src/agent-pay/facilitator/verify';
 import { settlePayment } from '../../../src/agent-pay/facilitator/settle';
-import type { AgentPayClient } from '../../../src/config';
+import type { MockAgentPayClient } from '../../helpers/mock-agent-pay-client';
 import type { PaymentPayload, PaymentRequirements } from '@x402/core/types';
 import type { AgentPayPayloadV2 } from '../../../src/types';
 import { AGENT_PAY_SCHEME } from '../../../src/constants';
@@ -22,7 +22,7 @@ import { clearServiceJWKSCache } from '../../../src/utils';
  */
 
 describe('Agent Pay Facilitator Scheme', () => {
-  let agentPayClient: AgentPayClient;
+  let agentPayClient: MockAgentPayClient;
   let privateKey: jose.KeyLike;
   let publicKey: jose.KeyLike;
   let scheme: AgentPayScheme;

@@ -4,10 +4,6 @@ import { describe, it, expect } from 'vitest';
 import * as AgentPay from '../../src/index';
 
 describe('Agent Pay Package Exports', () => {
-  it('should export AgentPayClientScheme', () => {
-    expect(AgentPay.AgentPayClientScheme).toBeDefined();
-  });
-
   it('should export AgentPayServerScheme', () => {
     expect(AgentPay.AgentPayServerScheme).toBeDefined();
   });

@@ -8,36 +8,20 @@
  */
 
 // Scheme implementations
-export { AgentPayClientScheme, AgentPayServerScheme, AgentPayFacilitatorScheme } from './agent-pay';
+export { AgentPayServerScheme, AgentPayFacilitatorScheme } from './agent-pay';
 
 // Pre-configured network schemes
-export {
-  AgentPayAWSClientScheme,
-  AgentPayAWSServerScheme,
-  AgentPayAWSFacilitatorScheme,
-} from './networks';
+export { AgentPayAWSServerScheme, AgentPayAWSFacilitatorScheme } from './networks';
 
 // Configuration types
 export type {
   SigningKeysConfig,
   AgentPayConfig,
-  AgentPayClientForClient,
   AgentPayClientForFacilitator,
-  AgentPayClient,
-  AgentPayClientSchemeConfig,
   AgentPayServerSchemeConfig,
   AgentPayFacilitatorSchemeConfig,
   ServiceAgentPaySigner as ServiceAgentPaySignerInterface,
-  DpopJwk,
-  CreateAgentPaymentRequest,
-  CreateAgentPaymentResponse,
-  GetAgentPaymentResponse,
-  ListAgentPaymentsRequest,
-  ListAgentPaymentsResponse,
 } from './config';
-
-// Agent Pay client implementation
-export { DefaultAgentPayClient } from './agent-pay-client';
 
 // Facilitator client implementation
 export { InProcessFacilitatorClient } from './facilitator-client';
@@ -66,9 +50,7 @@ export type {
   PaymentContext,
   PaymentTokenPayload,
   AgentPayPayloadV2,
-  DPoPKeyPair,
   DPoPProofPayload,
-  DPoPProofOptions,
   DPoPVerificationOptions,
   DPoPNonceStore,
 } from './types';
@@ -81,7 +63,6 @@ export {
   ExpiryError,
   MismatchError,
   DPoPError,
-  IdempotencyConflictError,
 } from './types';
 
 // Constants
@@ -97,10 +78,8 @@ export {
   PAYMENT_JWT_ISSUER,
   WELL_KNOWN_JWKS_PATH,
   WELL_KNOWN_X402_SUPPORTED_PATH,
-  WELL_KNOWN_OIDC_PATH,
   AGENT_PAY_AUDIENCE,
   AGENT_PAY_JWKS_BASE_URL,
-  DEFAULT_AGENT_PAY_BASE_URL,
 } from './constants';
 
 // Utilities
@@ -119,16 +98,6 @@ export {
   clearServiceJWKSCache,
 } from './utils';
 
-// Agent Pay Discovery
-export {
-  getAgentPayBaseUrl,
-  discoverAgentPayEndpoints,
-  fetchAgentPayPublicKeys,
-  clearDiscoveryCache,
-  clearJWKSCache,
-} from './discovery';
-export type { AgentPayDiscoveryMetadata } from './discovery';
-
 // Security utilities
 export { ALLOWED_ALGORITHMS, secureCompare, validateUrl } from './security';
 
@@ -141,27 +110,13 @@ export {
   AgentPayTermsSchema,
   AgentPayPaymentExtraSchema,
   AgentPayPayloadV2Schema,
-  DpopJwkSchema,
-  CreateAgentPaymentRequestSchema,
-  CreateAgentPaymentResponseSchema,
-  GetAgentPaymentResponseSchema,
-  ListAgentPaymentsResponseSchema,
   parseQuoteToken,
   safeParseQuoteToken,
   parsePaymentPayload,
-  parseCreatePaymentResponse,
 } from './schemas';
 
 // DPoP (Demonstrating Proof-of-Possession)
-export {
-  generateDPoPKeyPair,
-  toDpopJwk,
-  createDPoPProof,
-  computeJWKThumbprint,
-  verifyDPoPProof,
-  extractDPoPThumbprint,
-  type DPoPAlgorithm,
-} from './dpop';
+export { computeJWKThumbprint, verifyDPoPProof, extractDPoPThumbprint } from './dpop';
 
 // Express Middleware
 export {
@@ -175,9 +130,7 @@ export {
 // Builders (network-aware facilitator routing)
 export {
   createAgentPayResourceServer,
-  createAgentPayClient,
   buildAgentPayResourceServer,
-  buildAgentPayClient,
   registerAgentPayNetworks,
 } from './builders';
 export type {
@@ -185,8 +138,5 @@ export type {
   AgentPayResourceServer,
   NetworkOptions,
   InitializeOptions,
-  AgentPayClientOptions,
-  AgentPayClientBuilder,
   AgentPayResourceServerConfig,
-  AgentPayClientConfig,
 } from './builders';

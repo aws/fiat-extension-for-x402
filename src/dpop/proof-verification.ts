@@ -19,6 +19,25 @@ function computeAccessTokenHash(accessToken: string): string {
 }
 
 /**
+ * Compute JWK thumbprint (SHA-256 hash)
+ *
+ * @param jwk - Public key in JWK format
+ * @returns Base64url-encoded thumbprint
+ *
+ * @example
+ * ```typescript
+ * const thumbprint = await computeJWKThumbprint(publicJwk);
+ * ```
+ */
+export async function computeJWKThumbprint(jwk: jose.JWK): Promise<string> {
+  try {
+    return await jose.calculateJwkThumbprint(jwk, 'sha256');
+  } catch (error) {
+    throw new DPoPError('Failed to compute JWK thumbprint', { error });
+  }
+}
+
+/**
  * Verify a DPoP proof JWT
  *
  * Performs comprehensive security checks:

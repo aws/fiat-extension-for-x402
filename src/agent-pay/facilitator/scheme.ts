@@ -16,7 +16,7 @@ import {
   Network,
 } from '@x402/core/types';
 import type { AgentPayFacilitatorSchemeConfig, AgentPayClientForFacilitator } from '../../config';
-import { DefaultAgentPayClient } from '../../agent-pay-client';
+import { JwksPaymentTokenVerifier } from './payment-token-verifier';
 import { AgentPayPayloadV2, ValidationError } from '../../types';
 import { verifyPayment } from './verify';
 import { settlePayment } from './settle';
@@ -44,7 +44,7 @@ export class AgentPayScheme implements SchemeNetworkFacilitator {
     if ('agentPayClient' in config) {
       this.agentPayClient = config.agentPayClient;
     } else if ('agentPay' in config) {
-      this.agentPayClient = new DefaultAgentPayClient(config.agentPay);
+      this.agentPayClient = new JwksPaymentTokenVerifier(config.agentPay);
     } else {
       throw new ValidationError(
         'AgentPayFacilitatorScheme requires either agentPayClient or Agent Pay configuration'

@@ -5,7 +5,6 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: [
     'src/index.ts',
-    'src/agent-pay/client/index.ts',
     'src/agent-pay/server/index.ts',
     'src/agent-pay/facilitator/index.ts',
     'src/middleware/express.ts',

@@ -1,8 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
-import { generateDPoPKeyPair } from '../../../src/dpop/key-generation';
-import { createDPoPProof } from '../../../src/dpop/proof-creation';
+import { generateDPoPKeyPair, createDPoPProof } from '../../helpers/dpop';
 import { verifyDPoPProof, extractDPoPThumbprint } from '../../../src/dpop/proof-verification';
 import { DPoPError, DPoPNonceStore } from '../../../src/types';
 

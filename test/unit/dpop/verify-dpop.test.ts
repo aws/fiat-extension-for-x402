@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import * as jose from 'jose';
-import { generateDPoPKeyPair, createDPoPProof, computeJWKThumbprint } from '../../../src/dpop';
+import { computeJWKThumbprint } from '../../../src/dpop';
+import { generateDPoPKeyPair, createDPoPProof } from '../../helpers/dpop';
 import { AgentPayFacilitatorClient } from '../../../src/agent-pay-facilitator-client';
 import { setupMockServer } from './helpers';
 import http from 'http';

@@ -21,7 +21,6 @@ import {
   WELL_KNOWN_X402_SUPPORTED_PATH,
   AGENT_PAY_JWKS_BASE_URL,
   AGENT_PAY_JWKS_ACCESS_KEY,
-  DEFAULT_AGENT_PAY_BASE_URL,
 } from './constants';
 import type {
   Network,
@@ -32,7 +31,7 @@ import type {
   SupportedResponse,
 } from '@x402/core/types';
 import * as jose from 'jose';
-import { AgentPayPayloadV2, AgentPayPaymentExtra } from './types';
+import { AgentPayPayloadV2, AgentPayPaymentExtra, ValidationError } from './types';
 import { decodeQuoteToken } from './utils';
 import { verifyDPoPProof, extractDPoPThumbprint } from './dpop';
 
@@ -111,14 +110,17 @@ export class AgentPayFacilitatorClient implements FacilitatorClient {
    *   verification. If omitted, fetches JWKS from the quote token's `iss` claim.
    */
   constructor(
-    agentPayBaseUrl?: string,
+    agentPayBaseUrl: string,
     authConfig?: AgentPayFacilitatorAuthConfig,
     networkFilter?: Set<Network>,
     jwksBaseUrl?: string,
     sellerKeyResolver?: SellerKeyResolver
   ) {
+    if (!agentPayBaseUrl) {
+      throw new ValidationError('agentPayBaseUrl is required');
+    }
     // Remove trailing slash if present
-    this.agentPayBaseUrl = (agentPayBaseUrl ?? DEFAULT_AGENT_PAY_BASE_URL).replace(/\/$/, '');
+    this.agentPayBaseUrl = agentPayBaseUrl.replace(/\/$/, '');
     this.authConfig = authConfig;
     this.networkFilter = networkFilter;
     this.jwksBaseUrl = (jwksBaseUrl ?? AGENT_PAY_JWKS_BASE_URL).replace(/\/$/, '');

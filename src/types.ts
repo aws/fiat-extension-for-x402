@@ -182,16 +182,6 @@ export interface AgentPayPayloadV2 {
 // ============================================================================
 
 /**
- * DPoP key pair (ephemeral keys for proof-of-possession)
- */
-export interface DPoPKeyPair {
-  /** Private key for signing */
-  privateKey: any; // jose.KeyLike
-  /** Public key in JWK format */
-  publicKey: any; // jose.JWK
-}
-
-/**
  * DPoP proof JWT payload
  */
 export interface DPoPProofPayload {
@@ -207,20 +197,6 @@ export interface DPoPProofPayload {
   ath?: string;
   /** Allow additional properties for extensibility */
   [key: string]: unknown;
-}
-
-/**
- * Options for creating DPoP proof
- */
-export interface DPoPProofOptions {
-  /** HTTP method */
-  method: string;
-  /** HTTP URL */
-  url: string;
-  /** Access token to bind (optional) */
-  accessToken?: string;
-  /** Nonce value (optional) */
-  nonce?: string;
 }
 
 /**
@@ -348,30 +324,6 @@ export class DPoPError extends AgentPayError {
     this.name = 'DPoPError';
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, DPoPError);
-    }
-  }
-}
-
-/**
- * Error thrown when a clientToken is reused with different request parameters (HTTP 409).
- * The same clientToken with the same parameters returns the cached response (idempotency).
- * A different set of parameters triggers this error.
- */
-export class IdempotencyConflictError extends AgentPayError {
-  /** The clientToken that caused the conflict */
-  readonly clientToken: string;
-
-  constructor(clientToken: string, message?: string) {
-    super(
-      message ||
-        `Idempotency conflict: clientToken "${clientToken}" was used with different parameters`,
-      'IDEMPOTENCY_CONFLICT',
-      { clientToken }
-    );
-    this.name = 'IdempotencyConflictError';
-    this.clientToken = clientToken;
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, IdempotencyConflictError);
     }
   }
 }
