@@ -1,0 +1,12 @@
+# Revisions for `git blame` to skip, because they are bulk reformats.
+# GitHub's blame view honours this file automatically; locally, run
+# `git config blame.ignoreRevsFile .git-blame-ignore-revs` once.
+
+# style: Apply the repository Prettier configuration and require it in CI (#17)
+# A Prettier pass over the 65 TypeScript files in src/ and test/, which it
+# rewrites by whitespace only. It is a squash merge, so it also carries three
+# hand-written lines: the format:check step in .github/workflows/ci.yml and the
+# line about it in CONTRIBUTING.md. Skipping it therefore blames those three
+# lines on their predecessors, which is the price of un-blaming the ~1,100
+# reformatted lines.
+cd7908a26a54a157fc26af5d712159a2db7fe6a3
