@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 // @ts-check
 import { defineConfig } from 'eslint/config';
 import eslint from '@eslint/js';

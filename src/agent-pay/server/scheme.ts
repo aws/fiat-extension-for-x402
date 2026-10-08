@@ -127,10 +127,10 @@ export class AgentPayScheme implements SchemeNetworkServer {
       quoteToken
     };
 
-    // Return enhanced requirements with sentinel values for fields that are
-    // redundant in Agent Pay. The signed quote token is the authoritative source for
-    // payment recipient (payTo) and validity window (exp - iat).
-    // See spec §2.4 "Sentinel Value Convention for x402 Core Fields".
+    // Return enhanced requirements. payTo is redundant in Agent Pay and carries the
+    // AGENT_PAY_SENTINEL_PAY_TO sentinel; maxTimeoutSeconds is the quote's real
+    // validity window (exp - iat). The signed quote token is the authoritative source
+    // for the recipient and expiry, so verifiers read them from the token.
     return {
       ...paymentRequirements,
       payTo: AGENT_PAY_SENTINEL_PAY_TO,

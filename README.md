@@ -262,7 +262,7 @@ Core implementation complete (v0.2.0):
 - Express middleware
 - 425 tests passing
 
-See [docs/tasks.md](./docs/tasks.md) for full status and [docs/spec.md](./docs/spec.md) for the specification.
+See [docs/sdk-guide.md](./docs/sdk-guide.md) for the SDK guide.
 
 ## License
 

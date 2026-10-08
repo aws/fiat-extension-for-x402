@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 /**
  * Mock Agent Pay client for testing
  * Simulates Agent Pay Service behavior without making HTTP calls
