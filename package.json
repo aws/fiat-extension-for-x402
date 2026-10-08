@@ -1,7 +1,7 @@
 {
-  "name": "aws-agent-pay-x402",
+  "name": "@aws/fiat-extension-for-x402",
   "version": "0.1.0",
-  "description": "AWS Agent Pay extension for x402 protocol",
+  "description": "AWS Marketplace Agentic Commerce payment schemes for the x402 protocol",
   "type": "module",
   "files": [
     "dist",
@@ -89,7 +89,7 @@
     "fiat",
     "agent-pay"
   ],
-  "author": "",
+  "author": "Amazon Web Services",
   "license": "Apache-2.0",
   "engines": {
     "node": ">=18.0.0"
@@ -138,5 +138,8 @@
   "homepage": "https://github.com/aws/fiat-extension-for-x402#readme",
   "bugs": {
     "url": "https://github.com/aws/fiat-extension-for-x402/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

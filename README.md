@@ -9,7 +9,7 @@ Agent Pay enables HTTP APIs to accept pay-per-request payments via AWS Marketpla
 ## Installation
 
 ```bash
-npm install aws-agent-pay-x402
+npm install @aws/fiat-extension-for-x402
 ```
 
 ---
@@ -21,7 +21,7 @@ When a buyer requests a paid resource without payment, return a signed quote:
 ### Option A: KMS-hosted keys (recommended for AWS sellers)
 
 ```typescript
-import { createKmsSigner, AgentPayScheme } from 'aws-agent-pay-x402';
+import { createKmsSigner, AgentPayScheme } from '@aws/fiat-extension-for-x402';
 
 // Once at startup
 const signer = createKmsSigner({
@@ -48,7 +48,7 @@ res.status(402).json({ x402Version: 2, accepts: [requirements] });
 ### Option B: Self-hosted keys
 
 ```typescript
-import { AgentPayScheme } from 'aws-agent-pay-x402';
+import { AgentPayScheme } from '@aws/fiat-extension-for-x402';
 import * as jose from 'jose';
 
 const { privateKey, publicKey } = await jose.generateKeyPair('ES384');
@@ -77,7 +77,7 @@ const agentPay = new AgentPayScheme({
 When your agent receives a 402 response:
 
 ```typescript
-import { createAgentPayClient } from 'aws-agent-pay-x402';
+import { createAgentPayClient } from '@aws/fiat-extension-for-x402';
 
 const client = createAgentPayClient({
   agentPayBaseUrl: 'https://agentpay.marketplace.aws.dev',
@@ -110,7 +110,7 @@ When the buyer retries with a payment token, verify it before delivering the res
 **Important:** For JWKS URLs, pass only the **base URL** — the SDK automatically appends `/.well-known/jwks.json`.
 
 ```typescript
-import { AgentPayFacilitatorClient } from 'aws-agent-pay-x402';
+import { AgentPayFacilitatorClient } from '@aws/fiat-extension-for-x402';
 
 // Option 1: KMS-hosted key
 const verifier = new AgentPayFacilitatorClient(
@@ -160,7 +160,7 @@ await verifier.settle(paymentPayload, originalRequirements);
 For sellers who want automatic 402 generation + payment verification:
 
 ```typescript
-import { agentPayMiddleware, createKmsSigner } from 'aws-agent-pay-x402';
+import { agentPayMiddleware, createKmsSigner } from '@aws/fiat-extension-for-x402';
 
 app.use(agentPayMiddleware({
   agentPayBaseUrl: 'https://agentpay.marketplace.aws.dev',
@@ -215,7 +215,7 @@ Buyer Agent                    Seller API                  Agent Pay Service
 Bind payment tokens to the buyer's ephemeral key to prevent replay:
 
 ```typescript
-import { generateDPoPKeyPair } from 'aws-agent-pay-x402';
+import { generateDPoPKeyPair } from '@aws/fiat-extension-for-x402';
 
 const dpopKeyPair = await generateDPoPKeyPair('ES256');
 // Pass to client config — SDK handles DPoP proof creation automatically
@@ -226,7 +226,7 @@ const dpopKeyPair = await generateDPoPKeyPair('ES256');
 ## Error Handling
 
 ```typescript
-import { ValidationError, SignatureError, ExpiryError } from 'aws-agent-pay-x402';
+import { ValidationError, SignatureError, ExpiryError } from '@aws/fiat-extension-for-x402';
 
 try {
   await verifier.verify(payload, requirements);

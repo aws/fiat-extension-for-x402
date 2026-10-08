@@ -13,7 +13,7 @@
  * @example
  * ```typescript
  * import express from 'express';
- * import { agentPayMiddleware } from 'aws-agent-pay-x402/middleware/express';
+ * import { agentPayMiddleware } from '@aws/fiat-extension-for-x402/middleware/express';
  *
  * const app = express();
  * app.use(express.json());

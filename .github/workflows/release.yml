@@ -1,0 +1,130 @@
+name: Release
+
+# Publishing a GitHub release publishes that tag to npm with npm Trusted
+# Publishing (OIDC), so no npm token is stored. The npm trusted publisher trusts
+# this file name and the `release` environment; renaming either breaks
+# publishing. See "Releasing" in CONTRIBUTING.md.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # Re-run CI on the tagged commit. A squash merge can differ from what the
+  # pull request's checks tested.
+  ci:
+    name: CI
+    uses: $/.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  build:
+    name: Build package
+    needs: ci
+    runs-on: ubuntu-latest
+    outputs:
+      dist-tag: ${{ steps.check.outputs.dist-tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # Full history, to check that the release tag is on main.
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          # No dependency cache in the release path: a poisoned cache entry from
+          # another workflow could otherwise end up in the published package.
+          package-manager-cache: false
+      - name: Check the release
+        id: check
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "::error::$TAG is not on main"; exit 1; }
+          node <<'JS'
+          const fs = require('node:fs');
+          const { version } = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const tag = process.env.TAG;
+          const markedPrerelease = process.env.PRERELEASE === 'true';
+          // Semantic version: a pre-release has a "-" suffix (1.1.0-rc.1).
+          const semver = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z.-]+)?$/;
+          const errors = [];
+          const match = semver.exec(version);
+          if (!match) errors.push(`${version} is not a semantic version`);
+          if (tag !== `v${version}`) errors.push(`Tag ${tag} does not match package.json version ${version}`);
+          // npm accepts each version once, so a final version published by
+          // mistake from a pre-release cannot be taken back.
+          const isPrerelease = Boolean(match && match[4]);
+          if (match && isPrerelease !== markedPrerelease) {
+            errors.push(
+              markedPrerelease
+                ? `Release is marked pre-release but ${version} is a final version`
+                : `${version} is a pre-release; mark the GitHub release as pre-release`
+            );
+          }
+          for (const error of errors) console.log(`::error::${error}`);
+          if (errors.length) process.exit(1);
+          // Pre-releases go to "next", so `npm install` keeps resolving the last final version.
+          const distTag = isPrerelease ? 'next' : 'latest';
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `dist-tag=${distTag}\n`);
+          console.log(`Publishing ${version} with dist-tag ${distTag}`);
+          JS
+      # Every install must come from public npm (see ci.yml).
+      - name: Check that installs resolve only from the public npm registry
+        run: node .github/scripts/check-npm-registry.mjs
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run build
+      - run: npm run attw
+      - run: npm run publint
+      - name: Pack the package
+        run: |
+          mkdir dist-pack
+          npm pack --ignore-scripts --pack-destination dist-pack
+          tar -tzf dist-pack/*.tgz
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: package
+          path: dist-pack/
+          if-no-files-found: error
+
+  # Only downloads and publishes, so nothing else runs with the id-token
+  # permission.
+  publish:
+    name: Publish to npm
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://www.npmjs.com/package/@aws/fiat-extension-for-x402
+    permissions:
+      id-token: write # OIDC token for npm Trusted Publishing; nothing else needs a credential
+    steps:
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Check the npm version
+        # npm Trusted Publishing needs npm 11.5.1 or later.
+        run: |
+          npm --version
+          node -e 'const [a, b, c] = process.argv[1].split(".").map(Number); process.exit(a > 11 || (a === 11 && (b > 5 || (b === 5 && c >= 1))) ? 0 : 1)' "$(npm --version)" \
+            || { echo "::error::npm $(npm --version) is older than 11.5.1"; exit 1; }
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: package
+          path: dist-pack/
+      - name: Publish to npm
+        env:
+          DIST_TAG: ${{ needs.build.outputs.dist-tag }}
+        run: npm publish dist-pack/*.tgz --access public --tag "$DIST_TAG" --ignore-scripts

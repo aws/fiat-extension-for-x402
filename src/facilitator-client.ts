@@ -31,7 +31,7 @@ import type {
  * ```typescript
  * import { x402Facilitator } from '@x402/core/facilitator';
  * import { x402ResourceServer } from '@x402/core/server';
- * import { InProcessFacilitatorClient, AgentPayFacilitatorScheme } from 'aws-agent-pay-x402';
+ * import { InProcessFacilitatorClient, AgentPayFacilitatorScheme } from '@aws/fiat-extension-for-x402';
  *
  * // Create facilitator with Agent Pay scheme
  * const facilitator = new x402Facilitator()

@@ -44,6 +44,30 @@ Looking at the existing issues is a great way to find something to contribute on
 GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any 'help wanted' issues is a
 great place to start.
 
+## Releasing (maintainers)
+
+Releases are published to [npm](https://www.npmjs.com/package/@aws/fiat-extension-for-x402) by
+[`.github/workflows/release.yml`](.github/workflows/release.yml) using npm Trusted Publishing, so no npm
+token is stored in the repository.
+
+1. Open a pull request that sets the new `version` in `package.json` (and `package-lock.json`, with
+   `npm version <version> --no-git-tag-version`) and adds a changelog entry. Use a
+   [semantic version](https://semver.org): `1.1.0` for a final release, `1.1.0-rc.1` for a pre-release.
+2. After it merges, create a GitHub release from `main` with the tag `v<version>` (for example `v1.1.0` or
+   `v1.1.0-rc.1`). Tick **Set as a pre-release** if, and only if, the version is a pre-release.
+3. Publishing the release starts the workflow. It re-runs CI on the tag, checks that the tag is on `main`, that it
+   matches `package.json` and that the pre-release setting matches the version, then builds and checks the package.
+   Pre-releases are published with the `next` dist-tag, final versions with `latest`.
+4. The publish to npm waits for approval in the `release` environment from a member of the maintainers team other
+   than the person who published the release.
+
+npm accepts each version only once. If a release is broken, publish a fixed version and
+[deprecate](https://docs.npmjs.com/cli/commands/npm-deprecate) the broken one.
+
+The npm trusted publisher for `@aws/fiat-extension-for-x402` is set to repository `aws/fiat-extension-for-x402`,
+workflow `release.yml` and environment `release`. Renaming the workflow file or the environment breaks publishing
+until the publisher on npm is updated to match.
+
 ## Code of Conduct
 
 This project has adopted the [Amazon Open Source Code of Conduct](https://aws.github.io/code-of-conduct).

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `aws-agent-pay-x402` SDK implements several security measures to protect payment flows between AI agents, API services, and the AWS Marketplace Agent Pay Service.
+The `@aws/fiat-extension-for-x402` SDK implements several security measures to protect payment flows between AI agents, API services, and the AWS Marketplace Agent Pay Service.
 
 ## Algorithm Allowlist
 

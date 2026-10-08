@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # Called by release.yml on the release tag.
+  workflow_call:
 
 permissions:
   contents: read
@@ -13,7 +15,9 @@ permissions:
 # main, manual dispatch) gets its own group via run_id, so none of them is
 # cancelled or dropped while pending.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  # Prefixed because, when called from release.yml, github.workflow is the
+  # caller's name.
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
