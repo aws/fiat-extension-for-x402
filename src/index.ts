@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * aws-agent-pay-x402 - Agent Pay x402 TypeScript Extension
+ * @aws/fiat-extension-for-x402 - Agent Pay x402 TypeScript Extension
  *
  * This module provides the Agent Pay (Federated Application Billing) implementation
  * for the x402 payment protocol.

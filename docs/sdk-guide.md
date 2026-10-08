@@ -1,6 +1,6 @@
 # Agent Pay x402 Extension — SDK Guide
 
-**Package:** `aws-agent-pay-x402`
+**Package:** `@aws/fiat-extension-for-x402`
 **Version:** 0.1.0
 **Peer dependency:** `@x402/core ^2.0.0`
 **Runtime:** Node.js ≥ 18.0.0
@@ -380,7 +380,7 @@ The package is built with `tsup`. The root entry produces:
 - `dist/index.cjs` — CommonJS
 - `dist/index.d.ts` / `dist/index.d.cts` — TypeScript declarations (ESM / CommonJS)
 
-Sub-path exports are available for tree-shaking: `aws-agent-pay-x402/agent-pay/client`, `aws-agent-pay-x402/agent-pay/server`, `aws-agent-pay-x402/agent-pay/facilitator`, `aws-agent-pay-x402/middleware/express`.
+Sub-path exports are available for tree-shaking: `@aws/fiat-extension-for-x402/agent-pay/client`, `@aws/fiat-extension-for-x402/agent-pay/server`, `@aws/fiat-extension-for-x402/agent-pay/facilitator`, `@aws/fiat-extension-for-x402/middleware/express`.
 
 ### 4.4 Known Limitations
 

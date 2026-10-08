@@ -8,7 +8,7 @@
  * webhook payloads, decoded JWTs).
  *
  * Usage:
- *   import { QuoteTokenPayloadSchema, parseQuoteToken } from 'aws-agent-pay-x402/schemas';
+ *   import { QuoteTokenPayloadSchema, parseQuoteToken } from '@aws/fiat-extension-for-x402/schemas';
  *   const validated = QuoteTokenPayloadSchema.parse(decoded);
  *   // or
  *   const result = parseQuoteToken(tokenString); // decode + validate
