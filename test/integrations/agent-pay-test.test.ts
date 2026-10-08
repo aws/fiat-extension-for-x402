@@ -414,9 +414,9 @@ describe('Agent Pay Integration Tests', () => {
 
     it('should parse Money formats and build payment requirements', async () => {
       const testCases = [
-        { input: '$1.00', expectedAmount: '1' },
-        { input: '1.50', expectedAmount: '1.5' },
-        { input: '1.50 USD', expectedAmount: '1.5' },
+        { input: '$1.00', expectedAmount: '1.00' },
+        { input: '1.50', expectedAmount: '1.50' },
+        { input: '1.50 USD', expectedAmount: '1.50' },
         { input: 2.5, expectedAmount: '2.5' },
       ];
 
