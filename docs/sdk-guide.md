@@ -2,7 +2,7 @@
 
 **Package:** `@aws/fiat-extension-for-x402`
 **Version:** 0.1.0
-**Peer dependency:** `@x402/core ^2.0.0`
+**Peer dependency:** `@x402/core >=2.23.0 <3` (the `exact` scheme needs core's `dynamicExtraFields` and `paymentFlows`)
 **Runtime:** Node.js ≥ 18.0.0
 
 ---
@@ -140,7 +140,7 @@ This eliminates the need for a separate facilitator service. The `AgenticCommerc
 
 | Module | File(s) | Purpose |
 |--------|---------|---------|
-| **AgenticCommerceServerScheme** | `src/agentic-commerce/server/scheme.ts` | Implements `SchemeNetworkServer`. Generates quote tokens, signs them with the service's key, and embeds them in the 402 response. |
+| **ExactAgenticCommerceServerScheme** | `src/agentic-commerce/exact/server.ts`, `quote.ts` | Implements `SchemeNetworkServer` for the `exact` scheme. Generates quote tokens, signs them with the service's key, and embeds them in the 402 response. `registerExactAgenticCommerceServer` (`exact/register.ts`) registers it on an `x402ResourceServer`. |
 | **AgentPayClientScheme** | `src/agent-pay/client/scheme.ts` | Implements `SchemeNetworkClient`. Extracts the quote token from the 402 response, sends it to Agent Pay for authorization, and wraps the payment token into a `PaymentPayload`. |
 | **AgenticCommerceFacilitatorScheme** | `src/agentic-commerce/facilitator/scheme.ts` | Implements `SchemeNetworkFacilitator`. Delegates to `verify.ts` and `settle.ts` for cryptographic verification and Agent Pay capture calls. |
 | **AgenticCommerceFacilitatorClient** | `src/agentic-commerce/facilitator-client.ts` | Implements `FacilitatorClient` (the x402 facilitator interface). Verifies payment tokens by checking JWT signatures against the Agent Pay's JWKS, then settles via the Agent Pay's `/capture` endpoint. |
@@ -150,7 +150,7 @@ This eliminates the need for a separate facilitator service. The `AgenticCommerc
 | **Discovery** | `src/discovery.ts` | Network registry (`registerNetwork`) and OIDC-based Agent Pay endpoint discovery. |
 | **Signers** | `src/signers/protocol.ts` | `toQuoteSigner()` and `toPaymentTokenSigner()` — adapter functions that wrap `jose` key pairs into the `QuoteSigner` / `PaymentTokenSigner` interfaces. |
 | **Types** | `src/types.ts` | All Agent Pay-specific types: `QuoteTokenPayload`, `PaymentTokenPayload`, `AgenticCommercePayloadV2`, settlement types, DPoP types, error classes. |
-| **Constants** | `src/constants.ts` | `AGENTIC_COMMERCE_SCHEME`, `AGENTIC_COMMERCE_CAIP_FAMILY`, `SENTINEL_PAY_TO`, default validity windows. |
+| **Constants** | `src/constants.ts` | `SCHEME_EXACT`, `AGENTIC_COMMERCE_CAIP_FAMILY`, `SENTINEL_PAY_TO`, default validity windows. |
 | **Utilities** | `src/utils.ts` | JWT decode/verify helpers, transaction ID parsing, money parsing, service JWKS caching. |
 
 ---
@@ -323,7 +323,7 @@ Any Agent Pay provider can integrate with Agent Pay by exposing these standardiz
 
 ### 3.10 Network Registration and Facilitator Routing
 
-This package no longer ships a builder or network presets. Register `AgenticCommerceServerScheme` per network with the stock x402 `x402ResourceServer.register(network, scheme)`, and pass it the facilitator clients you want explicitly: given none, the stock server uses x402's default facilitator. Pass the same networks as the `networkFilter` set to `AgenticCommerceFacilitatorClient`; without it, Agent Pay claims every network its provider reports, and the first facilitator to claim a network wins.
+This package no longer ships a builder or network presets. Register `ExactAgenticCommerceServerScheme` per network with the stock x402 `x402ResourceServer.register(network, scheme)` (or `registerExactAgenticCommerceServer`), and pass it the facilitator clients you want explicitly: given none, the stock server uses x402's default facilitator. Pass the same networks as the `networkFilter` set to `AgenticCommerceFacilitatorClient`; without it, Agent Pay claims every network its provider reports, and the first facilitator to claim a network wins.
 
 ---
 
@@ -359,7 +359,7 @@ The package is built with `tsup`. The root entry produces:
 - `dist/index.cjs` — CommonJS
 - `dist/index.d.ts` / `dist/index.d.cts` — TypeScript declarations (ESM / CommonJS)
 
-Sub-path exports are available for tree-shaking: `@aws/fiat-extension-for-x402/agent-pay/client`, `@aws/fiat-extension-for-x402/agentic-commerce/server`, `@aws/fiat-extension-for-x402/agentic-commerce/facilitator`.
+Sub-path exports are available for tree-shaking: `@aws/fiat-extension-for-x402/agent-pay/client`, `@aws/fiat-extension-for-x402/agentic-commerce/exact`, `@aws/fiat-extension-for-x402/agentic-commerce/facilitator`.
 
 ### 4.4 Known Limitations
 
@@ -391,7 +391,7 @@ src/
 ├── facilitator-client.ts       # In-process facilitator (for testing/demos)
 ├── agentic-commerce/
 │   ├── client/scheme.ts        # SchemeNetworkClient implementation
-│   ├── server/scheme.ts        # SchemeNetworkServer implementation
+│   ├── exact/                  # exact SchemeNetworkServer: server.ts, quote.ts, register.ts
 │   └── facilitator/
 │       ├── scheme.ts           # SchemeNetworkFacilitator implementation
 │       ├── verify.ts           # Payment verification logic

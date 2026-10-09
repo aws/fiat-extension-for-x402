@@ -12,7 +12,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as jose from 'jose';
 import { AgenticCommerceFacilitatorClient } from '../../src/agentic-commerce/facilitator-client';
-import { AGENTIC_COMMERCE_SCHEME, QUOTE_TOKEN_AUDIENCE } from '../../src/constants';
+import { SCHEME_EXACT, QUOTE_TOKEN_AUDIENCE } from '../../src/constants';
 import type { PaymentPayload, PaymentRequirements } from '@x402/core/types';
 
 /** Hostname of a mocked fetch() request, compared exactly (not as a substring). */
@@ -104,7 +104,7 @@ describe('SellerKeyResolver', () => {
   function buildVerifyInputs(paymentToken: string, quoteToken: string) {
     const payload: PaymentPayload = {
       x402Version: 2,
-      scheme: AGENTIC_COMMERCE_SCHEME,
+      scheme: SCHEME_EXACT,
       network: 'aws:base',
       payload: {
         paymentToken,
@@ -113,7 +113,7 @@ describe('SellerKeyResolver', () => {
       } as any,
     };
     const requirements: PaymentRequirements = {
-      scheme: AGENTIC_COMMERCE_SCHEME,
+      scheme: SCHEME_EXACT,
       network: 'aws:base',
       amount: '1.00',
       asset: 'iso4217:USD',

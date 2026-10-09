@@ -8,9 +8,9 @@
  *
  * Usage:
  * ```typescript
- * import { createKmsQuoteSigner, AgenticCommerceServerScheme } from '@aws/fiat-extension-for-x402';
+ * import { createKmsQuoteSigner, ExactAgenticCommerceServerScheme } from '@aws/fiat-extension-for-x402';
  *
- * const server = new AgenticCommerceServerScheme({
+ * const server = new ExactAgenticCommerceServerScheme({
  *   signer: createKmsQuoteSigner({
  *     keyArn: 'arn:aws:kms:us-east-1:123456789012:alias/my-quote-signing-key',
  *     region: 'us-east-1',
@@ -72,7 +72,7 @@ const COMPONENT_LENGTH: Record<string, number> = {
  *   serviceUrl: 'https://api.myservice.com',
  * });
  *
- * const server = new AgenticCommerceServerScheme({ signer });
+ * const server = new ExactAgenticCommerceServerScheme({ signer });
  * ```
  */
 export function createKmsQuoteSigner(config: KmsQuoteSignerConfig): QuoteSigner {

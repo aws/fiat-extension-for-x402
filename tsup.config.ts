@@ -5,7 +5,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: [
     'src/index.ts',
-    'src/agentic-commerce/server/index.ts',
+    'src/agentic-commerce/exact/index.ts',
     'src/agentic-commerce/facilitator/index.ts',
   ],
   format: ['cjs', 'esm'],

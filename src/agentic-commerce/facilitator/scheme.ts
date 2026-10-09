@@ -23,14 +23,17 @@ import { JwksPaymentTokenVerifier } from './payment-token-verifier';
 import { AgenticCommercePayloadV2, ValidationError } from '../../types';
 import { verifyPayment } from './verify';
 import { settlePayment } from './settle';
-import { AGENTIC_COMMERCE_SCHEME, AGENTIC_COMMERCE_CAIP_FAMILY } from '../../constants';
+import { SCHEME_EXACT, AGENTIC_COMMERCE_CAIP_FAMILY } from '../../constants';
 
 /**
  * Agentic Commerce facilitator implementation for Agentic Commerce providers.
  * Verifies and settles payments.
  */
 export class AgenticCommerceScheme implements SchemeNetworkFacilitator {
-  readonly scheme = AGENTIC_COMMERCE_SCHEME;
+  // Registered as `exact` so an in-process x402Facilitator serves the `exact`
+  // server scheme. The verifier itself is replaced by the single
+  // AgenticCommerceVerifier in a follow-up change.
+  readonly scheme = SCHEME_EXACT;
   readonly caipFamily = AGENTIC_COMMERCE_CAIP_FAMILY;
   private readonly agenticCommerceClient: AgenticCommerceClientForFacilitator;
   private readonly agenticCommerceId: string;

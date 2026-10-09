@@ -4,17 +4,6 @@
  * Configuration types for Agentic Commerce scheme registration
  */
 
-import type { KeyLike, JWK } from 'jose';
-
-/**
- * Signing key configuration for service quote tokens
- */
-export interface SigningKeysConfig {
-  publicKey: JWK;
-  privateKey: KeyLike;
-  alg: 'RS256' | 'ES256' | 'ES384';
-}
-
 /**
  * Agentic Commerce endpoint configuration
  * All endpoints are standardized and derived from baseUrl
@@ -63,13 +52,6 @@ export interface AgenticCommerceClientForFacilitator {
     };
   }>;
 }
-
-/**
- * Server scheme configuration
- */
-export type AgenticCommerceServerSchemeConfig =
-  | { signingKeys: SigningKeysConfig; serviceUrl: string; agenticCommerce?: AgenticCommerceConfig }
-  | { signer: QuoteSigner };
 
 /**
  * Facilitator scheme configuration

@@ -14,7 +14,7 @@ import { clearServiceJWKSCache } from '../../../src/utils';
 import type { AgenticCommerceClientForFacilitator } from '../../../src/config';
 import type { PaymentPayload, PaymentRequirements } from '@x402/core/types';
 import type { AgenticCommercePayloadV2 } from '../../../src/types';
-import { AGENTIC_COMMERCE_SCHEME } from '../../../src/constants';
+import { SCHEME_EXACT } from '../../../src/constants';
 
 describe('Quote Token Signature Verification (Task 27)', () => {
   let servicePrivateKey: jose.KeyLike;
@@ -126,7 +126,7 @@ describe('Quote Token Signature Verification (Task 27)', () => {
       >,
     };
     const requirements: PaymentRequirements = {
-      scheme: AGENTIC_COMMERCE_SCHEME,
+      scheme: SCHEME_EXACT,
       network: 'aws:base',
       amount: '0.10',
       asset: 'iso4217:USD',

@@ -14,16 +14,20 @@ import {
   Network,
   PaymentPayload,
   PaymentRequirements,
+  SchemeNetworkServer,
   VerifyResponse,
   SettleResponse,
   SupportedResponse,
 } from '@x402/core/types';
 import * as jose from 'jose';
 import { FakeBuyerScheme } from '../helpers/fake-buyer-scheme';
-import { AgenticCommerceScheme as APServer } from '../../src/agentic-commerce/server/scheme';
+import { ExactAgenticCommerceScheme as APServer } from '../../src/agentic-commerce/exact/server';
+import { ExactAgenticCommerceScheme } from '../../src/agentic-commerce/exact/server';
+import { registerExactAgenticCommerceServer } from '../../src/agentic-commerce/exact/register';
+import { InProcessFacilitatorClient } from '../../src/facilitator-client';
 import { AgenticCommerceScheme as APFacilitator } from '../../src/agentic-commerce/facilitator/scheme';
 import type { AgenticCommercePayloadV2 } from '../../src/types';
-import { AGENTIC_COMMERCE_SCHEME } from '../../src/constants';
+import { SCHEME_EXACT } from '../../src/constants';
 import { SENTINEL_PAY_TO } from '../../src/constants';
 import { createMockAgenticCommerceClient } from '../helpers/mock-agentic-commerce-client';
 import { createMockServiceSigner } from '../helpers/mock-service-signer';
@@ -44,7 +48,7 @@ import { clearServiceJWKSCache } from '../../src/utils';
  * Wraps the x402Facilitator for use with x402ResourceServer
  */
 class APFacilitatorClient implements FacilitatorClient {
-  readonly scheme = AGENTIC_COMMERCE_SCHEME;
+  readonly scheme = SCHEME_EXACT;
   readonly network = 'fab:aws';
   readonly x402Version = 2;
 
@@ -78,7 +82,7 @@ function buildPaymentRequirements(
   network: Network = 'fab:aws'
 ): PaymentRequirements {
   return {
-    scheme: AGENTIC_COMMERCE_SCHEME,
+    scheme: SCHEME_EXACT,
     network,
     asset: 'iso4217:USD',
     amount,
@@ -161,7 +165,9 @@ describe('Agentic Commerce Integration Tests', () => {
       const apClient = new FakeBuyerScheme({
         agenticCommerceClient: agenticCommerceMock.agenticCommerceClient,
       });
-      client = new x402Client().register('fab:aws', apClient);
+      // The fake buyer is test-only. x402 core's buyer spend controls (core >= 2.23)
+      // accept only default assets with atomic amounts, which fiat prices are not.
+      client = new x402Client().setSpendControls(false).register('fab:aws', apClient);
 
       // Create facilitator with Agentic Commerce client
       const apFacilitator = new APFacilitator({
@@ -179,7 +185,7 @@ describe('Agentic Commerce Integration Tests', () => {
     it('server should successfully verify and settle a Agentic Commerce payment from a client', async () => {
       // Server - builds PaymentRequired response using buildPaymentRequirements
       const accepts = await server.buildPaymentRequirements({
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:aws',
         payTo: 'service-pay-789',
         price: 0.15,
@@ -200,7 +206,7 @@ describe('Agentic Commerce Integration Tests', () => {
 
       expect(paymentPayload).toBeDefined();
       expect(paymentPayload.x402Version).toBe(2);
-      expect(paymentPayload.accepted.scheme).toBe(AGENTIC_COMMERCE_SCHEME);
+      expect(paymentPayload.accepted.scheme).toBe(SCHEME_EXACT);
 
       // Verify the payload structure
       const apPayload = paymentPayload.payload as unknown as AgenticCommercePayloadV2;
@@ -243,145 +249,192 @@ describe('Agentic Commerce Integration Tests', () => {
     });
   });
 
+  // The stock x402 HTTP server (x402HTTPResourceServer, which @x402/express and
+  // the other framework middlewares wrap) with the exact scheme and an
+  // in-process facilitator. The stock server rebuilds the requirements on the
+  // paid retry, so it signs a new quote token; the exact scheme declares
+  // quoteToken as a dynamic extra field, so core leaves it out of the match.
   describe('x402HTTPClient / x402HTTPResourceServer / x402Facilitator - Agentic Commerce Flow', () => {
     let client: x402HTTPClient;
     let httpServer: x402HTTPResourceServer;
+    let signQuote: ReturnType<typeof vi.spyOn>;
 
     const routes = {
       '/api/protected': {
         accepts: {
-          scheme: AGENTIC_COMMERCE_SCHEME,
-          payTo: 'service-pay-789',
+          scheme: SCHEME_EXACT,
+          payTo: 'prod-abc123',
           price: 0.15,
-          network: 'fab:aws' as Network,
+          network: 'aws:base' as Network,
         },
         description: 'Access to protected API',
         mimeType: 'application/json',
       },
     };
 
-    const mockAdapter: HTTPAdapter = {
-      getHeader: () => {
-        return undefined;
-      },
-      getMethod: () => 'GET',
-      getPath: () => '/api/protected',
-      getUrl: () => 'https://example.com/api/protected',
-      getAcceptHeader: () => 'application/json',
-      getUserAgent: () => 'TestClient/1.0',
+    const context = (headers: Record<string, string> = {}) => {
+      const adapter: HTTPAdapter = {
+        getHeader: (name: string) => headers[name],
+        getMethod: () => 'GET',
+        getPath: () => '/api/protected',
+        getUrl: () => 'https://example.com/api/protected',
+        getAcceptHeader: () => 'application/json',
+        getUserAgent: () => 'TestClient/1.0',
+      };
+      return { adapter, path: '/api/protected', method: 'GET' };
     };
 
-    beforeEach(async () => {
-      // Create mock Agentic Commerce client
+    /** The 402 for an unpaid request, as the buyer receives it */
+    async function paymentRequired() {
+      const result = await httpServer.processHTTPRequest(context());
+      expect(result.type).toBe('payment-error');
+      const response = (result as { type: 'payment-error'; response: HTTPResponseInstructions })
+        .response;
+      expect(response.status).toBe(402);
+      expect(response.headers['PAYMENT-REQUIRED']).toBeDefined();
+      return client.getPaymentRequiredResponse((name) => response.headers[name], response.body);
+    }
+
+    async function setUp(serverScheme?: SchemeNetworkServer) {
       const agenticCommerceMock = await createMockAgenticCommerceClient(agenticCommerceId);
-
-      // Create mock service signer
       const serviceMock = await createMockServiceSigner(serviceUrl);
+      signQuote = vi.spyOn(serviceMock.signer, 'signQuote');
 
-      // Create facilitator with Agentic Commerce client
+      const svcPubJWK = await jose.exportJWK(serviceMock.publicKey);
+      mockFetch.mockImplementation(async (url: string) => {
+        if (new URL(url).pathname === '/.well-known/jwks.json') {
+          return { ok: true, json: async () => ({ keys: [svcPubJWK] }) };
+        }
+        return { ok: false, statusText: 'Not Found' };
+      });
+
       const apFacilitator = new APFacilitator({
         agenticCommerceId,
         agenticCommerceClient: agenticCommerceMock.agenticCommerceClient,
       });
-      const facilitator = new x402Facilitator().register('fab:aws', apFacilitator);
+      const facilitator = new x402Facilitator().register('aws:base', apFacilitator);
 
-      const facilitatorClient = new APFacilitatorClient(facilitator);
-
-      // Create client with Agentic Commerce client
       const apClient = new FakeBuyerScheme({
         agenticCommerceClient: agenticCommerceMock.agenticCommerceClient,
       });
-      const paymentClient = new x402Client().register('fab:aws', apClient);
-      client = new x402HTTPClient(paymentClient) as x402HTTPClient;
+      // The fake buyer is test-only. x402 core's buyer spend controls (core >= 2.23)
+      // accept only default assets with atomic amounts, which fiat prices are not.
+      client = new x402HTTPClient(
+        new x402Client().setSpendControls(false).register('aws:base', apClient)
+      );
 
-      // Create resource server and register schemes
-      const ResourceServer = new x402ResourceServer(facilitatorClient);
-      ResourceServer.register('fab:aws', new APServer({ signer: serviceMock.signer }));
-      await ResourceServer.initialize();
+      const resourceServer = new x402ResourceServer(new InProcessFacilitatorClient(facilitator));
+      if (serverScheme) {
+        resourceServer.register('aws:base', serverScheme);
+      } else {
+        registerExactAgenticCommerceServer(resourceServer, { signer: serviceMock.signer });
+      }
+      await resourceServer.initialize();
+      httpServer = new x402HTTPResourceServer(resourceServer, routes);
+      return serviceMock;
+    }
 
-      httpServer = new x402HTTPResourceServer(ResourceServer, routes);
-    });
+    it('middleware should successfully verify and settle a Agentic Commerce payment from an http client', async () => {
+      await setUp();
 
-    // TODO: This test is currently failing because the HTTP middleware rebuilds requirements
-    // on each request, which generates a new quote token. The payment payload contains the
-    // original quote token, so findMatchingRequirements fails with deepEqual.
-    // This is a limitation of the current x402 HTTP middleware design for schemes with
-    // non-deterministic requirements. Possible solutions:
-    // 1. Cache requirements in the HTTP server for a short time
-    // 2. Change findMatchingRequirements to match on core fields only (scheme, network, amount, asset, payTo)
-    // 3. Have the server verify the quote token signature instead of rebuilding requirements
-    it.skip('middleware should successfully verify and settle a Agentic Commerce payment from an http client', async () => {
-      // Middleware creates a PaymentRequired response
-      const context = {
-        adapter: mockAdapter,
-        path: '/api/protected',
-        method: 'GET',
-      };
-
-      // No payment made, get PaymentRequired response & header
-      const httpProcessResult = (await httpServer.processHTTPRequest(context))!;
-
-      expect(httpProcessResult.type).toBe('payment-error');
-
-      const initial402Response = (
-        httpProcessResult as { type: 'payment-error'; response: HTTPResponseInstructions }
-      ).response;
-
-      expect(initial402Response).toBeDefined();
-      expect(initial402Response.status).toBe(402);
-      expect(initial402Response.headers).toBeDefined();
-      expect(initial402Response.headers['PAYMENT-REQUIRED']).toBeDefined();
+      // No payment made: the 402 carries one exact accept with a quote token.
+      const required = await paymentRequired();
+      expect(required.accepts).toHaveLength(1);
+      expect(required.accepts[0]).toMatchObject({
+        scheme: 'exact',
+        network: 'aws:base',
+        amount: '0.15',
+        asset: 'iso4217:USD',
+        payTo: SENTINEL_PAY_TO,
+        maxTimeoutSeconds: 300,
+      });
 
       // Client responds to PaymentRequired and submits a request with a PaymentPayload
-      const paymentRequired = client.getPaymentRequiredResponse(
-        (name) => initial402Response.headers[name],
-        initial402Response.body
-      );
-
-      const paymentPayload = await client.createPaymentPayload(paymentRequired);
-
-      expect(paymentPayload).toBeDefined();
-      expect(paymentPayload.accepted.scheme).toBe(AGENTIC_COMMERCE_SCHEME);
-
+      const paymentPayload = await client.createPaymentPayload(required);
+      expect(paymentPayload.accepted.scheme).toBe(SCHEME_EXACT);
+      const paidQuote = (paymentPayload.accepted.extra as { quoteToken: string }).quoteToken;
       const requestHeaders = await client.encodePaymentSignatureHeader(paymentPayload);
 
-      // Middleware handles PAYMENT-SIGNATURE request
-      mockAdapter.getHeader = (name: string) => {
-        if (name === 'PAYMENT-SIGNATURE') {
-          return requestHeaders['PAYMENT-SIGNATURE'];
-        }
-        return undefined;
-      };
+      // Middleware handles the PAYMENT-SIGNATURE request, as @x402/express does
+      // (@x402/express 2.28.0 dist/cjs/index.js:224 and :368-375).
+      const paidContext = context(requestHeaders);
+      const paid = await httpServer.processHTTPRequest(paidContext);
 
-      const httpProcessResult2 = await httpServer.processHTTPRequest(context);
+      expect(paid.type).toBe('payment-verified');
+      const verified = paid as Extract<typeof paid, { type: 'payment-verified' }>;
+      const { paymentRequirements: verifiedRequirements } = verified;
 
-      // No need to respond, can continue with request
-      expect(httpProcessResult2.type).toBe('payment-verified');
-      const {
-        paymentPayload: verifiedPaymentPayload,
-        paymentRequirements: verifiedPaymentRequirements,
-      } = httpProcessResult2 as {
-        type: 'payment-verified';
-        paymentPayload: PaymentPayload;
-        paymentRequirements: PaymentRequirements;
-      };
-
-      expect(verifiedPaymentPayload).toBeDefined();
-      expect(verifiedPaymentRequirements).toBeDefined();
+      // The paid retry re-minted the quote; it still matched the buyer's accept.
+      expect(signQuote).toHaveBeenCalledTimes(2);
+      const reMintedQuote = (verifiedRequirements.extra as { quoteToken: string }).quoteToken;
+      expect(reMintedQuote).not.toBe(paidQuote);
+      const { quoteToken: _a, ...acceptedExtra } = paymentPayload.accepted.extra;
+      const { quoteToken: _b, ...matchedExtra } = verifiedRequirements.extra;
+      expect({ ...verifiedRequirements, extra: matchedExtra }).toEqual({
+        ...paymentPayload.accepted,
+        extra: acceptedExtra,
+      });
 
       const settlementResult = await httpServer.processSettlement(
-        verifiedPaymentPayload,
-        verifiedPaymentRequirements,
-        200
+        verified.paymentPayload,
+        verifiedRequirements,
+        verified.declaredExtensions,
+        { request: paidContext, responseBody: Buffer.from('{}'), responseHeaders: {} },
+        undefined,
+        verified.beforeHandlerSettlement
       );
 
-      expect(settlementResult).toBeDefined();
       expect(settlementResult.success).toBe(true);
-
       if (settlementResult.success) {
-        expect(settlementResult.headers).toBeDefined();
-        expect(settlementResult.headers['PAYMENT-RESPONSE']).toBeDefined();
+        const receipt = client.getPaymentSettleResponse((name) => settlementResult.headers[name]);
+        const { paymentId } = paymentPayload.payload as unknown as AgenticCommercePayloadV2;
+        expect(receipt).toMatchObject({
+          success: true,
+          transaction: paymentId,
+          network: 'aws:base',
+        });
       }
+    });
+
+    it('rejects a paid retry whose accept was changed by the buyer', async () => {
+      await setUp();
+      const required = await paymentRequired();
+      const paymentPayload = await client.createPaymentPayload(required);
+      const cheaper = {
+        ...paymentPayload,
+        accepted: { ...paymentPayload.accepted, amount: '0.01' },
+      };
+
+      const result = await httpServer.processHTTPRequest(
+        context(await client.encodePaymentSignatureHeader(cheaper))
+      );
+
+      expect(result.type).toBe('payment-error');
+      const { response } = result as { type: 'payment-error'; response: HTTPResponseInstructions };
+      expect(response.status).toBe(402);
+      expect(
+        client.getPaymentRequiredResponse((name) => response.headers[name], response.body).error
+      ).toBe('No matching payment requirements');
+    });
+
+    it('without quoteToken as a dynamic extra field, the paid retry is not matched', async () => {
+      // What happened before the exact scheme: the re-minted quote token made
+      // the buyer's accept differ from every requirement the server built.
+      const serviceMock = await createMockServiceSigner(serviceUrl);
+      const legacy = new ExactAgenticCommerceScheme({ signer: serviceMock.signer });
+      Object.defineProperty(legacy, 'dynamicExtraFields', { value: undefined });
+      await setUp(legacy);
+
+      const paymentPayload = await client.createPaymentPayload(await paymentRequired());
+      const result = await httpServer.processHTTPRequest(
+        context(await client.encodePaymentSignatureHeader(paymentPayload))
+      );
+
+      expect(result.type).toBe('payment-error');
+      const { response } = result as { type: 'payment-error'; response: HTTPResponseInstructions };
+      expect(
+        client.getPaymentRequiredResponse((name) => response.headers[name], response.body).error
+      ).toBe('No matching payment requirements');
     });
   });
 
@@ -420,7 +473,7 @@ describe('Agentic Commerce Integration Tests', () => {
 
       for (const testCase of testCases) {
         const requirements = await server.buildPaymentRequirements({
-          scheme: AGENTIC_COMMERCE_SCHEME,
+          scheme: SCHEME_EXACT,
           payTo: 'service-pay',
           price: testCase.input,
           network: 'fab:aws' as Network,
@@ -441,7 +494,7 @@ describe('Agentic Commerce Integration Tests', () => {
       };
 
       const requirements = await server.buildPaymentRequirements({
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         payTo: 'service-pay',
         price: customAsset,
         network: 'fab:aws' as Network,
@@ -463,7 +516,7 @@ describe('Agentic Commerce Integration Tests', () => {
 
       for (const testCase of testCases) {
         const requirements = await server.buildPaymentRequirements({
-          scheme: AGENTIC_COMMERCE_SCHEME,
+          scheme: SCHEME_EXACT,
           payTo: 'service-pay',
           price: testCase.input,
           network: 'fab:aws' as Network,
@@ -476,7 +529,7 @@ describe('Agentic Commerce Integration Tests', () => {
 
     it('should include quote token in all payment requirements', async () => {
       const requirements = await server.buildPaymentRequirements({
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         payTo: 'service-pay',
         price: 0.15,
         network: 'fab:aws' as Network,

@@ -4,8 +4,9 @@ import { describe, it, expect } from 'vitest';
 import * as AgenticCommerce from '../../src/index';
 
 describe('Agentic Commerce Package Exports', () => {
-  it('should export AgenticCommerceServerScheme', () => {
-    expect(AgenticCommerce.AgenticCommerceServerScheme).toBeDefined();
+  it('should export the exact server scheme and its register helper', () => {
+    expect(AgenticCommerce.ExactAgenticCommerceServerScheme).toBeDefined();
+    expect(AgenticCommerce.registerExactAgenticCommerceServer).toBeDefined();
   });
 
   it('should export AgenticCommerceFacilitatorScheme', () => {
@@ -27,7 +28,7 @@ describe('Agentic Commerce Package Exports', () => {
   });
 
   it('should export constants', () => {
-    expect(AgenticCommerce.AGENTIC_COMMERCE_SCHEME).toBe('agent-pay');
+    expect(AgenticCommerce.SCHEME_EXACT).toBe('exact');
     expect(AgenticCommerce.AGENTIC_COMMERCE_CAIP_FAMILY).toBe('aws:*');
     expect(AgenticCommerce.SETTLEMENT_METHODS).toBeDefined();
     expect(AgenticCommerce.SETTLEMENT_CYCLES).toBeDefined();

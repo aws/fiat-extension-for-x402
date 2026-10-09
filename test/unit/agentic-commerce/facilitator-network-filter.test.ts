@@ -3,10 +3,10 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { x402ResourceServer } from '@x402/core/server';
 import { AgenticCommerceFacilitatorClient } from '../../../src/agentic-commerce/facilitator-client';
-import { AgenticCommerceScheme as AgenticCommerceServerScheme } from '../../../src/agentic-commerce/server/scheme';
+import { ExactAgenticCommerceScheme as AgenticCommerceServerScheme } from '../../../src/agentic-commerce/exact/server';
 import { createMockServiceSigner } from '../../helpers/mock-service-signer';
 import type { Network } from '@x402/core/types';
-import { AGENTIC_COMMERCE_SCHEME } from '../../../src/constants';
+import { SCHEME_EXACT } from '../../../src/constants';
 
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
@@ -15,19 +15,19 @@ const AGENTIC_COMMERCE_SUPPORTED_RESPONSE = {
   kinds: [
     {
       x402Version: 2,
-      scheme: AGENTIC_COMMERCE_SCHEME,
+      scheme: SCHEME_EXACT,
       network: 'fab:aws',
       extra: { agentPayId: 'w1' },
     },
     {
       x402Version: 2,
-      scheme: AGENTIC_COMMERCE_SCHEME,
+      scheme: SCHEME_EXACT,
       network: 'fab:test',
       extra: { agentPayId: 'w1' },
     },
     {
       x402Version: 2,
-      scheme: AGENTIC_COMMERCE_SCHEME,
+      scheme: SCHEME_EXACT,
       network: 'eip155:8453',
       extra: { agentPayId: 'w1' },
     },
@@ -105,8 +105,8 @@ describe('AgenticCommerceFacilitatorClient networkFilter', () => {
 
     await server.initialize();
 
-    expect(server.hasRegisteredScheme('fab:aws', AGENTIC_COMMERCE_SCHEME)).toBe(true);
-    expect(server.getSupportedKind(2, 'fab:aws', AGENTIC_COMMERCE_SCHEME)).toBeDefined();
-    expect(server.getSupportedKind(2, 'fab:test', AGENTIC_COMMERCE_SCHEME)).toBeUndefined();
+    expect(server.hasRegisteredScheme('fab:aws', SCHEME_EXACT)).toBe(true);
+    expect(server.getSupportedKind(2, 'fab:aws', SCHEME_EXACT)).toBeDefined();
+    expect(server.getSupportedKind(2, 'fab:test', SCHEME_EXACT)).toBeUndefined();
   });
 });

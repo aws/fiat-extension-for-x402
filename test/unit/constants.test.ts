@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import {
-  AGENTIC_COMMERCE_SCHEME,
+  SCHEME_EXACT,
   SETTLEMENT_METHODS,
   SETTLEMENT_CYCLES,
   DEFAULT_QUOTE_VALIDITY_SECONDS,
@@ -11,9 +11,9 @@ import {
 } from '../../src/constants';
 
 describe('Constants', () => {
-  describe('AGENTIC_COMMERCE_SCHEME', () => {
-    it('should be "aws:base"', () => {
-      expect(AGENTIC_COMMERCE_SCHEME).toBe('agent-pay');
+  describe('SCHEME_EXACT', () => {
+    it('should be "exact"', () => {
+      expect(SCHEME_EXACT).toBe('exact');
     });
   });
 

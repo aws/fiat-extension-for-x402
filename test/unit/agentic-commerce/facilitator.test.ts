@@ -8,7 +8,7 @@ import { settlePayment } from '../../../src/agentic-commerce/facilitator/settle'
 import type { MockAgenticCommerceClient } from '../../helpers/mock-agentic-commerce-client';
 import type { PaymentPayload, PaymentRequirements } from '@x402/core/types';
 import type { AgenticCommercePayloadV2 } from '../../../src/types';
-import { AGENTIC_COMMERCE_SCHEME } from '../../../src/constants';
+import { SCHEME_EXACT } from '../../../src/constants';
 import { SENTINEL_PAY_TO } from '../../../src/constants';
 import { createMockAgenticCommerceClient } from '../../helpers/mock-agentic-commerce-client';
 import { clearServiceJWKSCache } from '../../../src/utils';
@@ -122,7 +122,7 @@ describe('Agentic Commerce Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -175,7 +175,7 @@ describe('Agentic Commerce Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -231,7 +231,7 @@ describe('Agentic Commerce Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -293,7 +293,7 @@ describe('Agentic Commerce Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -351,7 +351,7 @@ describe('Agentic Commerce Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -409,7 +409,7 @@ describe('Agentic Commerce Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -466,7 +466,7 @@ describe('Agentic Commerce Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -540,7 +540,7 @@ describe('Agentic Commerce Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -603,7 +603,7 @@ describe('Agentic Commerce Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -664,7 +664,7 @@ describe('Agentic Commerce Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -699,7 +699,7 @@ describe('Agentic Commerce Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -730,7 +730,7 @@ describe('Agentic Commerce Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:test',
         amount: '2.50',
         asset: 'iso4217:USD',
@@ -760,7 +760,7 @@ describe('Agentic Commerce Facilitator Scheme', () => {
       };
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:test',
         amount: '3.50',
         asset: 'iso4217:USD',
@@ -823,7 +823,7 @@ describe('Agentic Commerce Facilitator Scheme', () => {
 
       // Use sentinel payTo — this is what the server scheme now produces
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',
@@ -854,7 +854,7 @@ describe('Agentic Commerce Facilitator Scheme', () => {
 
       // Use sentinel payTo
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:test',
         amount: '1.50',
         asset: 'iso4217:USD',

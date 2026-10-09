@@ -8,14 +8,20 @@
  */
 
 // Scheme implementations
-export { AgenticCommerceServerScheme, AgenticCommerceFacilitatorScheme } from './agentic-commerce';
+export {
+  ExactAgenticCommerceServerScheme,
+  registerExactAgenticCommerceServer,
+  AgenticCommerceFacilitatorScheme,
+} from './agentic-commerce';
+export type {
+  ExactAgenticCommerceServerSchemeConfig,
+  RegisterExactAgenticCommerceServerOptions,
+} from './agentic-commerce';
 
 // Configuration types
 export type {
-  SigningKeysConfig,
   AgenticCommerceConfig,
   AgenticCommerceClientForFacilitator,
-  AgenticCommerceServerSchemeConfig,
   AgenticCommerceFacilitatorSchemeConfig,
   QuoteSigner as QuoteSignerInterface,
 } from './config';
@@ -68,7 +74,7 @@ export {
 
 // Constants
 export {
-  AGENTIC_COMMERCE_SCHEME,
+  SCHEME_EXACT,
   SETTLEMENT_METHODS,
   SETTLEMENT_CYCLES,
   DEFAULT_QUOTE_VALIDITY_SECONDS,
