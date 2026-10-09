@@ -7,7 +7,7 @@
  * as specified in RFC 9449.
  */
 
-export { verifyDPoPProof, extractDPoPThumbprint, computeJWKThumbprint } from './proof-verification';
+export { verifyDPoPProof, extractDPoPThumbprint, computeJWKThumbprint } from './verification';
 
 // Re-export types
 export type { DPoPProofPayload, DPoPVerificationOptions, DPoPNonceStore } from '../types';

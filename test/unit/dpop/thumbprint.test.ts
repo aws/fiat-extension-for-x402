@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import { generateDPoPKeyPair } from '../../helpers/dpop';
-import { computeJWKThumbprint } from '../../../src/dpop/proof-verification';
+import { computeJWKThumbprint } from '../../../src/dpop/verification';
 import { DPoPError } from '../../../src/types';
 
 describe('DPoP JWK thumbprint', () => {

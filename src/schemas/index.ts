@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Zod runtime validation schemas for Agent Pay types.
+ * Zod runtime validation schemas for Agentic Commerce types.
  *
  * These schemas mirror the TypeScript interfaces in types.ts,
  * providing runtime validation for untrusted input (e.g., 402 responses,
@@ -25,17 +25,17 @@ export const SettlementMethodSchema = z.enum(['INST', 'CLRG', 'CRDT']);
 
 export const SettlementCycleSchema = z.enum(['MNTH', 'WEEK', 'QRTR']);
 
-export const AgentPaySettlementSchema = z.object({
+export const AgenticCommerceSettlementSchema = z.object({
   method: SettlementMethodSchema,
   cycle: SettlementCycleSchema.optional(),
 });
 
-export const AgentPaySupportSchema = z.object({
+export const AgenticCommerceSupportSchema = z.object({
   uri: z.string().url(),
   method: z.enum(['human', 'agent']),
 });
 
-export const AgentPayTermsSchema = z.object({
+export const AgenticCommerceTermsSchema = z.object({
   description: z.string().min(1),
   uri: z.string().url(),
 });
@@ -66,28 +66,28 @@ export const QuoteTokenPayloadSchema = z.object({
   reference: z.string(),
   description: z.string().optional(),
   dimensions: z.record(z.union([z.string(), z.number()])).optional(),
-  settlement: AgentPaySettlementSchema.optional(),
-  support: AgentPaySupportSchema.optional(),
-  terms: z.array(AgentPayTermsSchema).optional(),
+  settlement: AgenticCommerceSettlementSchema.optional(),
+  support: AgenticCommerceSupportSchema.optional(),
+  terms: z.array(AgenticCommerceTermsSchema).optional(),
 });
 
 // ============================================================================
 // Payment Extra Schema
 // ============================================================================
 
-export const AgentPayPaymentExtraSchema = z.object({
+export const AgenticCommercePaymentExtraSchema = z.object({
   quoteToken: z.string().min(1),
   reference: z.string().optional(),
-  settlement: AgentPaySettlementSchema.optional(),
-  support: AgentPaySupportSchema.optional(),
-  terms: z.array(AgentPayTermsSchema).optional(),
+  settlement: AgenticCommerceSettlementSchema.optional(),
+  support: AgenticCommerceSupportSchema.optional(),
+  terms: z.array(AgenticCommerceTermsSchema).optional(),
 });
 
 // ============================================================================
 // Payment Payload Schema
 // ============================================================================
 
-export const AgentPayPayloadV2Schema = z.object({
+export const AgenticCommercePayloadV2Schema = z.object({
   paymentToken: z.string().min(1),
   paymentId: z.string().min(1),
   transactionId: z.string().optional(),
@@ -141,9 +141,11 @@ export function safeParseQuoteToken(
  * Validate a payment payload structure.
  *
  * @param payload - Payment payload object
- * @returns Validated AgentPayPayloadV2
+ * @returns Validated AgenticCommercePayloadV2
  * @throws z.ZodError if payload doesn't match schema
  */
-export function parsePaymentPayload(payload: unknown): z.infer<typeof AgentPayPayloadV2Schema> {
-  return AgentPayPayloadV2Schema.parse(payload);
+export function parsePaymentPayload(
+  payload: unknown
+): z.infer<typeof AgenticCommercePayloadV2Schema> {
+  return AgenticCommercePayloadV2Schema.parse(payload);
 }

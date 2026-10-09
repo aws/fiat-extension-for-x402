@@ -50,13 +50,13 @@ describe('Utils', () => {
 
   describe('generateTransactionId', () => {
     it('should generate transaction ID with network prefix', () => {
-      const txId = generateTransactionId('fab:aws', 'agent-pay-123');
+      const txId = generateTransactionId('fab:aws', 'agentic-commerce-123');
       expect(txId).toMatch(/^fab:aws:[a-f0-9]{16}$/);
     });
 
     it('should generate unique IDs', () => {
-      const txId1 = generateTransactionId('fab:aws', 'agent-pay-123');
-      const txId2 = generateTransactionId('fab:aws', 'agent-pay-123');
+      const txId1 = generateTransactionId('fab:aws', 'agentic-commerce-123');
+      const txId2 = generateTransactionId('fab:aws', 'agentic-commerce-123');
       expect(txId1).not.toBe(txId2);
     });
   });
@@ -143,7 +143,7 @@ describe('Utils', () => {
   describe('extractQuoteFromPayment', () => {
     it('should extract quote token from payment token payload', () => {
       const payment: PaymentTokenPayload = {
-        iss: 'https://pay.aws.amazon.com',
+        iss: 'https://pay.example.com',
         sub: 'client_uuid_555',
         aud: 'https://api.weather.com',
         iat: 1735689600,
@@ -215,9 +215,9 @@ describe('Utils', () => {
 
   describe('generateTransactionId - edge cases', () => {
     it('should handle different network formats', () => {
-      const txId1 = generateTransactionId('fab:aws', 'agent-pay-1');
-      const txId2 = generateTransactionId('fab:google', 'agent-pay-2');
-      const txId3 = generateTransactionId('fab:custom:network', 'agent-pay-3');
+      const txId1 = generateTransactionId('fab:aws', 'agentic-commerce-1');
+      const txId2 = generateTransactionId('fab:google', 'agentic-commerce-2');
+      const txId3 = generateTransactionId('fab:custom:network', 'agentic-commerce-3');
 
       expect(txId1).toMatch(/^fab:aws:[a-f0-9]{16}$/);
       expect(txId2).toMatch(/^fab:google:[a-f0-9]{16}$/);
@@ -225,7 +225,7 @@ describe('Utils', () => {
     });
 
     it('should generate IDs with exactly 16 hex characters', () => {
-      const txId = generateTransactionId('fab:test', 'agent-pay');
+      const txId = generateTransactionId('fab:test', 'agentic-commerce');
       const parts = txId.split(':');
       const id = parts[parts.length - 1];
 

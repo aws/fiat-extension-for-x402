@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { AssetAmount } from '@x402/core/types';
-import { AgentPayScheme } from '../../src/agent-pay/server/scheme';
+import { AgenticCommerceScheme } from '../../src/agentic-commerce/server/scheme';
 import { parseMoneyToDecimal } from '../../src/utils';
 import { ValidationError } from '../../src/types';
 import { QuoteTokenPriceSchema } from '../../src/schemas';
@@ -14,12 +14,12 @@ import { createMockServiceSigner } from '../helpers/mock-service-signer';
 
 const char = (code: number) => String.fromCharCode(code);
 
-let scheme: AgentPayScheme;
+let scheme: AgenticCommerceScheme;
 const parse = (price: unknown) => scheme.parsePrice(price as never, 'aws:base');
 
 beforeAll(async () => {
   const { signer } = await createMockServiceSigner('https://api.example.com');
-  scheme = new AgentPayScheme({ signer });
+  scheme = new AgenticCommerceScheme({ signer });
 });
 
 describe('parsePrice: Python SDK TestParsePrice cases', () => {

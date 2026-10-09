@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Security utilities for Agent Pay
+ * Security utilities for Agentic Commerce
  *
  * Provides constant-time comparison and algorithm allowlist enforcement.
  */

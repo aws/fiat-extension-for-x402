@@ -1,52 +1,56 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * @aws/fiat-extension-for-x402 - Agent Pay x402 TypeScript Extension
+ * @aws/fiat-extension-for-x402 - Agentic Commerce x402 TypeScript Extension
  *
- * This module provides the Agent Pay (Federated Application Billing) implementation
+ * This module provides the Agentic Commerce (Federated Application Billing) implementation
  * for the x402 payment protocol.
  */
 
 // Scheme implementations
-export { AgentPayServerScheme, AgentPayFacilitatorScheme } from './agent-pay';
+export { AgenticCommerceServerScheme, AgenticCommerceFacilitatorScheme } from './agentic-commerce';
 
 // Configuration types
 export type {
   SigningKeysConfig,
-  AgentPayConfig,
-  AgentPayClientForFacilitator,
-  AgentPayServerSchemeConfig,
-  AgentPayFacilitatorSchemeConfig,
-  ServiceAgentPaySigner as ServiceAgentPaySignerInterface,
+  AgenticCommerceConfig,
+  AgenticCommerceClientForFacilitator,
+  AgenticCommerceServerSchemeConfig,
+  AgenticCommerceFacilitatorSchemeConfig,
+  QuoteSigner as QuoteSignerInterface,
 } from './config';
 
 // Facilitator client implementation
 export { InProcessFacilitatorClient } from './facilitator-client';
-export { AgentPayFacilitatorClient } from './agent-pay-facilitator-client';
+export { AgenticCommerceFacilitatorClient } from './agentic-commerce/facilitator-client';
 export type {
-  AgentPayFacilitatorAuthConfig,
+  AgenticCommerceFacilitatorAuthConfig,
   SellerKeyResolver,
   VerifyRequestContext,
-} from './agent-pay-facilitator-client';
+} from './agentic-commerce/facilitator-client';
 
 // Signers
-export { toServiceAgentPaySigner, toAgentPaySigner } from './signer';
-export { createKmsSigner, type KmsSignerConfig } from './signers';
-export type { ServiceAgentPaySigner, AgentPaySigner } from './signer';
+export {
+  createKmsQuoteSigner,
+  toQuoteSigner,
+  toPaymentTokenSigner,
+  type KmsQuoteSignerConfig,
+} from './signers';
+export type { QuoteSigner, PaymentTokenSigner } from './signers';
 
 // Types
 export type {
   SettlementMethod,
   SettlementCycle,
-  AgentPaySettlement,
-  AgentPaySupport,
-  AgentPayTerms,
-  AgentPayPaymentExtra,
+  AgenticCommerceSettlement,
+  AgenticCommerceSupport,
+  AgenticCommerceTerms,
+  AgenticCommercePaymentExtra,
   QuoteTokenPrice,
   QuoteTokenPayload,
   PaymentContext,
   PaymentTokenPayload,
-  AgentPayPayloadV2,
+  AgenticCommercePayloadV2,
   DPoPProofPayload,
   DPoPVerificationOptions,
   DPoPNonceStore,
@@ -54,7 +58,7 @@ export type {
 
 // Error classes
 export {
-  AgentPayError,
+  AgenticCommerceError,
   ValidationError,
   SignatureError,
   ExpiryError,
@@ -64,19 +68,19 @@ export {
 
 // Constants
 export {
-  AGENT_PAY_SCHEME,
+  AGENTIC_COMMERCE_SCHEME,
   SETTLEMENT_METHODS,
   SETTLEMENT_CYCLES,
   DEFAULT_QUOTE_VALIDITY_SECONDS,
   DEFAULT_PAYMENT_VALIDITY_SECONDS,
-  AGENT_PAY_CAIP_FAMILY,
-  AGENT_PAY_SENTINEL_PAY_TO,
+  AGENTIC_COMMERCE_CAIP_FAMILY,
+  SENTINEL_PAY_TO,
   DEFAULT_NETWORK,
-  PAYMENT_JWT_ISSUER,
+  PAYMENT_TOKEN_ISSUER,
   WELL_KNOWN_JWKS_PATH,
   WELL_KNOWN_X402_SUPPORTED_PATH,
-  AGENT_PAY_AUDIENCE,
-  AGENT_PAY_JWKS_BASE_URL,
+  QUOTE_TOKEN_AUDIENCE,
+  DEFAULT_PAYMENT_TOKEN_JWKS_BASE_URL,
 } from './constants';
 
 // Utilities
@@ -102,11 +106,11 @@ export { ALLOWED_ALGORITHMS, secureCompare, validateUrl } from './security';
 export {
   QuoteTokenPayloadSchema,
   QuoteTokenPriceSchema,
-  AgentPaySettlementSchema,
-  AgentPaySupportSchema,
-  AgentPayTermsSchema,
-  AgentPayPaymentExtraSchema,
-  AgentPayPayloadV2Schema,
+  AgenticCommerceSettlementSchema,
+  AgenticCommerceSupportSchema,
+  AgenticCommerceTermsSchema,
+  AgenticCommercePaymentExtraSchema,
+  AgenticCommercePayloadV2Schema,
   parseQuoteToken,
   safeParseQuoteToken,
   parsePaymentPayload,

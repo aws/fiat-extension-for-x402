@@ -2,17 +2,17 @@
 // SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as jose from 'jose';
-import { AgentPayScheme } from '../../../src/agent-pay/server/scheme';
-import type { ServiceAgentPaySigner } from '../../../src/config';
+import { AgenticCommerceScheme } from '../../../src/agentic-commerce/server/scheme';
+import type { QuoteSigner } from '../../../src/config';
 import type { PaymentRequirements, AssetAmount } from '@x402/core/types';
-import { AGENT_PAY_SCHEME } from '../../../src/constants';
-import { AGENT_PAY_SENTINEL_PAY_TO, DEFAULT_QUOTE_VALIDITY_SECONDS } from '../../../src/constants';
+import { AGENTIC_COMMERCE_SCHEME } from '../../../src/constants';
+import { SENTINEL_PAY_TO } from '../../../src/constants';
 import { createMockServiceSigner } from '../../helpers/mock-service-signer';
 
-describe('Agent Pay Server Scheme', () => {
-  let signer: ServiceAgentPaySigner;
+describe('Agentic Commerce Server Scheme', () => {
+  let signer: QuoteSigner;
   let publicKey: jose.KeyLike;
-  let scheme: AgentPayScheme;
+  let scheme: AgenticCommerceScheme;
   const serviceUrl = 'https://api.example.com';
 
   beforeEach(async () => {
@@ -21,7 +21,7 @@ describe('Agent Pay Server Scheme', () => {
     signer = mock.signer;
     publicKey = mock.publicKey;
 
-    scheme = new AgentPayScheme({ signer });
+    scheme = new AgenticCommerceScheme({ signer });
   });
 
   it('should parse price correctly', async () => {
@@ -53,7 +53,7 @@ describe('Agent Pay Server Scheme', () => {
 
   it('should enhance payment requirements with quote token', async () => {
     const requirements: PaymentRequirements = {
-      scheme: AGENT_PAY_SCHEME,
+      scheme: AGENTIC_COMMERCE_SCHEME,
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
@@ -64,9 +64,9 @@ describe('Agent Pay Server Scheme', () => {
 
     const supportedKind = {
       x402Version: 2,
-      scheme: AGENT_PAY_SCHEME,
+      scheme: AGENTIC_COMMERCE_SCHEME,
       network: 'fab:test' as const,
-      extra: { agentPayId: 'agent-pay-123' },
+      extra: { agenticCommerceId: 'agentic-commerce-123' },
     };
 
     const result = await scheme.enhancePaymentRequirements(requirements, supportedKind, []);
@@ -88,7 +88,7 @@ describe('Agent Pay Server Scheme', () => {
 
   it('should sign quote token with service signer', async () => {
     const requirements: PaymentRequirements = {
-      scheme: AGENT_PAY_SCHEME,
+      scheme: AGENTIC_COMMERCE_SCHEME,
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
@@ -99,9 +99,9 @@ describe('Agent Pay Server Scheme', () => {
 
     const supportedKind = {
       x402Version: 2,
-      scheme: AGENT_PAY_SCHEME,
+      scheme: AGENTIC_COMMERCE_SCHEME,
       network: 'fab:test' as const,
-      extra: { agentPayId: 'agent-pay-123' },
+      extra: { agenticCommerceId: 'agentic-commerce-123' },
     };
 
     const result = await scheme.enhancePaymentRequirements(requirements, supportedKind, []);
@@ -118,12 +118,12 @@ describe('Agent Pay Server Scheme', () => {
   // Construction only: signing with them still uses RS256 (src/signer.ts), a separate fix.
   it('should construct with ES256 signing keys', async () => {
     const { privateKey, publicKey: es256PublicKey } = await jose.generateKeyPair('ES256');
-    const es256Scheme = new AgentPayScheme({
+    const es256Scheme = new AgenticCommerceScheme({
       signingKeys: { privateKey, publicKey: await jose.exportJWK(es256PublicKey), alg: 'ES256' },
       serviceUrl,
     });
 
-    expect(es256Scheme.scheme).toBe(AGENT_PAY_SCHEME);
+    expect(es256Scheme.scheme).toBe(AGENTIC_COMMERCE_SCHEME);
   });
 
   it('should handle multiple price currencies', async () => {
@@ -142,7 +142,7 @@ describe('Agent Pay Server Scheme', () => {
 
   describe('Sentinel Values (Task 28)', () => {
     const baseRequirements: PaymentRequirements = {
-      scheme: AGENT_PAY_SCHEME,
+      scheme: AGENTIC_COMMERCE_SCHEME,
       network: 'fab:test',
       amount: '1.50',
       asset: 'iso4217:USD',
@@ -153,16 +153,16 @@ describe('Agent Pay Server Scheme', () => {
 
     const supportedKind = {
       x402Version: 2,
-      scheme: AGENT_PAY_SCHEME,
+      scheme: AGENTIC_COMMERCE_SCHEME,
       network: 'fab:test' as const,
-      extra: { agentPayId: 'agent-pay-123' },
+      extra: { agenticCommerceId: 'agentic-commerce-123' },
     };
 
-    it('should set payTo to AGENT_PAY_SENTINEL_PAY_TO in enhanced requirements', async () => {
+    it('should set payTo to SENTINEL_PAY_TO in enhanced requirements', async () => {
       const result = await scheme.enhancePaymentRequirements(baseRequirements, supportedKind, []);
 
-      expect(result.payTo).toBe(AGENT_PAY_SENTINEL_PAY_TO);
-      expect(result.payTo).toBe('urn:x402:agent-pay:see-quote');
+      expect(result.payTo).toBe(SENTINEL_PAY_TO);
+      expect(result.payTo).toBe('urn:x402:agentic-commerce:see-quote');
     });
 
     it('should set maxTimeoutSeconds to quote validity window (exp - iat)', async () => {
@@ -175,7 +175,7 @@ describe('Agent Pay Server Scheme', () => {
       const result = await scheme.enhancePaymentRequirements(baseRequirements, supportedKind, []);
 
       // Outer payTo is sentinel
-      expect(result.payTo).toBe(AGENT_PAY_SENTINEL_PAY_TO);
+      expect(result.payTo).toBe(SENTINEL_PAY_TO);
 
       // Inner quote token payTo is the real value
       const decoded = jose.decodeJwt((result.extra as any).quoteToken);

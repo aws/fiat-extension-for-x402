@@ -1,9 +1,9 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Agent Pay Server Scheme Implementation
+ * Agentic Commerce Server Scheme Implementation
  *
- * In Agent Pay, the "server" role is played by the resource service,
+ * In Agentic Commerce, the "server" role is played by the resource service,
  * which generates 402 responses with quote tokens.
  */
 
@@ -16,49 +16,49 @@ import {
   SchemeNetworkServer,
 } from '@x402/core/types';
 import type {
-  AgentPayServerSchemeConfig,
+  AgenticCommerceServerSchemeConfig,
   SigningKeysConfig,
-  ServiceAgentPaySigner,
+  QuoteSigner,
 } from '../../config';
-import { toServiceAgentPaySigner } from '../../signer';
-import { QuoteTokenPayload, AgentPayPaymentExtra, ValidationError } from '../../types';
+import { toQuoteSigner } from '../../signers/protocol';
+import { QuoteTokenPayload, AgenticCommercePaymentExtra, ValidationError } from '../../types';
 import { parseMoney } from '../../utils';
 import {
   DEFAULT_QUOTE_VALIDITY_SECONDS,
-  AGENT_PAY_SCHEME,
-  AGENT_PAY_SENTINEL_PAY_TO,
-  AGENT_PAY_AUDIENCE,
+  AGENTIC_COMMERCE_SCHEME,
+  SENTINEL_PAY_TO,
+  QUOTE_TOKEN_AUDIENCE,
 } from '../../constants';
 
 // Use Node.js crypto for UUID generation
 const crypto = webcrypto;
 
 /**
- * Agent Pay server implementation for resource services.
+ * Agentic Commerce server implementation for resource services.
  * Generates 402 responses with quote tokens.
  */
-export class AgentPayScheme implements SchemeNetworkServer {
-  readonly scheme = AGENT_PAY_SCHEME;
-  private readonly signer: ServiceAgentPaySigner;
+export class AgenticCommerceScheme implements SchemeNetworkServer {
+  readonly scheme = AGENTIC_COMMERCE_SCHEME;
+  private readonly signer: QuoteSigner;
 
   /**
-   * Create a new Agent Pay server scheme
+   * Create a new Agentic Commerce server scheme
    * @param config - Server configuration with signing keys or custom signer
    */
-  constructor(config: AgentPayServerSchemeConfig) {
+  constructor(config: AgenticCommerceServerSchemeConfig) {
     // Determine if we have a custom signer or need to create default
     if ('signer' in config) {
       this.signer = config.signer;
     } else if ('signingKeys' in config && 'serviceUrl' in config) {
       // Create default signer from config using adapter function
-      this.signer = toServiceAgentPaySigner(
+      this.signer = toQuoteSigner(
         config.signingKeys.privateKey,
         config.signingKeys.publicKey,
         config.serviceUrl
       );
     } else {
       throw new ValidationError(
-        'AgentPayServerScheme requires either signer or signingKeys + serviceUrl'
+        'AgenticCommerceServerScheme requires either signer or signingKeys + serviceUrl'
       );
     }
   }
@@ -87,7 +87,7 @@ export class AgentPayScheme implements SchemeNetworkServer {
   }
 
   /**
-   * Enhance payment requirements with Agent Pay-specific data
+   * Enhance payment requirements with Agentic Commerce-specific data
    *
    * @param paymentRequirements - Base payment requirements
    * @param supportedKind - Supported kind from facilitator
@@ -112,7 +112,7 @@ export class AgentPayScheme implements SchemeNetworkServer {
     const now = Math.floor(Date.now() / 1000);
     const quotePayload: QuoteTokenPayload = {
       iss: this.signer.getServiceUrl(),
-      aud: AGENT_PAY_AUDIENCE,
+      aud: QUOTE_TOKEN_AUDIENCE,
       iat: now,
       exp: now + (paymentRequirements.maxTimeoutSeconds || DEFAULT_QUOTE_VALIDITY_SECONDS),
       jti: crypto.randomUUID(),
@@ -134,18 +134,18 @@ export class AgentPayScheme implements SchemeNetworkServer {
     const quoteToken = await this.signer.signQuote(quotePayload);
 
     // Add quote token to extra
-    const extra: AgentPayPaymentExtra = {
+    const extra: AgenticCommercePaymentExtra = {
       ...paymentRequirements.extra,
       quoteToken,
     };
 
-    // Return enhanced requirements. payTo is redundant in Agent Pay and carries the
-    // AGENT_PAY_SENTINEL_PAY_TO sentinel; maxTimeoutSeconds is the quote's real
+    // Return enhanced requirements. payTo is redundant in Agentic Commerce and carries the
+    // SENTINEL_PAY_TO sentinel; maxTimeoutSeconds is the quote's real
     // validity window (exp - iat). The signed quote token is the authoritative source
     // for the recipient and expiry, so verifiers read them from the token.
     return {
       ...paymentRequirements,
-      payTo: AGENT_PAY_SENTINEL_PAY_TO,
+      payTo: SENTINEL_PAY_TO,
       maxTimeoutSeconds: quotePayload.exp - quotePayload.iat,
       extra: extra as unknown as Record<string, unknown>,
     };

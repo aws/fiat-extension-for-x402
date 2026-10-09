@@ -1,38 +1,40 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Mock Agent Pay client for testing
- * Simulates Agent Pay Service behavior without making HTTP calls
+ * Mock Agentic Commerce client for testing
+ * Simulates Agentic Commerce Service behavior without making HTTP calls
  */
 
 import * as jose from 'jose';
-import type { AgentPayClientForFacilitator } from '../../src/config';
+import type { AgenticCommerceClientForFacilitator } from '../../src/config';
 
-/** CreateAgentPayment request body, as the Agent Pay Service accepts it */
-export interface CreateAgentPaymentRequest {
+/** Payment creation request body, as the Agentic Commerce Service accepts it */
+export interface CreatePaymentRequest {
   quoteToken: string;
   clientToken?: string;
   dpopJwk?: { kty: 'EC'; crv: 'P-256' | 'P-384' | 'P-521'; x: string; y: string };
 }
 
-/** CreateAgentPayment response body */
-export interface CreateAgentPaymentResponse {
+/** Payment creation response body */
+export interface CreatePaymentResponse {
   paymentId: string;
   paymentToken: string;
   createdAt: string;
 }
 
 /** The fake service: creates payments (buyer side) and verifies their tokens (facilitator side) */
-export interface MockAgentPayClient extends AgentPayClientForFacilitator {
-  createPayment(request: CreateAgentPaymentRequest): Promise<CreateAgentPaymentResponse>;
+export interface MockAgenticCommerceClient extends AgenticCommerceClientForFacilitator {
+  createPayment(request: CreatePaymentRequest): Promise<CreatePaymentResponse>;
 }
 
 /**
- * Create a mock Agent Pay client for testing
- * Uses in-memory key pairs to simulate Agent Pay Service signing
+ * Create a mock Agentic Commerce client for testing
+ * Uses in-memory key pairs to simulate Agentic Commerce Service signing
  */
-export async function createMockAgentPayClient(agentPayId: string = 'test-agent-pay-123'): Promise<{
-  agentPayClient: MockAgentPayClient;
+export async function createMockAgenticCommerceClient(
+  agenticCommerceId: string = 'test-agentic-commerce-123'
+): Promise<{
+  agenticCommerceClient: MockAgenticCommerceClient;
   privateKey: jose.KeyLike;
   publicKey: jose.KeyLike;
 }> {
@@ -40,14 +42,12 @@ export async function createMockAgentPayClient(agentPayId: string = 'test-agent-
   const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
 
   // In-memory payment store for idempotency
-  const paymentStore = new Map<string, CreateAgentPaymentResponse>();
+  const paymentStore = new Map<string, CreatePaymentResponse>();
   let paymentCounter = 0;
 
-  const agentPayClient: MockAgentPayClient = {
-    // Client-side: create payment (matches Agent Pay API)
-    createPayment: async (
-      request: CreateAgentPaymentRequest
-    ): Promise<CreateAgentPaymentResponse> => {
+  const agenticCommerceClient: MockAgenticCommerceClient = {
+    // Client-side: create payment (matches Agentic Commerce API)
+    createPayment: async (request: CreatePaymentRequest): Promise<CreatePaymentResponse> => {
       // Check idempotency
       if (request.clientToken && paymentStore.has(request.clientToken)) {
         return paymentStore.get(request.clientToken)!;
@@ -56,11 +56,11 @@ export async function createMockAgentPayClient(agentPayId: string = 'test-agent-
       paymentCounter++;
       const paymentId = `awsmp-00000000-0000-0000-0000-${String(paymentCounter).padStart(12, '0')}`;
 
-      // Create payment token (simulating Agent Pay Service signing)
+      // Create payment token (simulating Agentic Commerce Service signing)
       const now = Math.floor(Date.now() / 1000);
       const paymentTokenPayload: Record<string, unknown> = {
         iss: 'awsmp-agentpay.amazonaws.com',
-        sub: agentPayId,
+        sub: agenticCommerceId,
         iat: now,
         exp: now + 3600,
         payment_id: paymentId,
@@ -80,7 +80,7 @@ export async function createMockAgentPayClient(agentPayId: string = 'test-agent-
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
 
-      const response: CreateAgentPaymentResponse = {
+      const response: CreatePaymentResponse = {
         paymentId,
         paymentToken,
         createdAt: new Date().toISOString(),
@@ -117,7 +117,7 @@ export async function createMockAgentPayClient(agentPayId: string = 'test-agent-
   };
 
   return {
-    agentPayClient,
+    agenticCommerceClient,
     privateKey,
     publicKey,
   };

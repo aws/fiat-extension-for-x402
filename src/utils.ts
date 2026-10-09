@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Utility functions for Agent Pay x402 extension
+ * Utility functions for Agentic Commerce x402 extension
  */
 
 import { webcrypto } from 'node:crypto';
@@ -89,7 +89,7 @@ export async function verifyPaymentToken(
  * @returns Quote token JWT string
  */
 export function extractQuoteFromPayment(payment: PaymentTokenPayload): string {
-  // Agent Pay returns quote_token at top level; fallback to payment_context for backward compat
+  // Agentic Commerce returns quote_token at top level; fallback to payment_context for backward compat
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- pre-existing `any` fallback, tracked with the no-explicit-any cleanup
   return (payment as any).quote_token || payment.payment_context?.quote_token;
 }
@@ -97,10 +97,10 @@ export function extractQuoteFromPayment(payment: PaymentTokenPayload): string {
 /**
  * Generate a transaction ID
  * @param network - Network identifier (e.g., "aws:base")
- * @param agentPayId - Agent Pay identifier
+ * @param agenticCommerceId - Agentic Commerce identifier
  * @returns Transaction ID in format {network}:{uniqueId}
  */
-export function generateTransactionId(network: string, agentPayId: string): string {
+export function generateTransactionId(network: string, agenticCommerceId: string): string {
   const uniqueId = crypto.randomUUID().replace(/-/g, '').substring(0, 16);
   return `${network}:${uniqueId}`;
 }

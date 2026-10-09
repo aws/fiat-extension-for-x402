@@ -2,22 +2,22 @@
 // SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import type {
-  AgentPayPaymentExtra,
+  AgenticCommercePaymentExtra,
   QuoteTokenPrice,
   QuoteTokenPayload,
   PaymentContext,
   PaymentTokenPayload,
   SettlementMethod,
   SettlementCycle,
-  AgentPaySettlement,
-  AgentPaySupport,
-  AgentPayTerms,
+  AgenticCommerceSettlement,
+  AgenticCommerceSupport,
+  AgenticCommerceTerms,
 } from '../../src/types';
 
 describe('Payment Types', () => {
-  describe('AgentPayPaymentExtra', () => {
+  describe('AgenticCommercePaymentExtra', () => {
     it('should accept minimal payment extra with only quoteToken', () => {
-      const extra: AgentPayPaymentExtra = {
+      const extra: AgenticCommercePaymentExtra = {
         quoteToken: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
       };
       expect(extra.quoteToken).toBeDefined();
@@ -26,7 +26,7 @@ describe('Payment Types', () => {
     });
 
     it('should accept payment extra with all optional fields', () => {
-      const extra: AgentPayPaymentExtra = {
+      const extra: AgenticCommercePaymentExtra = {
         quoteToken: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
         reference: 'WEATHER_DATA_TIER1',
         settlement: {
@@ -171,7 +171,7 @@ describe('Payment Types', () => {
   describe('PaymentTokenPayload', () => {
     it('should accept minimal payment token payload', () => {
       const payload: PaymentTokenPayload = {
-        iss: 'https://pay.aws.amazon.com',
+        iss: 'https://pay.example.com',
         sub: 'client_uuid_555',
         aud: 'https://api.weather.com',
         iat: 1735689600,
@@ -181,7 +181,7 @@ describe('Payment Types', () => {
           quote_token: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
         },
       };
-      expect(payload.iss).toBe('https://pay.aws.amazon.com');
+      expect(payload.iss).toBe('https://pay.example.com');
       expect(payload.sub).toBe('client_uuid_555');
       expect(payload.payment_context).toBeDefined();
       expect(payload.cnf).toBeUndefined();
@@ -189,7 +189,7 @@ describe('Payment Types', () => {
 
     it('should accept payment token payload with DPoP confirmation', () => {
       const payload: PaymentTokenPayload = {
-        iss: 'https://pay.aws.amazon.com',
+        iss: 'https://pay.example.com',
         sub: 'client_uuid_555',
         aud: 'https://api.weather.com',
         iat: 1735689600,
@@ -231,9 +231,9 @@ describe('Settlement Types', () => {
     });
   });
 
-  describe('AgentPaySettlement', () => {
+  describe('AgenticCommerceSettlement', () => {
     it('should accept settlement with method only', () => {
-      const settlement: AgentPaySettlement = {
+      const settlement: AgenticCommerceSettlement = {
         method: 'INST',
       };
       expect(settlement.method).toBe('INST');
@@ -241,7 +241,7 @@ describe('Settlement Types', () => {
     });
 
     it('should accept settlement with method and cycle', () => {
-      const settlement: AgentPaySettlement = {
+      const settlement: AgenticCommerceSettlement = {
         method: 'CLRG',
         cycle: 'MNTH',
       };
@@ -250,9 +250,9 @@ describe('Settlement Types', () => {
     });
   });
 
-  describe('AgentPaySupport', () => {
+  describe('AgenticCommerceSupport', () => {
     it('should accept support with uri and method', () => {
-      const support: AgentPaySupport = {
+      const support: AgenticCommerceSupport = {
         uri: 'https://api.weather.com/disputes',
         method: 'human',
       };
@@ -261,9 +261,9 @@ describe('Settlement Types', () => {
     });
   });
 
-  describe('AgentPayTerms', () => {
+  describe('AgenticCommerceTerms', () => {
     it('should accept terms with description and uri', () => {
-      const terms: AgentPayTerms = {
+      const terms: AgenticCommerceTerms = {
         description: 'End User License Agreement',
         uri: 'https://api.weather.com/eula',
       };

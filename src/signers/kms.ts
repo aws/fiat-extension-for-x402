@@ -1,18 +1,17 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * AWS KMS Signer for Agent Pay quote tokens.
+ * AWS KMS Signer for Agentic Commerce quote tokens.
  *
- * Provides a production-ready ServiceAgenticPaySigner that signs quote tokens
+ * Provides a production-ready QuoteSigner that signs quote tokens
  * using an AWS KMS asymmetric key (EC P-256, P-384, or P-521).
  *
  * Usage:
  * ```typescript
- * import { createKmsSigner } from '@x402/aws-agentic-pay/signers/kms';
- * import { AgenticPayServerScheme } from '@x402/aws-agentic-pay';
+ * import { createKmsQuoteSigner, AgenticCommerceServerScheme } from '@aws/fiat-extension-for-x402';
  *
- * const server = new AgenticPayServerScheme({
- *   signer: createKmsSigner({
+ * const server = new AgenticCommerceServerScheme({
+ *   signer: createKmsQuoteSigner({
  *     keyArn: 'arn:aws:kms:us-east-1:123456789012:alias/my-quote-signing-key',
  *     region: 'us-east-1',
  *   })
@@ -22,12 +21,12 @@
 
 import { KMSClient, SignCommand, type SigningAlgorithmSpec } from '@aws-sdk/client-kms';
 import type { AwsCredentialIdentityProvider } from '@aws-sdk/types';
-import type { ServiceAgentPaySigner } from '../config';
+import type { QuoteSigner } from '../config';
 
 /**
  * Configuration for the KMS signer.
  */
-export interface KmsSignerConfig {
+export interface KmsQuoteSignerConfig {
   /** KMS key ARN or alias ARN (e.g., 'arn:aws:kms:us-east-1:...:alias/my-key') */
   keyArn: string;
   /** AWS region where the KMS key lives */
@@ -57,26 +56,26 @@ const COMPONENT_LENGTH: Record<string, number> = {
 };
 
 /**
- * Create a ServiceAgenticPaySigner backed by AWS KMS.
+ * Create a QuoteSigner backed by AWS KMS.
  *
  * Signs quote tokens using a KMS asymmetric EC key. The private key never
  * leaves KMS — signing happens server-side via the KMS Sign API.
  *
  * @param config - KMS signer configuration
- * @returns A ServiceAgenticPaySigner that signs with KMS
+ * @returns A QuoteSigner that signs with KMS
  *
  * @example
  * ```typescript
- * const signer = createKmsSigner({
+ * const signer = createKmsQuoteSigner({
  *   keyArn: 'arn:aws:kms:us-east-1:123456789012:alias/my-quote-key',
  *   region: 'us-east-1',
  *   serviceUrl: 'https://api.myservice.com',
  * });
  *
- * const server = new AgenticPayServerScheme({ signer });
+ * const server = new AgenticCommerceServerScheme({ signer });
  * ```
  */
-export function createKmsSigner(config: KmsSignerConfig): ServiceAgentPaySigner {
+export function createKmsQuoteSigner(config: KmsQuoteSignerConfig): QuoteSigner {
   const { keyArn, region, serviceUrl, credentials, algorithm = 'ECDSA_SHA_384', kid } = config;
 
   const jwtAlg = ALG_MAP[algorithm];
@@ -121,7 +120,7 @@ export function createKmsSigner(config: KmsSignerConfig): ServiceAgentPaySigner 
       return `${header}.${body}.${signature}`;
     },
 
-    getPublicKey: () => ({}), // Not needed — Agent Pay fetches the public key from KMS directly
+    getPublicKey: () => ({}), // Not needed — Agentic Commerce fetches the public key from KMS directly
 
     getServiceUrl: () => serviceUrl,
   };

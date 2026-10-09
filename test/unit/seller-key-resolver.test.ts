@@ -3,7 +3,7 @@
 /**
  * SellerKeyResolver Tests
  *
- * Tests the three quote token verification paths in AgentPayFacilitatorClient:
+ * Tests the three quote token verification paths in AgenticCommerceFacilitatorClient:
  * 1. KMS-hosted key (calls kms:GetPublicKey)
  * 2. Explicit JWKS URL (fetches from configured URL)
  * 3. Fallback (fetches from quote token iss claim)
@@ -11,16 +11,23 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as jose from 'jose';
-import { AgentPayFacilitatorClient } from '../../src/agent-pay-facilitator-client';
-import { AGENT_PAY_AUDIENCE } from '../../src/constants';
+import { AgenticCommerceFacilitatorClient } from '../../src/agentic-commerce/facilitator-client';
+import { AGENTIC_COMMERCE_SCHEME, QUOTE_TOKEN_AUDIENCE } from '../../src/constants';
 import type { PaymentPayload, PaymentRequirements } from '@x402/core/types';
+
+/** Hostname of a mocked fetch() request, compared exactly (not as a substring). */
+function requestHostname(reqUrl: string | URL | Request): string {
+  const href =
+    typeof reqUrl === 'string' ? reqUrl : reqUrl instanceof URL ? reqUrl.href : reqUrl.url;
+  return new URL(href).hostname;
+}
 
 describe('SellerKeyResolver', () => {
   let sellerPrivateKey: jose.KeyLike;
   let sellerPublicKey: jose.KeyLike;
   let sellerPublicJWK: jose.JWK;
-  let agentPayPrivateKey: jose.KeyLike;
-  let agentPayPublicJWK: jose.JWK;
+  let agenticCommercePrivateKey: jose.KeyLike;
+  let agenticCommercePublicJWK: jose.JWK;
   const mockFetch = vi.fn();
 
   beforeEach(async () => {
@@ -35,14 +42,14 @@ describe('SellerKeyResolver', () => {
     sellerPublicJWK.alg = 'ES384';
     sellerPublicJWK.use = 'sig';
 
-    // Agent Pay key pair (ES384)
+    // Agentic Commerce key pair (ES384)
     const apKeys = await jose.generateKeyPair('ES384');
-    agentPayPrivateKey = apKeys.privateKey;
+    agenticCommercePrivateKey = apKeys.privateKey;
     const apPubJWK = await jose.exportJWK(apKeys.publicKey);
-    apPubJWK.kid = 'agentpay-key-1';
+    apPubJWK.kid = 'service-key-1';
     apPubJWK.alg = 'ES384';
     apPubJWK.use = 'sig';
-    agentPayPublicJWK = apPubJWK;
+    agenticCommercePublicJWK = apPubJWK;
   });
 
   afterEach(() => {
@@ -58,7 +65,7 @@ describe('SellerKeyResolver', () => {
     })
       .setProtectedHeader({ alg: 'ES384', typ: 'JWT' })
       .setIssuer(issuer)
-      .setAudience(AGENT_PAY_AUDIENCE)
+      .setAudience(QUOTE_TOKEN_AUDIENCE)
       .setIssuedAt()
       .setExpirationTime('5m')
       .setJti('quote-001')
@@ -76,14 +83,14 @@ describe('SellerKeyResolver', () => {
       .setAudience(sellerIssuer)
       .setIssuedAt()
       .setExpirationTime('5m')
-      .sign(agentPayPrivateKey);
+      .sign(agenticCommercePrivateKey);
   }
 
   /** Helper: mock fetch to return JWKS */
   function mockJwksEndpoint(url: string, jwk: jose.JWK) {
     mockFetch.mockImplementation(async (reqUrl: string | URL | Request, opts?: RequestInit) => {
-      const urlStr = typeof reqUrl === 'string' ? reqUrl : reqUrl.toString();
-      if (urlStr.includes(new URL(url).hostname)) {
+      const hostname = requestHostname(reqUrl);
+      if (hostname === new URL(url).hostname) {
         return new Response(JSON.stringify({ keys: [jwk] }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
@@ -97,7 +104,7 @@ describe('SellerKeyResolver', () => {
   function buildVerifyInputs(paymentToken: string, quoteToken: string) {
     const payload: PaymentPayload = {
       x402Version: 2,
-      scheme: 'agent-pay',
+      scheme: AGENTIC_COMMERCE_SCHEME,
       network: 'aws:base',
       payload: {
         paymentToken,
@@ -106,7 +113,7 @@ describe('SellerKeyResolver', () => {
       } as any,
     };
     const requirements: PaymentRequirements = {
-      scheme: 'agent-pay',
+      scheme: AGENTIC_COMMERCE_SCHEME,
       network: 'aws:base',
       amount: '1.00',
       asset: 'iso4217:USD',
@@ -123,23 +130,25 @@ describe('SellerKeyResolver', () => {
       const quoteToken = await createQuoteToken(issuer);
       const paymentToken = await createPaymentToken(quoteToken, issuer);
 
-      // Mock: Agent Pay JWKS + seller JWKS at iss URL
+      // Mock: Agentic Commerce JWKS + seller JWKS at iss URL
       mockFetch.mockImplementation(async (reqUrl: string | URL | Request) => {
-        const urlStr = typeof reqUrl === 'string' ? reqUrl : reqUrl.toString();
-        if (urlStr.includes('agentpay')) {
-          return new Response(JSON.stringify({ keys: [agentPayPublicJWK] }), { status: 200 });
+        const hostname = requestHostname(reqUrl);
+        if (hostname === 'payments.example.com') {
+          return new Response(JSON.stringify({ keys: [agenticCommercePublicJWK] }), {
+            status: 200,
+          });
         }
-        if (urlStr.includes('api.seller.com')) {
+        if (hostname === 'api.seller.com') {
           return new Response(JSON.stringify({ keys: [sellerPublicJWK] }), { status: 200 });
         }
         return new Response('Not Found', { status: 404 });
       });
 
-      const client = new AgentPayFacilitatorClient(
-        'https://agentpay.test.com',
+      const client = new AgenticCommerceFacilitatorClient(
+        'https://payments.example.com',
         undefined,
         undefined,
-        'https://agentpay.test.com' // jwksBaseUrl = same as base so mock matches
+        'https://payments.example.com' // jwksBaseUrl = same as base so mock matches
       );
       const { payload, requirements } = buildVerifyInputs(paymentToken, quoteToken);
       const result = await client.verify(payload, requirements);
@@ -153,18 +162,20 @@ describe('SellerKeyResolver', () => {
       const paymentToken = await createPaymentToken(quoteToken, issuer);
 
       mockFetch.mockImplementation(async (reqUrl: string | URL | Request) => {
-        const urlStr = typeof reqUrl === 'string' ? reqUrl : reqUrl.toString();
-        if (urlStr.includes('agentpay')) {
-          return new Response(JSON.stringify({ keys: [agentPayPublicJWK] }), { status: 200 });
+        const hostname = requestHostname(reqUrl);
+        if (hostname === 'payments.example.com') {
+          return new Response(JSON.stringify({ keys: [agenticCommercePublicJWK] }), {
+            status: 200,
+          });
         }
         return new Response('Not Found', { status: 404 });
       });
 
-      const client = new AgentPayFacilitatorClient(
-        'https://agentpay.test.com',
+      const client = new AgenticCommerceFacilitatorClient(
+        'https://payments.example.com',
         undefined,
         undefined,
-        'https://agentpay.test.com'
+        'https://payments.example.com'
       );
       const { payload, requirements } = buildVerifyInputs(paymentToken, quoteToken);
       const result = await client.verify(payload, requirements);
@@ -182,25 +193,27 @@ describe('SellerKeyResolver', () => {
       const paymentToken = await createPaymentToken(quoteToken, issuer);
 
       mockFetch.mockImplementation(async (reqUrl: string | URL | Request) => {
-        const urlStr = typeof reqUrl === 'string' ? reqUrl : reqUrl.toString();
-        if (urlStr.includes('agentpay')) {
-          return new Response(JSON.stringify({ keys: [agentPayPublicJWK] }), { status: 200 });
+        const hostname = requestHostname(reqUrl);
+        if (hostname === 'payments.example.com') {
+          return new Response(JSON.stringify({ keys: [agenticCommercePublicJWK] }), {
+            status: 200,
+          });
         }
-        if (urlStr.includes('keys.seller.com')) {
+        if (hostname === 'keys.seller.com') {
           return new Response(JSON.stringify({ keys: [sellerPublicJWK] }), { status: 200 });
         }
         // iss URL should NOT be called
-        if (urlStr.includes('api.seller.com')) {
+        if (hostname === 'api.seller.com') {
           throw new Error('Should not fetch from iss when jwksUrl is configured');
         }
         return new Response('Not Found', { status: 404 });
       });
 
-      const client = new AgentPayFacilitatorClient(
-        'https://agentpay.test.com',
+      const client = new AgenticCommerceFacilitatorClient(
+        'https://payments.example.com',
         undefined,
         undefined,
-        'https://agentpay.test.com',
+        'https://payments.example.com',
         { type: 'jwks', jwksUrl: jwksHost }
       );
       const { payload, requirements } = buildVerifyInputs(paymentToken, quoteToken);
@@ -226,11 +239,13 @@ describe('SellerKeyResolver', () => {
         'base64'
       );
 
-      // Mock Agent Pay JWKS fetch only
+      // Mock Agentic Commerce JWKS fetch only
       mockFetch.mockImplementation(async (reqUrl: string | URL | Request) => {
-        const urlStr = typeof reqUrl === 'string' ? reqUrl : reqUrl.toString();
-        if (urlStr.includes('agentpay')) {
-          return new Response(JSON.stringify({ keys: [agentPayPublicJWK] }), { status: 200 });
+        const hostname = requestHostname(reqUrl);
+        if (hostname === 'payments.example.com') {
+          return new Response(JSON.stringify({ keys: [agenticCommercePublicJWK] }), {
+            status: 200,
+          });
         }
         throw new Error('Should not fetch seller JWKS when KMS resolver is configured');
       });
@@ -247,11 +262,11 @@ describe('SellerKeyResolver', () => {
         },
       }));
 
-      const client = new AgentPayFacilitatorClient(
-        'https://agentpay.test.com',
+      const client = new AgenticCommerceFacilitatorClient(
+        'https://payments.example.com',
         undefined,
         undefined,
-        'https://agentpay.test.com',
+        'https://payments.example.com',
         {
           type: 'kms',
           kmsKeyArn: 'arn:aws:kms:us-east-1:123456789:alias/test-key',
@@ -284,13 +299,13 @@ describe('SellerKeyResolver', () => {
         .setExpirationTime('5m')
         .sign(wrongKey);
 
-      mockJwksEndpoint('https://agentpay.test.com', agentPayPublicJWK);
+      mockJwksEndpoint('https://payments.example.com', agenticCommercePublicJWK);
 
-      const client = new AgentPayFacilitatorClient(
-        'https://agentpay.test.com',
+      const client = new AgenticCommerceFacilitatorClient(
+        'https://payments.example.com',
         undefined,
         undefined,
-        'https://agentpay.test.com'
+        'https://payments.example.com'
       );
       const { payload, requirements } = buildVerifyInputs(badPaymentToken, quoteToken);
       const result = await client.verify(payload, requirements);
@@ -306,21 +321,23 @@ describe('SellerKeyResolver', () => {
       const paymentToken = await createPaymentToken(differentQuote, issuer);
 
       mockFetch.mockImplementation(async (reqUrl: string | URL | Request) => {
-        const urlStr = typeof reqUrl === 'string' ? reqUrl : reqUrl.toString();
-        if (urlStr.includes('agentpay')) {
-          return new Response(JSON.stringify({ keys: [agentPayPublicJWK] }), { status: 200 });
+        const hostname = requestHostname(reqUrl);
+        if (hostname === 'payments.example.com') {
+          return new Response(JSON.stringify({ keys: [agenticCommercePublicJWK] }), {
+            status: 200,
+          });
         }
-        if (urlStr.includes('api.seller.com')) {
+        if (hostname === 'api.seller.com') {
           return new Response(JSON.stringify({ keys: [sellerPublicJWK] }), { status: 200 });
         }
         return new Response('Not Found', { status: 404 });
       });
 
-      const client = new AgentPayFacilitatorClient(
-        'https://agentpay.test.com',
+      const client = new AgenticCommerceFacilitatorClient(
+        'https://payments.example.com',
         undefined,
         undefined,
-        'https://agentpay.test.com'
+        'https://payments.example.com'
       );
       const { payload, requirements } = buildVerifyInputs(paymentToken, quoteToken);
       const result = await client.verify(payload, requirements);

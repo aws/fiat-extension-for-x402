@@ -134,23 +134,23 @@ In the default x402 model, the facilitator is a separate third-party service. In
 - Verifies payment tokens (facilitator-facing: JWKS at `/.well-known/jwks.json`)
 - Settles payments (facilitator-facing: `POST /capture`)
 
-This eliminates the need for a separate facilitator service. The `AgentPayFacilitatorClient` adapter translates x402's `FacilitatorClient` interface into Agent Pay API calls.
+This eliminates the need for a separate facilitator service. The `AgenticCommerceFacilitatorClient` adapter translates x402's `FacilitatorClient` interface into Agent Pay API calls.
 
 ### 2.3 What We Built
 
 | Module | File(s) | Purpose |
 |--------|---------|---------|
-| **AgentPayServerScheme** | `src/agent-pay/server/scheme.ts` | Implements `SchemeNetworkServer`. Generates quote tokens, signs them with the service's key, and embeds them in the 402 response. |
+| **AgenticCommerceServerScheme** | `src/agentic-commerce/server/scheme.ts` | Implements `SchemeNetworkServer`. Generates quote tokens, signs them with the service's key, and embeds them in the 402 response. |
 | **AgentPayClientScheme** | `src/agent-pay/client/scheme.ts` | Implements `SchemeNetworkClient`. Extracts the quote token from the 402 response, sends it to Agent Pay for authorization, and wraps the payment token into a `PaymentPayload`. |
-| **AgentPayFacilitatorScheme** | `src/agent-pay/facilitator/scheme.ts` | Implements `SchemeNetworkFacilitator`. Delegates to `verify.ts` and `settle.ts` for cryptographic verification and Agent Pay capture calls. |
-| **AgentPayFacilitatorClient** | `src/agent-pay-facilitator-client.ts` | Implements `FacilitatorClient` (the x402 facilitator interface). Verifies payment tokens by checking JWT signatures against the Agent Pay's JWKS, then settles via the Agent Pay's `/capture` endpoint. |
-| **DefaultAgentPayClient** | `src/agent-pay-client.ts` | HTTP client for Agent Pay API calls (`/transactions`, `/capture`, `/.well-known/jwks.json`). Used by both the client scheme and the facilitator scheme. This is a reference implementation — it will be replaced by the official AWS SDK Agent Pay client in production. The scheme constructors accept either a `AgentPayConfig` (which creates a `DefaultAgentPayClient`) or a custom object implementing `AgentPayClientForClient` / `AgentPayClientForFacilitator`, so swapping in the AWS SDK client requires no changes to the scheme layer. |
+| **AgenticCommerceFacilitatorScheme** | `src/agentic-commerce/facilitator/scheme.ts` | Implements `SchemeNetworkFacilitator`. Delegates to `verify.ts` and `settle.ts` for cryptographic verification and Agent Pay capture calls. |
+| **AgenticCommerceFacilitatorClient** | `src/agentic-commerce/facilitator-client.ts` | Implements `FacilitatorClient` (the x402 facilitator interface). Verifies payment tokens by checking JWT signatures against the Agent Pay's JWKS, then settles via the Agent Pay's `/capture` endpoint. |
+| **DefaultAgentPayClient** | `src/agent-pay-client.ts` | HTTP client for Agent Pay API calls (`/transactions`, `/capture`, `/.well-known/jwks.json`). Used by both the client scheme and the facilitator scheme. This is a reference implementation — it will be replaced by the official AWS SDK Agent Pay client in production. The scheme constructors accept either a `AgenticCommerceConfig` (which creates a `DefaultAgentPayClient`) or a custom object implementing `AgentPayClientForClient` / `AgenticCommerceClientForFacilitator`, so swapping in the AWS SDK client requires no changes to the scheme layer. |
 | **Authentication** | `src/auth/` | Pluggable auth for Agent Pay API calls: API Key, AWS SigV4, OAuth2, Custom. Factory pattern via `createAuthenticator()`. |
 | **DPoP** | `src/dpop/` | RFC 9449 Demonstrating Proof-of-Possession. Key generation, proof creation, proof verification with replay protection. Prevents token theft by binding payment tokens to ephemeral client keys. |
 | **Discovery** | `src/discovery.ts` | Network registry (`registerNetwork`) and OIDC-based Agent Pay endpoint discovery. |
-| **Signers** | `src/signer.ts` | `toServiceAgentPaySigner()` and `toAgentPaySigner()` — adapter functions that wrap `jose` key pairs into the `ServiceAgentPaySigner` / `AgentPaySigner` interfaces. |
-| **Types** | `src/types.ts` | All Agent Pay-specific types: `QuoteTokenPayload`, `PaymentTokenPayload`, `AgentPayPayloadV2`, settlement types, DPoP types, error classes. |
-| **Constants** | `src/constants.ts` | `AGENT_PAY_SCHEME`, `AGENT_PAY_CAIP_FAMILY`, `AGENT_PAY_SENTINEL_PAY_TO`, default validity windows. |
+| **Signers** | `src/signers/protocol.ts` | `toQuoteSigner()` and `toPaymentTokenSigner()` — adapter functions that wrap `jose` key pairs into the `QuoteSigner` / `PaymentTokenSigner` interfaces. |
+| **Types** | `src/types.ts` | All Agent Pay-specific types: `QuoteTokenPayload`, `PaymentTokenPayload`, `AgenticCommercePayloadV2`, settlement types, DPoP types, error classes. |
+| **Constants** | `src/constants.ts` | `AGENTIC_COMMERCE_SCHEME`, `AGENTIC_COMMERCE_CAIP_FAMILY`, `SENTINEL_PAY_TO`, default validity windows. |
 | **Utilities** | `src/utils.ts` | JWT decode/verify helpers, transaction ID parsing, money parsing, service JWKS caching. |
 
 ---
@@ -255,7 +255,7 @@ The `@x402/core` `PaymentRequirements` type requires `payTo` and `maxTimeoutSeco
 
 | Field | Sentinel value | Rationale |
 |-------|---------------|-----------|
-| `payTo` | `"urn:x402:agent-pay:see-quote"` | Not a real address. Signals that the quote token's `payTo` is authoritative. The outer field is unsigned and could be tampered with. |
+| `payTo` | `"urn:x402:agentic-commerce:see-quote"` | Not a real address. Signals that the quote token's `payTo` is authoritative. The outer field is unsigned and could be tampered with. |
 | `maxTimeoutSeconds` | `exp - iat` from quote token (default: 300) | Numerically valid for any middleware that inspects it, but derived from the quote rather than independently configured. |
 
 Both sentinels are applied in `enhancePaymentRequirements` (server scheme). The client scheme and facilitator scheme already use the quote token directly and ignore these outer fields.
@@ -279,7 +279,7 @@ Settlement uses `requirements.amount` and `requirements.asset` (which are real v
 
 ### 3.7 Authentication
 
-Agent Pay API calls support four authentication methods, configured via the `auth` field on `AgentPayConfig`:
+Agent Pay API calls support four authentication methods, configured via the `auth` field on `AgenticCommerceConfig`:
 
 ```typescript
 // API Key
@@ -323,7 +323,7 @@ Any Agent Pay provider can integrate with Agent Pay by exposing these standardiz
 
 ### 3.10 Network Registration and Facilitator Routing
 
-This package no longer ships a builder or network presets. Register `AgentPayServerScheme` per network with the stock x402 `x402ResourceServer.register(network, scheme)`, and pass it the facilitator clients you want explicitly: given none, the stock server uses x402's default facilitator. Pass the same networks as the `networkFilter` set to `AgentPayFacilitatorClient`; without it, Agent Pay claims every network its provider reports, and the first facilitator to claim a network wins.
+This package no longer ships a builder or network presets. Register `AgenticCommerceServerScheme` per network with the stock x402 `x402ResourceServer.register(network, scheme)`, and pass it the facilitator clients you want explicitly: given none, the stock server uses x402's default facilitator. Pass the same networks as the `networkFilter` set to `AgenticCommerceFacilitatorClient`; without it, Agent Pay claims every network its provider reports, and the first facilitator to claim a network wins.
 
 ---
 
@@ -331,7 +331,7 @@ This package no longer ships a builder or network presets. Register `AgentPaySer
 
 ### 4.1 Error Hierarchy
 
-All Agent Pay errors extend `AgentPayError`, which extends `Error`:
+All Agent Pay errors extend `AgenticCommerceError`, which extends `Error`:
 
 | Error class | Code | When thrown |
 |-------------|------|------------|
@@ -359,7 +359,7 @@ The package is built with `tsup`. The root entry produces:
 - `dist/index.cjs` — CommonJS
 - `dist/index.d.ts` / `dist/index.d.cts` — TypeScript declarations (ESM / CommonJS)
 
-Sub-path exports are available for tree-shaking: `@aws/fiat-extension-for-x402/agent-pay/client`, `@aws/fiat-extension-for-x402/agent-pay/server`, `@aws/fiat-extension-for-x402/agent-pay/facilitator`.
+Sub-path exports are available for tree-shaking: `@aws/fiat-extension-for-x402/agent-pay/client`, `@aws/fiat-extension-for-x402/agentic-commerce/server`, `@aws/fiat-extension-for-x402/agentic-commerce/facilitator`.
 
 ### 4.4 Known Limitations
 
@@ -383,13 +383,13 @@ src/
 ├── types.ts                    # All Agent Pay type definitions and error classes
 ├── constants.ts                # Scheme identifiers, defaults, sentinel values
 ├── config.ts                   # Configuration interfaces (signing keys, Agent Pay, schemes)
-├── signer.ts                   # JWT signer adapters (service + Agent Pay)
+├── signers/protocol.ts         # JWT signer adapters (service + Agent Pay)
 ├── utils.ts                    # JWT helpers, transaction IDs, money parsing, JWKS cache
 ├── discovery.ts                # Network registry and OIDC Agent Pay discovery
 ├── agent-pay-client.ts            # HTTP client for Agent Pay API calls
-├── agent-pay-facilitator-client.ts # x402 FacilitatorClient adapter for Agent Pay providers
+├── agentic-commerce/facilitator-client.ts # x402 FacilitatorClient adapter for Agent Pay providers
 ├── facilitator-client.ts       # In-process facilitator (for testing/demos)
-├── agent-pay/
+├── agentic-commerce/
 │   ├── client/scheme.ts        # SchemeNetworkClient implementation
 │   ├── server/scheme.ts        # SchemeNetworkServer implementation
 │   └── facilitator/
@@ -406,5 +406,5 @@ src/
 └── dpop/
     ├── key-generation.ts       # generateDPoPKeyPair
     ├── proof-creation.ts       # createDPoPProof, computeJWKThumbprint
-    └── proof-verification.ts   # verifyDPoPProof, extractDPoPThumbprint
+    └── verification.ts         # verifyDPoPProof, extractDPoPThumbprint
 ```
