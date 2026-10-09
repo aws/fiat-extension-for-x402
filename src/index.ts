@@ -10,28 +10,36 @@
 // Scheme implementations
 export {
   ExactAgenticCommerceServerScheme,
+  ExactAgenticCommerceFacilitatorScheme,
   registerExactAgenticCommerceServer,
-  AgenticCommerceFacilitatorScheme,
+  AgenticCommerceVerifier,
 } from './agentic-commerce';
 export type {
   ExactAgenticCommerceServerSchemeConfig,
+  ExactAgenticCommerceFacilitatorSchemeConfig,
   RegisterExactAgenticCommerceServerOptions,
+  AgenticCommerceInvalidReason,
+  AgenticCommerceVerifierConfig,
+  JwksRequestHeaders,
+  VerificationRequirements,
+  VerificationResult,
+  SellerKeyResolver,
+  KmsSellerKeyResolver,
+  JwksSellerKeyResolver,
+  StaticSellerKeyResolver,
+  KmsCredentials,
+  KmsPublicKeyClient,
 } from './agentic-commerce';
 
 // Configuration types
-export type {
-  AgenticCommerceConfig,
-  AgenticCommerceClientForFacilitator,
-  AgenticCommerceFacilitatorSchemeConfig,
-  QuoteSigner as QuoteSignerInterface,
-} from './config';
+export type { QuoteSigner as QuoteSignerInterface } from './config';
 
 // Facilitator client implementation
 export { InProcessFacilitatorClient } from './facilitator-client';
 export { AgenticCommerceFacilitatorClient } from './agentic-commerce/facilitator-client';
 export type {
   AgenticCommerceFacilitatorAuthConfig,
-  SellerKeyResolver,
+  AgenticCommerceFacilitatorClientConfig,
   VerifyRequestContext,
 } from './agentic-commerce/facilitator-client';
 

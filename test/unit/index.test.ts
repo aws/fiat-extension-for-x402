@@ -9,8 +9,10 @@ describe('Agentic Commerce Package Exports', () => {
     expect(AgenticCommerce.registerExactAgenticCommerceServer).toBeDefined();
   });
 
-  it('should export AgenticCommerceFacilitatorScheme', () => {
-    expect(AgenticCommerce.AgenticCommerceFacilitatorScheme).toBeDefined();
+  it('should export the exact facilitator scheme and the verifier', () => {
+    expect(AgenticCommerce.ExactAgenticCommerceFacilitatorScheme).toBeDefined();
+    expect(AgenticCommerce.AgenticCommerceVerifier).toBeDefined();
+    expect('AgenticCommerceFacilitatorScheme' in AgenticCommerce).toBe(false);
   });
 
   it('should export signer functions', () => {

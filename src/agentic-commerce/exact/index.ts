@@ -5,6 +5,10 @@
  */
 
 export {
+  ExactAgenticCommerceScheme as ExactAgenticCommerceFacilitatorScheme,
+  type ExactAgenticCommerceFacilitatorSchemeConfig,
+} from './facilitator';
+export {
   ExactAgenticCommerceScheme as ExactAgenticCommerceServerScheme,
   type ExactAgenticCommerceServerSchemeConfig,
 } from './server';

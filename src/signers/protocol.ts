@@ -113,6 +113,17 @@ export interface PaymentTokenSigner {
 }
 
 /**
+ * The JWS header: the alg, and the public JWK's `kid` when it has one, so
+ * verifiers can pick the key from a JWKS that holds several (key rotation).
+ * Follows the Python SDK's LocalQuoteSigner (signers/local.py:123 at 62230e6).
+ */
+function protectedHeader(alg: string, publicKey: jose.JWK): jose.JWTHeaderParameters {
+  return typeof publicKey.kid === 'string' && publicKey.kid
+    ? { alg, typ: 'JWT', kid: publicKey.kid }
+    : { alg, typ: 'JWT' };
+}
+
+/**
  * Convert a jose KeyLike to a QuoteSigner
  *
  * Tokens are signed with the key's own alg: the public JWK's `alg` when set,
@@ -143,12 +154,10 @@ export function toQuoteSigner(
   publicKey: jose.JWK,
   serviceUrl: string
 ): QuoteSigner {
-  const alg = signingAlgorithm(privateKey, publicKey);
+  const header = protectedHeader(signingAlgorithm(privateKey, publicKey), publicKey);
   return {
     async signQuote(payload: QuoteTokenPayload): Promise<string> {
-      return await new jose.SignJWT(payload as any)
-        .setProtectedHeader({ alg, typ: 'JWT' })
-        .sign(privateKey);
+      return await new jose.SignJWT(payload as any).setProtectedHeader(header).sign(privateKey);
     },
     getPublicKey(): jose.JWK {
       return publicKey;
@@ -189,12 +198,10 @@ export function toPaymentTokenSigner(
   publicKey: jose.JWK,
   agenticCommerceId: string
 ): PaymentTokenSigner {
-  const alg = signingAlgorithm(privateKey, publicKey);
+  const header = protectedHeader(signingAlgorithm(privateKey, publicKey), publicKey);
   return {
     async signPayment(payload: PaymentTokenPayload): Promise<string> {
-      return await new jose.SignJWT(payload as any)
-        .setProtectedHeader({ alg, typ: 'JWT' })
-        .sign(privateKey);
+      return await new jose.SignJWT(payload as any).setProtectedHeader(header).sign(privateKey);
     },
     getPublicKey(): jose.JWK {
       return publicKey;

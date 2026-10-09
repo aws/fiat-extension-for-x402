@@ -8,6 +8,7 @@ import { createMockServiceSigner } from '../../helpers/mock-service-signer';
 import type { Network } from '@x402/core/types';
 import { SCHEME_EXACT } from '../../../src/constants';
 
+const sellerKeyResolver = { type: 'jwks', jwksUrl: 'https://seller.example.com' } as const;
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
@@ -17,19 +18,16 @@ const AGENTIC_COMMERCE_SUPPORTED_RESPONSE = {
       x402Version: 2,
       scheme: SCHEME_EXACT,
       network: 'fab:aws',
-      extra: { agentPayId: 'w1' },
     },
     {
       x402Version: 2,
       scheme: SCHEME_EXACT,
       network: 'fab:test',
-      extra: { agentPayId: 'w1' },
     },
     {
       x402Version: 2,
       scheme: SCHEME_EXACT,
       network: 'eip155:8453',
-      extra: { agentPayId: 'w1' },
     },
   ],
   extensions: [],
@@ -46,7 +44,10 @@ describe('AgenticCommerceFacilitatorClient networkFilter', () => {
   });
 
   it('should return all networks when no filter is set', async () => {
-    const client = new AgenticCommerceFacilitatorClient('https://pay.example.com');
+    const client = new AgenticCommerceFacilitatorClient({
+      baseUrl: 'https://pay.example.com',
+      sellerKeyResolver,
+    });
     const supported = await client.getSupported();
 
     expect(supported.kinds).toHaveLength(3);
@@ -55,11 +56,11 @@ describe('AgenticCommerceFacilitatorClient networkFilter', () => {
 
   it('should filter to only specified networks', async () => {
     const filter = new Set(['fab:aws'] as Network[]);
-    const client = new AgenticCommerceFacilitatorClient(
-      'https://pay.example.com',
-      undefined,
-      filter
-    );
+    const client = new AgenticCommerceFacilitatorClient({
+      baseUrl: 'https://pay.example.com',
+      sellerKeyResolver,
+      networkFilter: filter,
+    });
     const supported = await client.getSupported();
 
     expect(supported.kinds).toHaveLength(1);
@@ -68,11 +69,11 @@ describe('AgenticCommerceFacilitatorClient networkFilter', () => {
 
   it('should return empty kinds when filter matches nothing', async () => {
     const filter = new Set(['solana:mainnet'] as Network[]);
-    const client = new AgenticCommerceFacilitatorClient(
-      'https://pay.example.com',
-      undefined,
-      filter
-    );
+    const client = new AgenticCommerceFacilitatorClient({
+      baseUrl: 'https://pay.example.com',
+      sellerKeyResolver,
+      networkFilter: filter,
+    });
     const supported = await client.getSupported();
 
     expect(supported.kinds).toHaveLength(0);
@@ -80,11 +81,11 @@ describe('AgenticCommerceFacilitatorClient networkFilter', () => {
 
   it('should filter to multiple specified networks', async () => {
     const filter = new Set(['fab:aws', 'eip155:8453'] as Network[]);
-    const client = new AgenticCommerceFacilitatorClient(
-      'https://pay.example.com',
-      undefined,
-      filter
-    );
+    const client = new AgenticCommerceFacilitatorClient({
+      baseUrl: 'https://pay.example.com',
+      sellerKeyResolver,
+      networkFilter: filter,
+    });
     const supported = await client.getSupported();
 
     expect(supported.kinds).toHaveLength(2);
@@ -95,11 +96,11 @@ describe('AgenticCommerceFacilitatorClient networkFilter', () => {
   it('should keep filtered-out networks out of x402ResourceServer supported kinds', async () => {
     const { signer } = await createMockServiceSigner('https://api.example.com');
     const filter = new Set(['fab:aws'] as Network[]);
-    const client = new AgenticCommerceFacilitatorClient(
-      'https://pay.example.com',
-      undefined,
-      filter
-    );
+    const client = new AgenticCommerceFacilitatorClient({
+      baseUrl: 'https://pay.example.com',
+      sellerKeyResolver,
+      networkFilter: filter,
+    });
     const server = new x402ResourceServer(client);
     server.register('fab:aws', new AgenticCommerceServerScheme({ signer }));
 

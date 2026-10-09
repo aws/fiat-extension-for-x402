@@ -30,8 +30,10 @@ export function secureCompare(a: string, b: string): boolean {
   if (a.length !== b.length) {
     return false;
   }
-  const bufA = Buffer.from(a, 'utf-8');
-  const bufB = Buffer.from(b, 'utf-8');
+  // UTF-16 code units: equal string lengths give equal buffer lengths, which
+  // timingSafeEqual requires, and lone surrogates are compared as they are.
+  const bufA = Buffer.from(a, 'utf16le');
+  const bufB = Buffer.from(b, 'utf16le');
   return timingSafeEqual(bufA, bufB);
 }
 
