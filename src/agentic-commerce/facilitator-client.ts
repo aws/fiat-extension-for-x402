@@ -26,15 +26,9 @@ import type {
 } from '@x402/core/types';
 import { WELL_KNOWN_X402_SUPPORTED_PATH } from '../constants';
 import { ValidationError } from '../types';
-import {
-  settleExactPayment,
-  verifyExactPayment,
-  type VerifyRequestContext,
-} from './exact/facilitator';
+import { settleExactPayment, verifyExactPayment } from './exact/facilitator';
 import type { SellerKeyResolver } from './keys';
 import { AgenticCommerceVerifier } from './verifier';
-
-export type { VerifyRequestContext };
 
 /**
  * Optional authentication configuration for Agentic Commerce API calls
@@ -134,19 +128,15 @@ export class AgenticCommerceFacilitatorClient implements FacilitatorClient {
    * Verify a payment, as the `exact` facilitator scheme does: the payment token
    * against the service's JWKS, the quote the buyer accepted against the
    * seller's key, and the price, currency and product against `requirements`.
+   * The DPoP proof of a DPoP-bound token is checked before this, by the
+   * `exact` server scheme's `onBeforeVerify` hook.
    *
    * @param payload - Payment payload to verify
    * @param requirements - The server's payment requirements for the route
-   * @param requestContext - HTTP request context for DPoP verification.
-   *   Required if the buyer used DPoP (payment token will contain cnf.jkt).
    * @returns Verification response
    */
-  verify(
-    payload: PaymentPayload,
-    requirements: PaymentRequirements,
-    requestContext?: VerifyRequestContext
-  ): Promise<VerifyResponse> {
-    return verifyExactPayment(this.verifier, payload, requirements, requestContext);
+  verify(payload: PaymentPayload, requirements: PaymentRequirements): Promise<VerifyResponse> {
+    return verifyExactPayment(this.verifier, payload, requirements);
   }
 
   /**

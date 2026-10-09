@@ -93,8 +93,10 @@ export interface AgenticCommerceVerifierConfig {
 /**
  * A JWT validation failure, the counterpart of PyJWT's `PyJWTError`. When the
  * verifier tries several keys, only this kind of error moves on to the next key.
+ *
+ * @internal
  */
-class JwtError extends Error {}
+export class JwtError extends Error {}
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -376,8 +378,12 @@ const EC_CURVE_ALGORITHMS: Record<string, string> = {
   secp256k1: 'ES256K',
 };
 
-/** A public key from a JWK, rejecting the JWKs that PyJWT's `PyJWK` rejects. */
-function importJwk(keyData: unknown): KeyObject {
+/**
+ * A public key from a JWK, rejecting the JWKs that PyJWT's `PyJWK` rejects.
+ *
+ * @internal
+ */
+export function importJwk(keyData: unknown): KeyObject {
   if (!isPlainObject(keyData)) {
     throw new ValidationError('JWKS keys must be JSON objects');
   }
@@ -430,7 +436,8 @@ async function verifyWithKey(token: string, key: KeyObject): Promise<Record<stri
   return claims;
 }
 
-function parseClaims(payload: Uint8Array): Record<string, unknown> {
+/** @internal */
+export function parseClaims(payload: Uint8Array): Record<string, unknown> {
   let claims: unknown;
   try {
     claims = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(payload));
@@ -446,11 +453,17 @@ function parseClaims(payload: Uint8Array): Record<string, unknown> {
 /**
  * The checks PyJWT's `jwt.decode` makes with expiry and audience turned off:
  * `iat` and `nbf` must be integers and not in the future (no leeway), and
- * `sub` and `jti` must be strings. Expiry is checked by the caller.
+ * `sub` and `jti` must be strings. Expiry is checked by the caller. With
+ * `verifyIat: false` (PyJWT's `verify_iat` option) `iat` is not checked.
+ *
+ * @internal
  */
-function validateRegisteredClaims(claims: Record<string, unknown>): void {
+export function validateRegisteredClaims(
+  claims: Record<string, unknown>,
+  { verifyIat = true }: { verifyIat?: boolean } = {}
+): void {
   const now = Date.now() / 1000;
-  if (Object.hasOwn(claims, 'iat')) {
+  if (verifyIat && Object.hasOwn(claims, 'iat')) {
     const iat = pyInt(claims.iat);
     if (iat === undefined) throw new JwtError('Issued At claim (iat) must be an integer.');
     if (iat > now) throw new JwtError('The token is not yet valid (iat)');

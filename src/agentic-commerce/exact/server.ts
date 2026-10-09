@@ -4,7 +4,8 @@
  * Seller side of the `exact` scheme on AWS Marketplace Agentic Commerce networks.
  *
  * Register it on an x402 resource server; x402 core then calls it to price each
- * route and to add a signed quote token to every 402 response:
+ * route, to add a signed quote token to every 402 response, and before each
+ * payment is verified (where it checks DPoP proofs):
  *
  * ```typescript
  * const server = new x402ResourceServer(facilitatorClient);
@@ -12,7 +13,7 @@
  * ```
  *
  * Follows the Python SDK's `ExactAgenticCommerceScheme`
- * (fiat_extension_x402/agentic_commerce/exact/server.py:48-127 at commit 62230e6).
+ * (fiat_extension_x402/agentic_commerce/exact/server.py:48-172 at commit 62230e6).
  */
 
 import type {
@@ -23,6 +24,8 @@ import type {
   Price,
   SchemeNetworkServer,
 } from '@x402/core/types';
+import type { BeforeVerifyHook, HTTPAdapter, VerifyContext } from '@x402/core/server';
+import { decodeJwt } from 'jose';
 import type { QuoteSigner } from '../../config';
 import {
   ASSET_TRANSFER_METHOD,
@@ -30,9 +33,15 @@ import {
   DYNAMIC_EXTRA_FIELDS,
   SCHEME_EXACT,
 } from '../../constants';
-import { ValidationError } from '../../types';
+import { extractDPoPThumbprint, verifyDPoPProof } from '../../dpop';
+import { type DPoPNonceStore, ValidationError } from '../../types';
 import { parseMoney } from '../../utils';
+import { isPlainObject } from '../python';
+import { paymentTokenOf } from './facilitator';
 import { enhancePaymentRequirements } from './quote';
+
+/** Default maximum age of a DPoP proof, in seconds (server.py:42). */
+const DEFAULT_DPOP_MAX_AGE_SECONDS = 60;
 
 /**
  * Configuration of the `exact` server scheme
@@ -40,7 +49,17 @@ import { enhancePaymentRequirements } from './quote';
 export interface ExactAgenticCommerceServerSchemeConfig {
   /** Signs quote tokens. Its service URL becomes the quote's `iss`. */
   signer: QuoteSigner;
+  /**
+   * Records DPoP proof `jti` values so a replayed proof is rejected. Use a store
+   * shared by all instances of the seller.
+   */
+  dpopNonceStore?: DPoPNonceStore;
+  /** Maximum age of a DPoP proof, in seconds. Defaults to 60. */
+  dpopMaxAgeSeconds?: number;
 }
+
+/** The result of a `beforeVerify` hook that stops the payment */
+type AbortResult = { abort: true; reason: 'dpop_required' | 'dpop_invalid' };
 
 // Verify before the handler runs; settlement after it is a no-op because the
 // service captures the payment when it issues the payment token (server.py:60-64).
@@ -65,16 +84,35 @@ export class ExactAgenticCommerceScheme implements SchemeNetworkServer {
    * checks the quote instead.
    */
   readonly dynamicExtraFields = [...DYNAMIC_EXTRA_FIELDS];
+  /**
+   * x402 core runs `onBeforeVerify` before it calls the facilitator: it checks
+   * the DPoP proof of a DPoP-bound payment token.
+   */
+  readonly schemeHooks: { readonly onBeforeVerify: BeforeVerifyHook };
   private readonly signer: QuoteSigner;
+  private readonly dpopNonceStore?: DPoPNonceStore;
+  private readonly dpopMaxAgeSeconds: number;
 
   /**
-   * @param config - The quote token signer
+   * @param config - The quote token signer and the DPoP options
+   * @throws ValidationError if `signer` is missing or `dpopMaxAgeSeconds` is
+   *   not a finite number
    */
   constructor(config: ExactAgenticCommerceServerSchemeConfig) {
     if (!config?.signer) {
       throw new ValidationError('ExactAgenticCommerceServerScheme requires a signer');
     }
     this.signer = config.signer;
+    const maxAge: unknown = config.dpopMaxAgeSeconds ?? DEFAULT_DPOP_MAX_AGE_SECONDS;
+    if (typeof maxAge !== 'number' || !Number.isFinite(maxAge)) {
+      // NaN would turn off the expiry check, and a string would concatenate.
+      throw new ValidationError('dpopMaxAgeSeconds must be a finite number of seconds');
+    }
+    this.dpopNonceStore = config.dpopNonceStore;
+    this.dpopMaxAgeSeconds = maxAge;
+    this.schemeHooks = Object.freeze({
+      onBeforeVerify: (context: VerifyContext) => this.beforeVerify(context),
+    });
   }
 
   /**
@@ -120,5 +158,63 @@ export class ExactAgenticCommerceScheme implements SchemeNetworkServer {
     extensionKeys: string[]
   ): Promise<PaymentRequirements> {
     return enhancePaymentRequirements(paymentRequirements, this.signer);
+  }
+
+  /**
+   * Check the DPoP proof of a DPoP-bound payment token (server.py:129-172).
+   *
+   * A payment token bound to a key (`cnf.jkt`) is accepted only with a `DPoP`
+   * header proving possession of that key, for this request's method and URL,
+   * over this payment token. The token's signature is verified afterwards by
+   * the facilitator, so a token whose binding was altered fails there.
+   *
+   * x402 core logs and ignores an error thrown by a hook, and then calls the
+   * facilitator, so every error here aborts with `dpop_invalid` instead.
+   */
+  private async beforeVerify(context: VerifyContext): Promise<AbortResult | undefined> {
+    const paymentToken = paymentTokenOf(context.paymentPayload);
+    if (typeof paymentToken !== 'string' || !paymentToken) {
+      return undefined;
+    }
+    let cnf: unknown;
+    try {
+      cnf = decodeJwt(paymentToken).cnf;
+    } catch {
+      return undefined; // Malformed token: rejected by the facilitator.
+    }
+    if (!isPlainObject(cnf) || !Object.hasOwn(cnf, 'jkt')) {
+      return undefined;
+    }
+
+    try {
+      const transport = context.transportContext as { request?: { adapter?: HTTPAdapter } };
+      const adapter = transport?.request?.adapter;
+      if (adapter == null) {
+        return { abort: true, reason: 'dpop_required' };
+      }
+      const proof = adapter.getHeader('DPoP') || adapter.getHeader('dpop');
+      if (!proof) {
+        return { abort: true, reason: 'dpop_required' };
+      }
+      if ((await extractDPoPThumbprint(proof)) !== cnf.jkt) {
+        return { abort: true, reason: 'dpop_invalid' };
+      }
+      const method = adapter.getMethod().toUpperCase();
+      const url = adapter.getUrl().split('?', 1)[0].split('#', 1)[0];
+      if (!method || !url) {
+        // verifyDPoPProof skips the htm or htu check when nothing is expected.
+        return { abort: true, reason: 'dpop_invalid' };
+      }
+      await verifyDPoPProof(proof, {
+        method,
+        url,
+        accessToken: paymentToken,
+        maxAge: this.dpopMaxAgeSeconds,
+        nonceStore: this.dpopNonceStore,
+      });
+    } catch {
+      return { abort: true, reason: 'dpop_invalid' };
+    }
+    return undefined;
   }
 }

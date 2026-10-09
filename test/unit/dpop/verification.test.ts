@@ -1,6 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { generateDPoPKeyPair, createDPoPProof } from '../../helpers/dpop';
 import { verifyDPoPProof, extractDPoPThumbprint } from '../../../src/dpop/verification';
 import { DPoPError, DPoPNonceStore } from '../../../src/types';
@@ -107,23 +107,23 @@ describe('DPoP Proof Verification', () => {
       ).rejects.toThrow(DPoPError);
     });
 
-    it('should reject stale proof', async () => {
+    it('should reject a proof older than maxAge plus 5 seconds of clock skew', async () => {
       const keyPair = await generateDPoPKeyPair('ES256');
       const proof = await createDPoPProof(keyPair, {
         method: 'GET',
         url: 'https://api.example.com/resource',
       });
-
-      // Wait 2 seconds and verify with 1 second maxAge
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      await expect(
-        verifyDPoPProof(proof, {
-          method: 'GET',
-          url: 'https://api.example.com/resource',
-          maxAge: 1,
-        })
-      ).rejects.toThrow(DPoPError);
+      const iat = Math.floor(Date.now() / 1000);
+      vi.useFakeTimers({ toFake: ['Date'] });
+      try {
+        vi.setSystemTime((iat + 6) * 1000);
+        const options = { method: 'GET', url: 'https://api.example.com/resource', maxAge: 1 };
+        await expect(verifyDPoPProof(proof, options)).resolves.toBeDefined();
+        vi.setSystemTime((iat + 7) * 1000);
+        await expect(verifyDPoPProof(proof, options)).rejects.toThrow('DPoP proof expired');
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('should accept fresh proof within maxAge', async () => {

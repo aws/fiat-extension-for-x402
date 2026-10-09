@@ -30,7 +30,7 @@ Affected code paths:
 Token expiry is checked before any further processing:
 - Quote tokens: checked during facilitator verification (`quote_expired` error)
 - Payment tokens: checked during facilitator verification (`payment_expired` error)
-- DPoP proofs: checked during proof verification (freshness within `maxAge`)
+- DPoP proofs: checked by the server scheme before verification (`iat` within `dpopMaxAgeSeconds` plus 5 seconds of skew)
 
 ## Secure Random Generation
 
@@ -46,10 +46,11 @@ The `validateUrl()` utility enforces:
 ## DPoP (Proof-of-Possession)
 
 DPoP binds payment tokens to ephemeral client keys, preventing token theft:
-- Only EC keys accepted (P-256, P-384, P-521) — no RSA for DPoP
-- Key is passed as `dpopJwk` in the request body
 - Agent Pay binds via `cnf.jkt` (SHA-256 thumbprint) in the payment token
-- Seller verifies thumbprint matches the buyer's key
+- The `exact` server scheme's `onBeforeVerify` hook requires a `DPoP` proof whose key thumbprint matches, before the facilitator is called
+- Proofs must be signed with ES256, ES384, ES512, RS256 or PS256 (never HS* or `none`)
+- `htm`, `htu` (without query and fragment, not normalised) and `ath` must match the request and the payment token
+- Replay is rejected with a `dpopNonceStore` shared by all seller instances
 
 ## Sensitive Data Handling
 

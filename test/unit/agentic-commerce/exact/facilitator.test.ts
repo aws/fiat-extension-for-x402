@@ -20,7 +20,7 @@ import {
   createSeller,
   jwksFetch,
 } from '../../../helpers/fake-payment-service';
-import { createDPoPProof, generateDPoPKeyPair } from '../../../helpers/dpop';
+import { generateDPoPKeyPair } from '../../../helpers/dpop';
 
 const ROUTE: PaymentRequirements = {
   scheme: 'exact',
@@ -160,14 +160,13 @@ describe('ExactAgenticCommerceFacilitatorScheme', () => {
       });
     });
 
-    it('rejects a DPoP-bound token, since no proof reaches the facilitator', async () => {
+    it('does not check DPoP: the server scheme does, before verify (as in Python)', async () => {
       const accepted = await offer();
       const dpop = await generateDPoPKeyPair('ES256');
       const token = await service.issue(quoteOf(accepted), { dpopJwk: dpop.publicKey });
       expect(await scheme.verify(payload(accepted, token), accepted)).toEqual({
-        isValid: false,
-        invalidReason: 'dpop_required',
-        invalidMessage: 'Payment token is DPoP-bound but no DPoP proof provided',
+        isValid: true,
+        payer: BUYER,
       });
     });
   });
@@ -203,49 +202,6 @@ describe('ExactAgenticCommerceFacilitatorScheme', () => {
         success: true,
         transaction: '',
         network: 'aws:base',
-      });
-    });
-  });
-
-  describe('DPoP proofs through the request context', () => {
-    it('accepts a proof over this token and rejects other keys, tokens and methods', async () => {
-      const { verifyExactPayment } =
-        await import('../../../../src/agentic-commerce/exact/facilitator');
-      const accepted = await offer();
-      const dpop = await generateDPoPKeyPair('ES256');
-      const token = await service.issue(quoteOf(accepted), { dpopJwk: dpop.publicKey });
-      const url = 'https://seller.example.com/weather';
-      const check = (dpopProof: string, method = 'GET', requestUrl = url) =>
-        verifyExactPayment(scheme.verifier, payload(accepted, token), accepted, {
-          method,
-          url: requestUrl,
-          dpopProof,
-        });
-      const proof = await createDPoPProof(dpop, { method: 'GET', url, accessToken: token });
-
-      expect(await check(proof)).toEqual({ isValid: true, payer: BUYER });
-      // htu is compared without the query and fragment, as in the Python SDK.
-      expect(await check(proof, 'GET', `${url}?city=Seattle#now`)).toEqual({
-        isValid: true,
-        payer: BUYER,
-      });
-
-      const other = await generateDPoPKeyPair('ES256');
-      const otherKey = await createDPoPProof(other, { method: 'GET', url, accessToken: token });
-      expect(await check(otherKey)).toMatchObject({
-        isValid: false,
-        invalidReason: 'dpop_invalid',
-      });
-
-      const otherToken = await createDPoPProof(dpop, { method: 'GET', url, accessToken: 'other' });
-      expect(await check(otherToken)).toMatchObject({
-        isValid: false,
-        invalidReason: 'dpop_invalid',
-      });
-
-      expect(await check(proof, 'POST')).toMatchObject({
-        isValid: false,
-        invalidReason: 'dpop_invalid',
       });
     });
   });

@@ -9,6 +9,8 @@
  * not a secret, and only its public half is needed here.
  */
 
+import { createHash, createPrivateKey, type KeyObject } from 'crypto';
+
 /** time() pinned by the Python probe */
 export const FIXED_NOW = 1790000000;
 
@@ -83,3 +85,40 @@ export const PAYMENT_TOKEN =
 export const PAYMENT_PAYER = '123456789012';
 export const PAYMENT_ID = 'awsmp-fixture-0001';
 export const BUYER_JKT = 't9nTvJ-pJOSNJofeLgOTzOrH9Yw0_8RJIgyHOO-gGCg';
+
+/** The buyer's DPoP public JWK; its RFC 7638 thumbprint is BUYER_JKT */
+export const BUYER_PUBLIC_JWK = {
+  kty: 'EC',
+  crv: 'P-256',
+  x: 'h9RYB7K40yUyXrZJ6SKDFSTeM_7cNh2OYnacpNO53ik',
+  y: 'zKbWdpdwVqcF9t_oMtR2cfrW7vGi_xY-eIh81RXVsfg',
+} as const;
+
+/**
+ * The buyer's DPoP private key, derived as the Python probe derives it: the
+ * P-256 scalar is int(sha512("fiat-x402-fixture-buyer-v1")) mod n. A test key,
+ * not a secret; no private key is stored in the repository.
+ */
+export function buyerPrivateKey(): KeyObject {
+  const n = BigInt('0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551');
+  const digest = createHash('sha512').update('fiat-x402-fixture-buyer-v1').digest('hex');
+  const d = (BigInt(`0x${digest}`) % n).toString(16).padStart(64, '0');
+  return createPrivateKey({
+    key: { ...BUYER_PUBLIC_JWK, d: Buffer.from(d, 'hex').toString('base64url') },
+    format: 'jwk',
+  });
+}
+
+/** `htu` of DPOP_PROOF */
+export const DPOP_HTU = `${SELLER_URL}/weather`;
+
+/** `ath` of DPOP_PROOF: base64url of SHA-256 over PAYMENT_TOKEN */
+export const DPOP_ATH = '3Ot2l6R3W8rB47ia2TJzd3q1OGBBjO2z0aY6qag75zE';
+
+/**
+ * DPoP proof (ES256, typ dpop+jwt, jwk=BUYER_PUBLIC_JWK) for PAYMENT_TOKEN:
+ * htm=GET, htu=DPOP_HTU, iat=FIXED_NOW, jti=dpop-fixture-0001, ath=DPOP_ATH.
+ * Valid until FIXED_NOW+65 with the default maximum age of 60 seconds.
+ */
+export const DPOP_PROOF =
+  'eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6Img5UllCN0s0MHlVeVhyWko2U0tERlNUZU1fN2NOaDJPWW5hY3BOTzUzaWsiLCJ5IjoiektiV2RwZHdWcWNGOXRfb010UjJjZnJXN3ZHaV94WS1lSWg4MVJYVnNmZyJ9LCJ0eXAiOiJkcG9wK2p3dCJ9.eyJqdGkiOiJkcG9wLWZpeHR1cmUtMDAwMSIsImh0bSI6IkdFVCIsImh0dSI6Imh0dHBzOi8vc2VsbGVyLmV4YW1wbGUuY29tL3dlYXRoZXIiLCJpYXQiOjE3OTAwMDAwMDAsImF0aCI6IjNPdDJsNlIzVzhyQjQ3aWEyVEp6ZDNxMU9HQkJqTzJ6MGFZNnFhZzc1ekUifQ.gIXQias_MZ00pgSYfT2JjIpkQQ7Jitq9N2fJKQMhlIlPbKl1dqRkVCcDWUI_NmkdOEgnVmzHUovqL8V8XcRENQ';

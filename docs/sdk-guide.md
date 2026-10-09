@@ -146,7 +146,7 @@ This eliminates the need for a separate facilitator service. The `AgenticCommerc
 | **AgenticCommerceFacilitatorClient** | `src/agentic-commerce/facilitator-client.ts` | Implements `FacilitatorClient` (the x402 facilitator interface) with the same verification as the facilitator scheme; requires a `sellerKeyResolver`. |
 | **DefaultAgentPayClient** | `src/agent-pay-client.ts` | HTTP client for Agent Pay API calls (`/transactions`, `/capture`, `/.well-known/jwks.json`). Used by both the client scheme and the facilitator scheme. This is a reference implementation — it will be replaced by the official AWS SDK Agent Pay client in production. The scheme constructors accept either a `AgenticCommerceConfig` (which creates a `DefaultAgentPayClient`) or a custom object implementing `AgentPayClientForClient` / `AgenticCommerceClientForFacilitator`, so swapping in the AWS SDK client requires no changes to the scheme layer. |
 | **Authentication** | `src/auth/` | Pluggable auth for Agent Pay API calls: API Key, AWS SigV4, OAuth2, Custom. Factory pattern via `createAuthenticator()`. |
-| **DPoP** | `src/dpop/` | RFC 9449 Demonstrating Proof-of-Possession. Key generation, proof creation, proof verification with replay protection. Prevents token theft by binding payment tokens to ephemeral client keys. |
+| **DPoP** | `src/dpop/` | RFC 9449 Demonstrating Proof-of-Possession: proof verification and JWK thumbprints, used by the `exact` server scheme's `onBeforeVerify` hook. |
 | **Discovery** | `src/discovery.ts` | Network registry (`registerNetwork`) and OIDC-based Agent Pay endpoint discovery. |
 | **Signers** | `src/signers/protocol.ts` | `toQuoteSigner()` and `toPaymentTokenSigner()` — adapter functions that wrap `jose` key pairs into the `QuoteSigner` / `PaymentTokenSigner` interfaces. |
 | **Types** | `src/types.ts` | All Agent Pay-specific types: `QuoteTokenPayload`, `PaymentTokenPayload`, `AgenticCommercePayloadV2`, settlement types, DPoP types, error classes. |
@@ -299,15 +299,22 @@ The `createAuthenticator()` factory returns an `Authenticator` instance that is 
 
 ### 3.8 DPoP (Demonstrating Proof-of-Possession)
 
-DPoP binds payment tokens to ephemeral client keys, preventing token theft. The flow:
+DPoP binds a payment token to the buyer's key (`cnf.jkt`). The `exact` server
+scheme checks the proof in its `onBeforeVerify` hook, before x402 core calls the
+facilitator, as the Python SDK's `before_verify` does:
 
-1. Client generates an ephemeral key pair (`generateDPoPKeyPair('ES256')`)
-2. Client creates a DPoP proof JWT (`createDPoPProof(keyPair, { method: 'POST', url: '...' })`)
-3. Client sends the proof alongside the payment request
-4. Server verifies the proof (`verifyDPoPProof(proof, { method, url, accessToken })`)
-5. Server checks the `cnf.jkt` claim in the payment token matches the DPoP key's thumbprint
+1. A `DPoP` (or `dpop`) header is present, else `dpop_required`.
+2. Its key thumbprint equals `cnf.jkt`; `typ` is `dpop+jwt` (any case); `alg` is
+   ES256, ES384, ES512, RS256 or PS256; the signature verifies.
+3. `iat` is at most 5 seconds ahead and at most `dpopMaxAgeSeconds` (60) plus 5
+   seconds old.
+4. `htm` equals the request method upper-cased, and `htu` the request URL without
+   its query and fragment, exactly.
+5. `ath` is the hash of the payment token; with a `dpopNonceStore`, `jti` has not
+   been seen.
 
-Supported algorithms: ES256 (EC P-256) and RS256 (RSA 2048). Replay protection is available via the `DPoPNonceStore` interface.
+Any other failure is `dpop_invalid`. `verifyDPoPProof` and `extractDPoPThumbprint`
+run these checks on their own.
 
 ### 3.9 Agent Pay Provider Endpoints
 
@@ -402,7 +409,5 @@ src/
 │   ├── oauth2.ts               # OAuth2 authenticator
 │   └── custom.ts               # Custom authenticator
 └── dpop/
-    ├── key-generation.ts       # generateDPoPKeyPair
-    ├── proof-creation.ts       # createDPoPProof, computeJWKThumbprint
-    └── verification.ts         # verifyDPoPProof, extractDPoPThumbprint
+    └── verification.ts         # verifyDPoPProof, extractDPoPThumbprint, computeJWKThumbprint
 ```

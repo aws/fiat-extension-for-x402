@@ -197,16 +197,39 @@ Buyer Agent                    Seller API                  Agent Pay Service
 
 ---
 
-## DPoP (Optional Token Security)
+## DPoP
 
-Bind payment tokens to the buyer's ephemeral key to prevent replay:
+When a payment token is bound to a key (`cnf.jkt`), the request must carry a
+`DPoP` header (RFC 9449) proving possession of that key for this method, URL and
+payment token. The server scheme checks this in its `onBeforeVerify` hook, which
+x402 core runs before it calls the facilitator. To reject replayed proofs, pass a
+`DPoPNonceStore` shared by all instances of the seller:
 
 ```typescript
-import { generateDPoPKeyPair } from '@aws/fiat-extension-for-x402';
-
-const dpopKeyPair = await generateDPoPKeyPair('ES256');
-// Pass to client config — SDK handles DPoP proof creation automatically
+registerExactAgenticCommerceServer(server, { signer, dpopNonceStore: store });
 ```
+
+`dpopMaxAgeSeconds` (default 60) limits how old a proof may be; 5 seconds of
+clock skew are allowed on either side.
+
+The proof's `htu` must equal the URL the framework reports for the request
+(`HTTPAdapter.getUrl()`), without its query and fragment. Nothing is normalised
+(scheme or host case, default port, trailing slash), and there is no setting for
+a public base URL. Behind a proxy or load balancer, configure the framework and
+the proxy so that the request URL is the public one. `@x402/express`, for
+example, builds it from `req.protocol` (which honours Express's `trust proxy`
+setting) and the `Host` header, so the proxy must forward the original `Host`.
+The 402 response's `resource.url`, from which buyers sign `htu`, comes from the
+same adapter unless the route sets `resource`.
+
+The facilitator does not check DPoP: a facilitator called without the server
+scheme's hook (for example directly, outside `x402ResourceServer`) accepts a
+DPoP-bound token without a proof, as in the Python SDK.
+
+| Reason | Meaning |
+|---|---|
+| `dpop_required` | The payment token is bound to a key but the request has no `DPoP` header |
+| `dpop_invalid` | The `DPoP` proof does not match the key, method, URL or token, is too old, or was replayed |
 
 ---
 
