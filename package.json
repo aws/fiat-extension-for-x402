@@ -23,14 +23,14 @@
         "default": "./dist/index.cjs"
       }
     },
-    "./agentic-commerce/server": {
+    "./agentic-commerce/exact": {
       "import": {
-        "types": "./dist/agentic-commerce/server/index.d.ts",
-        "default": "./dist/agentic-commerce/server/index.js"
+        "types": "./dist/agentic-commerce/exact/index.d.ts",
+        "default": "./dist/agentic-commerce/exact/index.js"
       },
       "require": {
-        "types": "./dist/agentic-commerce/server/index.d.cts",
-        "default": "./dist/agentic-commerce/server/index.cjs"
+        "types": "./dist/agentic-commerce/exact/index.d.cts",
+        "default": "./dist/agentic-commerce/exact/index.cjs"
       }
     },
     "./agentic-commerce/facilitator": {
@@ -75,7 +75,7 @@
     "node": ">=18.0.0"
   },
   "peerDependencies": {
-    "@x402/core": "^2.0.0"
+    "@x402/core": ">=2.23.0 <3"
   },
   "overrides": {
     "tsup": {
@@ -95,7 +95,7 @@
     "@types/express": "^4.17.21",
     "@types/node": "20.19.43",
     "@vitest/coverage-v8": "4.1.11",
-    "@x402/core": "^2.0.0",
+    "@x402/core": ">=2.23.0 <3",
     "eslint": "9.39.5",
     "express": "^4.18.2",
     "prettier": "^3.9.9",

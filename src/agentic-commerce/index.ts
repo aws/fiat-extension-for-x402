@@ -4,5 +4,10 @@
  * Agentic Commerce Scheme exports
  */
 
-export { AgenticCommerceScheme as AgenticCommerceServerScheme } from './server';
+export {
+  ExactAgenticCommerceServerScheme,
+  registerExactAgenticCommerceServer,
+  type ExactAgenticCommerceServerSchemeConfig,
+  type RegisterExactAgenticCommerceServerOptions,
+} from './exact';
 export { AgenticCommerceScheme as AgenticCommerceFacilitatorScheme } from './facilitator';

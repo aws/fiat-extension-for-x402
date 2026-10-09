@@ -12,7 +12,7 @@ import type {
   PaymentRequirements,
   SchemeNetworkClient,
 } from '@x402/core/types';
-import { AGENTIC_COMMERCE_SCHEME } from '../../src/constants';
+import { SCHEME_EXACT } from '../../src/constants';
 import type { AgenticCommercePaymentExtra, AgenticCommercePayloadV2 } from '../../src/types';
 import type {
   CreatePaymentRequest,
@@ -20,7 +20,7 @@ import type {
 } from './mock-agentic-commerce-client';
 
 export class FakeBuyerScheme implements SchemeNetworkClient {
-  readonly scheme = AGENTIC_COMMERCE_SCHEME;
+  readonly scheme = SCHEME_EXACT;
 
   constructor(
     private readonly config: {

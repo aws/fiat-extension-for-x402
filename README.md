@@ -16,12 +16,17 @@ npm install @aws/fiat-extension-for-x402
 
 ## Seller: Generate Quote Token (402 Response)
 
-When a buyer requests a paid resource without payment, return a signed quote:
+Register the `exact` server scheme on the stock x402 resource server. On every
+402 it signs a quote token for the route and adds it to `extra.quoteToken`.
 
 ### Option A: KMS-hosted keys (recommended for AWS sellers)
 
 ```typescript
-import { createKmsQuoteSigner, AgenticCommerceServerScheme } from '@aws/fiat-extension-for-x402';
+import { x402ResourceServer } from '@x402/core/server';
+import {
+  createKmsQuoteSigner,
+  registerExactAgenticCommerceServer,
+} from '@aws/fiat-extension-for-x402';
 
 // Once at startup
 const signer = createKmsQuoteSigner({
@@ -29,45 +34,34 @@ const signer = createKmsQuoteSigner({
   region: 'us-east-1',
   serviceUrl: 'https://api.your-service.com',
 });
-const agentPay = new AgenticCommerceServerScheme({ signer });
-
-// In your API handler:
-const requirements = await agentPay.enhancePaymentRequirements({
-  scheme: 'agent-pay',
-  network: 'aws:base',
-  amount: '0.50',
-  asset: 'iso4217:USD',
-  payTo: 'your-seller-id',
-  maxTimeoutSeconds: 3600,
-  extra: { settlement: { product_id: 'YOUR_PRODUCT_ID' } },
+const server = registerExactAgenticCommerceServer(new x402ResourceServer(facilitatorClient), {
+  signer, // networks defaults to ['aws:base']
 });
 
-res.status(402).json({ x402Version: 2, accepts: [requirements] });
+// A route: payTo is your AWS Marketplace product ID.
+const route = {
+  accepts: { scheme: 'exact', network: 'aws:base', payTo: 'YOUR_PRODUCT_ID', price: '$0.50' },
+};
 ```
+
+The quote token carries `payTo` and `settlement.product_id` (both the product
+ID). The 402 itself carries `payTo: 'urn:x402:agentic-commerce:see-quote'` and a
+`maxTimeoutSeconds` equal to the quote's lifetime (default 300 s).
 
 ### Option B: Self-hosted keys
 
 ```typescript
-import { AgenticCommerceServerScheme } from '@aws/fiat-extension-for-x402';
+import { ExactAgenticCommerceServerScheme, toQuoteSigner } from '@aws/fiat-extension-for-x402';
 import * as jose from 'jose';
 
 const { privateKey, publicKey } = await jose.generateKeyPair('ES384');
 
-const agentPay = new AgenticCommerceServerScheme({
-  signer: {
-    signQuote: async (payload) =>
-      new jose.SignJWT(payload)
-        .setProtectedHeader({ alg: 'ES384', typ: 'JWT', kid: 'my-key-1' })
-        .sign(privateKey),
-    getPublicKey: () => jose.exportJWK(publicKey),
-    getServiceUrl: () => 'https://api.your-service.com',
-  },
-});
+// Signs with the key's own alg (ES384 here).
+const signer = toQuoteSigner(privateKey, await jose.exportJWK(publicKey), 'https://api.your-service.com');
+server.register('aws:base', new ExactAgenticCommerceServerScheme({ signer }));
 
-// Same enhancePaymentRequirements() call as Option A
 // Host your public key at: {serviceUrl}/.well-known/jwks.json
-// The serviceUrl you pass becomes the quote token's `iss` claim.
-// Agent Pay and the SDK fetch your key from: {iss}/.well-known/jwks.json
+// The serviceUrl you pass becomes the quote token's `iss` claim; it must not be empty.
 ```
 
 ---
@@ -157,7 +151,14 @@ await verifier.settle(paymentPayload, originalRequirements);
 
 ## HTTP Middleware
 
-This package does not ship HTTP middleware. To protect routes, register `AgenticCommerceServerScheme` on the stock x402 `x402ResourceServer` and use x402's own server middleware for your framework. Known gap: with the current `agent-pay` scheme the stock middleware mints a new quote token on the paid retry, so it does not match the payment and the request gets 402 again; the `exact` scheme rewrite fixes this.
+This package does not ship HTTP middleware. To protect routes, register the
+`exact` scheme on the stock x402 `x402ResourceServer` (see above) and use x402's
+own server middleware for your framework, for example `paymentMiddleware` from
+`@x402/express`. The middleware builds the requirements again on the buyer's
+paid retry, which signs a new quote token; the scheme declares `quoteToken` as a
+dynamic extra field, so x402 core ignores it when it matches the buyer's
+`accepted` requirements, and every other field is the same on each 402.
+Requires `@x402/core` 2.23.0 or later.
 
 ---
 

@@ -8,8 +8,61 @@
  * service-side (quote token signing) and Agentic Commerce-side (payment token signing).
  */
 
+import type { KeyObject } from 'node:crypto';
 import * as jose from 'jose';
-import { QuoteTokenPayload, PaymentTokenPayload } from '../types';
+import { ALLOWED_ALGORITHMS } from '../security';
+import { QuoteTokenPayload, PaymentTokenPayload, ValidationError } from '../types';
+
+// The JWS alg of each EC curve, by JWK `crv` and by Node.js / WebCrypto curve name.
+const EC_CURVE_ALGORITHMS: Record<string, string> = {
+  'P-256': 'ES256',
+  'P-384': 'ES384',
+  'P-521': 'ES512',
+  prime256v1: 'ES256',
+  secp384r1: 'ES384',
+  secp521r1: 'ES512',
+};
+
+/** The alg of a public JWK: ES* by curve, RS256 for RSA. */
+function algorithmOfJwk(jwk: jose.JWK): string | undefined {
+  if (jwk.kty === 'EC') return EC_CURVE_ALGORITHMS[String(jwk.crv)];
+  if (jwk.kty === 'RSA') return 'RS256';
+  return undefined;
+}
+
+/** The alg of a Node.js KeyObject or a WebCrypto CryptoKey: ES* by curve, RS256 for RSA. */
+function algorithmOfPrivateKey(key: jose.KeyLike): string | undefined {
+  if (typeof key !== 'object' || key === null) return undefined;
+  const keyObject = key as Partial<KeyObject>;
+  if (keyObject.asymmetricKeyType === 'ec') {
+    return EC_CURVE_ALGORITHMS[String(keyObject.asymmetricKeyDetails?.namedCurve)];
+  }
+  if (keyObject.asymmetricKeyType === 'rsa') return 'RS256';
+  // A WebCrypto CryptoKey
+  const { algorithm } = key as { algorithm?: { name?: string; namedCurve?: string } };
+  if (algorithm?.name === 'ECDSA') return EC_CURVE_ALGORITHMS[String(algorithm.namedCurve)];
+  if (algorithm?.name === 'RSASSA-PKCS1-v1_5') return 'RS256';
+  return undefined;
+}
+
+/**
+ * The JWS alg a key pair signs with: the public JWK's `alg` when set, else the
+ * alg its key type and curve imply (P-256 ES256, P-384 ES384, P-521 ES512, RSA
+ * RS256), read from the public JWK or, when it is not a JWK, the private key.
+ *
+ * @throws ValidationError if the alg is unknown or not in ALLOWED_ALGORITHMS
+ */
+function signingAlgorithm(privateKey: jose.KeyLike, publicKey: jose.JWK): string {
+  const alg =
+    publicKey?.alg ??
+    (publicKey?.kty ? algorithmOfJwk(publicKey) : algorithmOfPrivateKey(privateKey));
+  if (!alg || !ALLOWED_ALGORITHMS.includes(alg)) {
+    throw new ValidationError(
+      `Unsupported signing key: alg ${alg ?? 'unknown'} is not one of ${ALLOWED_ALGORITHMS.join(', ')}`
+    );
+  }
+  return alg;
+}
 
 /**
  * Signer for service-side operations (quote token signing)
@@ -62,10 +115,14 @@ export interface PaymentTokenSigner {
 /**
  * Convert a jose KeyLike to a QuoteSigner
  *
- * @param privateKey - Private key for signing (RS256 or ES256)
+ * Tokens are signed with the key's own alg: the public JWK's `alg` when set,
+ * else ES256, ES384 or ES512 for a P-256, P-384 or P-521 key and RS256 for RSA.
+ *
+ * @param privateKey - Private key for signing (RS256, ES256, ES384 or ES512)
  * @param publicKey - Public key in JWK format
  * @param serviceUrl - Service URL (issuer)
  * @returns QuoteSigner instance
+ * @throws ValidationError if the key's alg is not one of ALLOWED_ALGORITHMS
  *
  * @example
  * ```typescript
@@ -86,10 +143,11 @@ export function toQuoteSigner(
   publicKey: jose.JWK,
   serviceUrl: string
 ): QuoteSigner {
+  const alg = signingAlgorithm(privateKey, publicKey);
   return {
     async signQuote(payload: QuoteTokenPayload): Promise<string> {
       return await new jose.SignJWT(payload as any)
-        .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
+        .setProtectedHeader({ alg, typ: 'JWT' })
         .sign(privateKey);
     },
     getPublicKey(): jose.JWK {
@@ -104,10 +162,13 @@ export function toQuoteSigner(
 /**
  * Convert a jose KeyLike to a PaymentTokenSigner
  *
- * @param privateKey - Private key for signing (RS256 or ES256)
+ * Tokens are signed with the key's own alg, as in {@link toQuoteSigner}.
+ *
+ * @param privateKey - Private key for signing (RS256, ES256, ES384 or ES512)
  * @param publicKey - Public key in JWK format
  * @param agenticCommerceId - Agentic Commerce identifier
  * @returns PaymentTokenSigner instance
+ * @throws ValidationError if the key's alg is not one of ALLOWED_ALGORITHMS
  *
  * @example
  * ```typescript
@@ -128,10 +189,11 @@ export function toPaymentTokenSigner(
   publicKey: jose.JWK,
   agenticCommerceId: string
 ): PaymentTokenSigner {
+  const alg = signingAlgorithm(privateKey, publicKey);
   return {
     async signPayment(payload: PaymentTokenPayload): Promise<string> {
       return await new jose.SignJWT(payload as any)
-        .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
+        .setProtectedHeader({ alg, typ: 'JWT' })
         .sign(privateKey);
     },
     getPublicKey(): jose.JWK {

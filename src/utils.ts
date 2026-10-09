@@ -127,7 +127,7 @@ const MONEY_PATTERN = new RegExp(
 const MAX_PRICE_DECIMAL_PLACES = 8;
 
 /** Python's str.strip(): trims the same whitespace as MONEY_PATTERN, without a regex. */
-function stripPythonWhitespace(value: string): string {
+export function stripPythonWhitespace(value: string): string {
   let start = 0;
   let end = value.length;
   while (start < end && PY_WHITESPACE.test(value[start])) start++;

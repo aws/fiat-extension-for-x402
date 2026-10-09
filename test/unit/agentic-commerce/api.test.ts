@@ -12,9 +12,10 @@
 import { describe, it, expect } from 'vitest';
 import * as jose from 'jose';
 import { createMockAgenticCommerceClient } from '../../helpers/mock-agentic-commerce-client';
-import { AgenticCommerceScheme as AgenticCommerceServerSchemeImpl } from '../../../src/agentic-commerce/server/scheme';
+import { ExactAgenticCommerceScheme as AgenticCommerceServerSchemeImpl } from '../../../src/agentic-commerce/exact/server';
+import { toQuoteSigner } from '../../../src/signers/protocol';
 import { settlePayment } from '../../../src/agentic-commerce/facilitator/settle';
-import { DEFAULT_NETWORK, AGENTIC_COMMERCE_SCHEME } from '../../../src/constants';
+import { DEFAULT_NETWORK, SCHEME_EXACT } from '../../../src/constants';
 import type { PaymentRequirements } from '@x402/core/types';
 
 describe('Agentic Commerce API Integration', () => {
@@ -37,7 +38,7 @@ describe('Agentic Commerce API Integration', () => {
         mock.agenticCommerceClient,
         { x402Version: 2, payload: {} as any },
         {
-          scheme: AGENTIC_COMMERCE_SCHEME,
+          scheme: SCHEME_EXACT,
           network: 'aws:base',
           amount: '1.00',
           asset: 'iso4217:USD',
@@ -60,12 +61,11 @@ describe('Agentic Commerce API Integration', () => {
       const publicJWK = await jose.exportJWK((await jose.generateKeyPair('RS256')).publicKey);
 
       const serverScheme = new AgenticCommerceServerSchemeImpl({
-        signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
-        serviceUrl: 'https://api.example.com',
+        signer: toQuoteSigner(privateKey, publicJWK, 'https://api.example.com'),
       });
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'aws:base',
         amount: '0.50',
         asset: 'iso4217:USD',
@@ -79,7 +79,7 @@ describe('Agentic Commerce API Integration', () => {
 
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
-        { x402Version: 2, scheme: AGENTIC_COMMERCE_SCHEME, network: 'aws:base' as any },
+        { x402Version: 2, scheme: SCHEME_EXACT, network: 'aws:base' as any },
         []
       );
 
@@ -95,12 +95,11 @@ describe('Agentic Commerce API Integration', () => {
       const publicJWK = await jose.exportJWK((await jose.generateKeyPair('RS256')).publicKey);
 
       const serverScheme = new AgenticCommerceServerSchemeImpl({
-        signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
-        serviceUrl: 'https://api.example.com',
+        signer: toQuoteSigner(privateKey, publicJWK, 'https://api.example.com'),
       });
 
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'aws:base',
         amount: '0.50',
         asset: 'iso4217:USD',
@@ -111,7 +110,7 @@ describe('Agentic Commerce API Integration', () => {
 
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
-        { x402Version: 2, scheme: AGENTIC_COMMERCE_SCHEME, network: 'aws:base' as any },
+        { x402Version: 2, scheme: SCHEME_EXACT, network: 'aws:base' as any },
         []
       );
 
@@ -126,13 +125,12 @@ describe('Agentic Commerce API Integration', () => {
       const publicJWK = await jose.exportJWK((await jose.generateKeyPair('RS256')).publicKey);
 
       const serverScheme = new AgenticCommerceServerSchemeImpl({
-        signingKeys: { privateKey, publicKey: publicJWK, alg: 'RS256' },
-        serviceUrl: 'https://api.example.com',
+        signer: toQuoteSigner(privateKey, publicJWK, 'https://api.example.com'),
       });
 
       const dimensions = { tokens: 1500, model: 'claude-4', region: 'us-east-1' };
       const requirements: PaymentRequirements = {
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'aws:base',
         amount: '0.02',
         asset: 'iso4217:USD',
@@ -143,7 +141,7 @@ describe('Agentic Commerce API Integration', () => {
 
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
-        { x402Version: 2, scheme: AGENTIC_COMMERCE_SCHEME, network: 'aws:base' as any },
+        { x402Version: 2, scheme: SCHEME_EXACT, network: 'aws:base' as any },
         []
       );
 

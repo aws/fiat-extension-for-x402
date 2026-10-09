@@ -6,7 +6,7 @@ import { computeJWKThumbprint } from '../../../src/dpop';
 import { generateDPoPKeyPair, createDPoPProof } from '../../helpers/dpop';
 import { AgenticCommerceFacilitatorClient } from '../../../src/agentic-commerce/facilitator-client';
 import { setupMockServer } from './helpers';
-import { AGENTIC_COMMERCE_SCHEME } from '../../../src/constants';
+import { SCHEME_EXACT } from '../../../src/constants';
 import http from 'http';
 
 /**
@@ -112,13 +112,13 @@ describe('DPoP verification in seller verify flow', () => {
         {
           payload: { paymentId: 'awsmp-test', paymentToken },
           x402Version: 2,
-          scheme: AGENTIC_COMMERCE_SCHEME,
+          scheme: SCHEME_EXACT,
           network: 'aws:base',
         } as any,
         {
           amount: '0.05',
           asset: 'iso4217:USD',
-          scheme: AGENTIC_COMMERCE_SCHEME,
+          scheme: SCHEME_EXACT,
           network: 'aws:base',
           payTo: 'x',
           maxTimeoutSeconds: 300,
@@ -150,13 +150,13 @@ describe('DPoP verification in seller verify flow', () => {
         {
           payload: { paymentId: 'awsmp-test', paymentToken },
           x402Version: 2,
-          scheme: AGENTIC_COMMERCE_SCHEME,
+          scheme: SCHEME_EXACT,
           network: 'aws:base',
         } as any,
         {
           amount: '0.05',
           asset: 'iso4217:USD',
-          scheme: AGENTIC_COMMERCE_SCHEME,
+          scheme: SCHEME_EXACT,
           network: 'aws:base',
           payTo: 'x',
           maxTimeoutSeconds: 300,
@@ -196,13 +196,13 @@ describe('DPoP verification in seller verify flow', () => {
         {
           payload: { paymentId: 'awsmp-test', paymentToken },
           x402Version: 2,
-          scheme: AGENTIC_COMMERCE_SCHEME,
+          scheme: SCHEME_EXACT,
           network: 'aws:base',
         } as any,
         {
           amount: '0.05',
           asset: 'iso4217:USD',
-          scheme: AGENTIC_COMMERCE_SCHEME,
+          scheme: SCHEME_EXACT,
           network: 'aws:base',
           payTo: 'x',
           maxTimeoutSeconds: 300,
@@ -286,13 +286,13 @@ describe('DPoP verification in seller verify flow', () => {
         {
           payload: { paymentId: 'awsmp-no-dpop', paymentToken },
           x402Version: 2,
-          scheme: AGENTIC_COMMERCE_SCHEME,
+          scheme: SCHEME_EXACT,
           network: 'aws:base',
         } as any,
         {
           amount: '0.05',
           asset: 'iso4217:USD',
-          scheme: AGENTIC_COMMERCE_SCHEME,
+          scheme: SCHEME_EXACT,
           network: 'aws:base',
           payTo: 'x',
           maxTimeoutSeconds: 300,

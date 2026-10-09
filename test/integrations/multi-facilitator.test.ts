@@ -14,10 +14,11 @@ import type {
 } from '@x402/core/types';
 import * as jose from 'jose';
 import { FakeBuyerScheme } from '../helpers/fake-buyer-scheme';
-import { AgenticCommerceScheme as APServer } from '../../src/agentic-commerce/server/scheme';
+import { ExactAgenticCommerceScheme as APServer } from '../../src/agentic-commerce/exact/server';
+import { toQuoteSigner } from '../../src/signers/protocol';
 import { AgenticCommerceScheme as APFacilitator } from '../../src/agentic-commerce/facilitator/scheme';
 import { InProcessFacilitatorClient } from '../../src/facilitator-client';
-import { AGENTIC_COMMERCE_SCHEME, SENTINEL_PAY_TO } from '../../src/constants';
+import { SCHEME_EXACT, SENTINEL_PAY_TO } from '../../src/constants';
 import { createMockAgenticCommerceClient } from '../helpers/mock-agentic-commerce-client';
 import { createMockServiceSigner } from '../helpers/mock-service-signer';
 import { clearServiceJWKSCache } from '../../src/utils';
@@ -80,7 +81,9 @@ describe('Multi-Facilitator Integration Tests', () => {
       });
 
       // Build client using the builder for two networks
-      client = new x402Client();
+      // The fake buyer is test-only. x402 core's buyer spend controls (core >= 2.23)
+      // accept only default assets with atomic amounts, which fiat prices are not.
+      client = new x402Client().setSpendControls(false);
       const apClientScheme = new FakeBuyerScheme({
         agenticCommerceClient: agenticCommerceMock.agenticCommerceClient,
       });
@@ -106,7 +109,7 @@ describe('Multi-Facilitator Integration Tests', () => {
 
     it('should complete full payment flow on fab:aws', async () => {
       const accepts = await server.buildPaymentRequirements({
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:aws',
         payTo: 'service-pay',
         price: 0.15,
@@ -122,7 +125,7 @@ describe('Multi-Facilitator Integration Tests', () => {
       });
 
       const paymentPayload = await client.createPaymentPayload(paymentRequired);
-      expect(paymentPayload.accepted.scheme).toBe(AGENTIC_COMMERCE_SCHEME);
+      expect(paymentPayload.accepted.scheme).toBe(SCHEME_EXACT);
       expect(paymentPayload.accepted.network).toBe('fab:aws');
 
       const accepted = server.findMatchingRequirements(accepts, paymentPayload);
@@ -138,7 +141,7 @@ describe('Multi-Facilitator Integration Tests', () => {
 
     it('should complete full payment flow on eip155:8453 via Agentic Commerce', async () => {
       const accepts = await server.buildPaymentRequirements({
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'eip155:8453',
         payTo: 'merchant-pay',
         price: 0.15,
@@ -162,7 +165,7 @@ describe('Multi-Facilitator Integration Tests', () => {
   });
 
   describe('stock x402ResourceServer.register', () => {
-    it('should register an Agentic Commerce server scheme built from signing keys', async () => {
+    it('should register an Agentic Commerce server scheme built from a jose key pair', async () => {
       const serviceMock = await createMockServiceSigner(serviceUrl);
       const agenticCommerceMock = await createMockAgenticCommerceClient(agenticCommerceId);
 
@@ -177,21 +180,20 @@ describe('Multi-Facilitator Integration Tests', () => {
       server.register(
         'fab:aws',
         new APServer({
-          signingKeys: {
-            privateKey: serviceMock.privateKey,
-            publicKey: await jose.exportJWK(serviceMock.publicKey),
-            alg: 'RS256',
-          },
-          serviceUrl,
+          signer: toQuoteSigner(
+            serviceMock.privateKey,
+            await jose.exportJWK(serviceMock.publicKey),
+            serviceUrl
+          ),
         })
       );
 
-      expect(server.hasRegisteredScheme('fab:aws', AGENTIC_COMMERCE_SCHEME)).toBe(true);
+      expect(server.hasRegisteredScheme('fab:aws', SCHEME_EXACT)).toBe(true);
 
-      // The signing-keys scheme signs quotes that verify against the service key.
+      // The scheme signs quotes that verify against the service key.
       await server.initialize();
       const [accept] = await server.buildPaymentRequirements({
-        scheme: AGENTIC_COMMERCE_SCHEME,
+        scheme: SCHEME_EXACT,
         network: 'fab:aws',
         payTo: 'service-pay',
         price: 0.15,

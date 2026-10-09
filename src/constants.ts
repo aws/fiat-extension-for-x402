@@ -5,9 +5,27 @@
  */
 
 /**
- * Agentic Commerce scheme identifier
+ * x402 scheme identifier of Agentic Commerce payments
  */
-export const AGENTIC_COMMERCE_SCHEME = 'agent-pay';
+export const SCHEME_EXACT = 'exact';
+
+/**
+ * Default asset: prices are fiat amounts identified by ISO 4217 currency code.
+ */
+export const DEFAULT_ASSET = 'iso4217:USD';
+
+/**
+ * Asset transfer method the `exact` server scheme declares to x402 core. Core
+ * reads it only when `extra.assetTransferMethod` is absent, so it never appears
+ * on the wire.
+ */
+export const ASSET_TRANSFER_METHOD = 'payment-token';
+
+/**
+ * Requirement `extra` fields that change on every 402 and are therefore excluded
+ * when x402 core matches a buyer's `accepted` requirements against the route's.
+ */
+export const DYNAMIC_EXTRA_FIELDS: readonly string[] = Object.freeze(['quoteToken']);
 
 /**
  * Agentic Commerce settlement method codes (Agentic Commerce-specific, not official ISO 20022)

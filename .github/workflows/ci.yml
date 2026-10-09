@@ -90,4 +90,39 @@ jobs:
       - name: Check the package contents
         run: npm pack --dry-run
 
-  # A required @x402/core compatibility matrix arrives with the exact scheme rewrite.
+  # Required check: the package must typecheck and pass its tests on every
+  # @x402/core it accepts (peer range >=2.23.0 <3). The lockfile pins one
+  # version, so this job also runs the lowest and the newest 2.x. One job with
+  # a stable name, so the ruleset lists a single required check.
+  x402-core-compat:
+    name: x402 core compatibility
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      # Every install must come from public npm: each lockfile entry must be the
+      # registry.npmjs.org tarball for its own name and version, with an integrity
+      # hash, and no committed .npmrc may redirect the registry.
+      - name: Check that installs resolve only from the public npm registry
+        run: node .github/scripts/check-npm-registry.mjs
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      # The lowest version the peer range accepts.
+      - name: Install @x402/core 2.23.0
+        run: npm install --no-save --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/ @x402/core@2.23.0
+      - name: Typecheck and test on @x402/core 2.23.0
+        run: |
+          npm ls @x402/core
+          npm run typecheck
+          npm test
+      # The newest 2.x, so a new core release is tested before a seller installs it.
+      - name: Install the latest @x402/core 2.x
+        run: npm install --no-save --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/ "@x402/core@2"
+      - name: Typecheck and test on the latest @x402/core 2.x
+        run: |
+          npm ls @x402/core
+          npm run typecheck
+          npm test
