@@ -32,16 +32,6 @@
         "types": "./dist/agentic-commerce/exact/index.d.cts",
         "default": "./dist/agentic-commerce/exact/index.cjs"
       }
-    },
-    "./agentic-commerce/facilitator": {
-      "import": {
-        "types": "./dist/agentic-commerce/facilitator/index.d.ts",
-        "default": "./dist/agentic-commerce/facilitator/index.js"
-      },
-      "require": {
-        "types": "./dist/agentic-commerce/facilitator/index.d.cts",
-        "default": "./dist/agentic-commerce/facilitator/index.cjs"
-      }
     }
   },
   "scripts": {
@@ -54,7 +44,7 @@
     "publint": "npm run build && publint",
     "typecheck": "tsc --noEmit",
     "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
-    "lint": "eslint src --max-warnings 120",
+    "lint": "eslint src --max-warnings 21",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "deps:list": "npx license-checker --production --csv | awk -F',' 'NR>1 {gsub(/\"/,\"\"); print $1\"-\"$2}' > deps.txt",

@@ -14,17 +14,14 @@ import type {
 } from '@x402/core/types';
 import { SCHEME_EXACT } from '../../src/constants';
 import type { AgenticCommercePaymentExtra, AgenticCommercePayloadV2 } from '../../src/types';
-import type {
-  CreatePaymentRequest,
-  MockAgenticCommerceClient,
-} from './mock-agentic-commerce-client';
+import type { CreatePaymentRequest, FakePaymentService } from './fake-payment-service';
 
 export class FakeBuyerScheme implements SchemeNetworkClient {
   readonly scheme = SCHEME_EXACT;
 
   constructor(
     private readonly config: {
-      agenticCommerceClient: Pick<MockAgenticCommerceClient, 'createPayment'>;
+      agenticCommerceClient: Pick<FakePaymentService, 'createPayment'>;
       dpopJwk?: CreatePaymentRequest['dpopJwk'];
     }
   ) {}

@@ -142,8 +142,8 @@ This eliminates the need for a separate facilitator service. The `AgenticCommerc
 |--------|---------|---------|
 | **ExactAgenticCommerceServerScheme** | `src/agentic-commerce/exact/server.ts`, `quote.ts` | Implements `SchemeNetworkServer` for the `exact` scheme. Generates quote tokens, signs them with the service's key, and embeds them in the 402 response. `registerExactAgenticCommerceServer` (`exact/register.ts`) registers it on an `x402ResourceServer`. |
 | **AgentPayClientScheme** | `src/agent-pay/client/scheme.ts` | Implements `SchemeNetworkClient`. Extracts the quote token from the 402 response, sends it to Agent Pay for authorization, and wraps the payment token into a `PaymentPayload`. |
-| **AgenticCommerceFacilitatorScheme** | `src/agentic-commerce/facilitator/scheme.ts` | Implements `SchemeNetworkFacilitator`. Delegates to `verify.ts` and `settle.ts` for cryptographic verification and Agent Pay capture calls. |
-| **AgenticCommerceFacilitatorClient** | `src/agentic-commerce/facilitator-client.ts` | Implements `FacilitatorClient` (the x402 facilitator interface). Verifies payment tokens by checking JWT signatures against the Agent Pay's JWKS, then settles via the Agent Pay's `/capture` endpoint. |
+| **ExactAgenticCommerceFacilitatorScheme** | `src/agentic-commerce/exact/facilitator.ts` | Implements `SchemeNetworkFacilitator` for the `exact` scheme. Verifies through `AgenticCommerceVerifier` (`src/agentic-commerce/verifier.ts`) with the seller-configured `SellerKeyResolver` (`keys.ts`); settle is a no-op returning the token's `payment_id`. |
+| **AgenticCommerceFacilitatorClient** | `src/agentic-commerce/facilitator-client.ts` | Implements `FacilitatorClient` (the x402 facilitator interface) with the same verification as the facilitator scheme; requires a `sellerKeyResolver`. |
 | **DefaultAgentPayClient** | `src/agent-pay-client.ts` | HTTP client for Agent Pay API calls (`/transactions`, `/capture`, `/.well-known/jwks.json`). Used by both the client scheme and the facilitator scheme. This is a reference implementation — it will be replaced by the official AWS SDK Agent Pay client in production. The scheme constructors accept either a `AgenticCommerceConfig` (which creates a `DefaultAgentPayClient`) or a custom object implementing `AgentPayClientForClient` / `AgenticCommerceClientForFacilitator`, so swapping in the AWS SDK client requires no changes to the scheme layer. |
 | **Authentication** | `src/auth/` | Pluggable auth for Agent Pay API calls: API Key, AWS SigV4, OAuth2, Custom. Factory pattern via `createAuthenticator()`. |
 | **DPoP** | `src/dpop/` | RFC 9449 Demonstrating Proof-of-Possession. Key generation, proof creation, proof verification with replay protection. Prevents token theft by binding payment tokens to ephemeral client keys. |
@@ -359,7 +359,7 @@ The package is built with `tsup`. The root entry produces:
 - `dist/index.cjs` — CommonJS
 - `dist/index.d.ts` / `dist/index.d.cts` — TypeScript declarations (ESM / CommonJS)
 
-Sub-path exports are available for tree-shaking: `@aws/fiat-extension-for-x402/agent-pay/client`, `@aws/fiat-extension-for-x402/agentic-commerce/exact`, `@aws/fiat-extension-for-x402/agentic-commerce/facilitator`.
+Sub-path exports are available for tree-shaking: `@aws/fiat-extension-for-x402/agent-pay/client`, `@aws/fiat-extension-for-x402/agentic-commerce/exact`.
 
 ### 4.4 Known Limitations
 
@@ -391,11 +391,9 @@ src/
 ├── facilitator-client.ts       # In-process facilitator (for testing/demos)
 ├── agentic-commerce/
 │   ├── client/scheme.ts        # SchemeNetworkClient implementation
-│   ├── exact/                  # exact SchemeNetworkServer: server.ts, quote.ts, register.ts
-│   └── facilitator/
-│       ├── scheme.ts           # SchemeNetworkFacilitator implementation
-│       ├── verify.ts           # Payment verification logic
-│       └── settle.ts           # Payment settlement logic
+│   ├── exact/                  # exact scheme: server.ts, quote.ts, register.ts, facilitator.ts
+│   ├── verifier.ts             # AgenticCommerceVerifier: the payment gate
+│   └── keys.ts                 # SellerKeyResolver: KMS, JWKS or static key
 ├── auth/
 │   ├── types.ts                # Auth config interfaces
 │   ├── factory.ts              # createAuthenticator()

@@ -77,6 +77,7 @@ describe('exact exports', () => {
       expect(entry.registerExactAgenticCommerceServer).toBe(registerExactAgenticCommerceServer);
     }
     expect(Object.keys(exactEntry).sort()).toEqual([
+      'ExactAgenticCommerceFacilitatorScheme',
       'ExactAgenticCommerceServerScheme',
       'registerExactAgenticCommerceServer',
     ]);

@@ -18,20 +18,10 @@ import {
 } from '../../constants';
 import { ValidationError } from '../../types';
 import { stripPythonWhitespace } from '../../utils';
+import { isPlainObject, isTruthy } from '../python';
 
 // Optional route details copied from `extra` into the quote when present (quote.py:20).
 const OPTIONAL_QUOTE_CLAIMS = ['description', 'dimensions', 'support', 'terms'] as const;
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-/** Python truthiness: also false for an empty array or object, which JavaScript treats as true. */
-function isTruthy(value: unknown): boolean {
-  if (Array.isArray(value)) return value.length > 0;
-  if (isPlainObject(value)) return Object.keys(value).length > 0;
-  return Boolean(value);
-}
 
 /**
  * Sign a quote token for the requirements and embed it in `extra.quoteToken`.

@@ -8,9 +8,11 @@
 #   removes a token (or moves its file) must delete or update the entry.
 # Do not add entries for new code: use example.com or a placeholder instead.
 
-# Default payment-token JWKS host, kept by PR 7 because the facilitator client
-# uses it at runtime. PR 10 (single verifier) takes over the JWKS fetch.
-src/constants.ts d3aeb2cjjowogc.cloudfront.net # PR 10: default JWKS host (DEFAULT_PAYMENT_TOKEN_JWKS_BASE_URL) moves to the verifier's configuration
+# Default payment-token JWKS host. The verifier's paymentTokenJwksUrl option
+# overrides it; the Python SDK has the same default (constants.py:42 at 62230e6).
+# It must be replaced by a stable public host, or kept with sign-off, before
+# the package is first published (PR 13).
+src/constants.ts d3aeb2cjjowogc.cloudfront.net # PR 13: replace the default JWKS host before publishing
 
 # Docs, rewritten for seller and facilitator by PR 14.
 README.md agentpay.marketplace.aws.dev # PR 14: README rewrite

@@ -99,53 +99,52 @@ const result = await fetch(url, {
 
 ## Seller: Verify Payment Token
 
-When the buyer retries with a payment token, verify it before delivering the resource.
+When the buyer retries with a payment token, the facilitator verifies it before the resource is served. Verification needs the seller's quote-signing key, which **you configure**: a `sellerKeyResolver` is required, and the key is never discovered from the quote token's `iss` claim.
 
 **Important:** For JWKS URLs, pass only the **base URL** — the SDK automatically appends `/.well-known/jwks.json`.
 
 ```typescript
-import { AgenticCommerceFacilitatorClient } from '@aws/fiat-extension-for-x402';
+import { x402Facilitator } from '@x402/core/facilitator';
+import { x402ResourceServer } from '@x402/core/server';
+import {
+  AgenticCommerceVerifier,
+  ExactAgenticCommerceFacilitatorScheme,
+  InProcessFacilitatorClient,
+  registerExactAgenticCommerceServer,
+} from '@aws/fiat-extension-for-x402';
 
-// Option 1: KMS-hosted key
-const verifier = new AgenticCommerceFacilitatorClient(
-  'https://agentpay.marketplace.aws.dev',
-  undefined, undefined, undefined,
-  {
+// Option 1: KMS-hosted key (credentials are optional; the default AWS chain is used)
+const verifier = new AgenticCommerceVerifier({
+  sellerKeyResolver: {
     type: 'kms',
     kmsKeyArn: 'arn:aws:kms:us-east-1:YOUR_ACCOUNT:alias/your-key',
     region: 'us-east-1',
-    credentials: () => getAwsCredentials(),
-  }
-);
+  },
+});
 
 // Option 2: Self-hosted JWKS endpoint
-const verifier2 = new AgenticCommerceFacilitatorClient(
-  'https://agentpay.marketplace.aws.dev',
-  undefined, undefined, undefined,
-  {
-    type: 'jwks',
-    jwksUrl: 'https://keys.your-service.com'  // BASE URL only!
-    // SDK fetches: https://keys.your-service.com/.well-known/jwks.json
-  }
-);
+//   sellerKeyResolver: { type: 'jwks', jwksUrl: 'https://keys.your-service.com' }
+// Option 3: A public key you already hold
+//   sellerKeyResolver: { type: 'static', publicJwk }
 
-// Option 3: No config — auto-discovers from quote token's iss claim
-// SDK fetches: {iss}/.well-known/jwks.json
-const verifier3 = new AgenticCommerceFacilitatorClient('https://agentpay.marketplace.aws.dev');
+const facilitator = new x402Facilitator().register(
+  'aws:base',
+  new ExactAgenticCommerceFacilitatorScheme({ verifier })
+);
+const server = new x402ResourceServer(new InProcessFacilitatorClient(facilitator));
+registerExactAgenticCommerceServer(server, { signer });
 ```
+
+`AgenticCommerceFacilitatorClient` runs the same verification as a `FacilitatorClient`:
 
 ```typescript
-// Verify the payment
-const result = await verifier.verify(paymentPayload, originalRequirements);
-if (result.isValid) {
-  res.json({ data: 'premium content' });
-} else {
-  res.status(402).json({ error: result.invalidMessage });
-}
-
-// Settle is a no-op (Agent Pay auto-captures at payment creation)
-await verifier.settle(paymentPayload, originalRequirements);
+const facilitatorClient = new AgenticCommerceFacilitatorClient({
+  baseUrl: 'https://facilitator.example.com',
+  sellerKeyResolver: { type: 'jwks', jwksUrl: 'https://keys.your-service.com' },
+});
 ```
+
+Verification checks, in order: the payment token's signature (service JWKS), its issuer and expiry, that it was issued for the quote the buyer accepted, the quote's signature (your key), that the token's audience is the quote's issuer, the quote's expiry, the price and currency, and the product. Settle is a no-op that returns the token's `payment_id` (Agent Pay auto-captures at payment creation).
 
 ---
 
@@ -213,17 +212,22 @@ const dpopKeyPair = await generateDPoPKeyPair('ES256');
 
 ## Error Handling
 
-```typescript
-import { ValidationError, SignatureError, ExpiryError } from '@aws/fiat-extension-for-x402';
+Verification never throws for an invalid payment: check `isValid`.
 
-try {
-  await verifier.verify(payload, requirements);
-} catch (error) {
-  if (error instanceof SignatureError) { /* Invalid signature */ }
-  if (error instanceof ExpiryError) { /* Token expired */ }
-  if (error instanceof ValidationError) { /* Validation failed */ }
+```typescript
+const result = await verifier.verify(paymentToken, {
+  amount: requirements.amount,
+  asset: requirements.asset,
+  extra: { quoteToken: acceptedQuoteToken },
+});
+if (!result.isValid) {
+  // result.invalidReason: invalid_payment | payment_expired | invalid_quote | quote_expired
+  return res.status(402).json({ error: result.invalidReason });
 }
 ```
+
+Configuration and signing errors throw `ValidationError` or `SigningError`-style
+subclasses of `AgenticCommerceError`.
 
 ---
 
@@ -242,7 +246,7 @@ npx tsx test/e2e/agent-pay-beta.ts  # E2E against Agent Pay beta
 Core implementation complete (v0.2.0):
 - AWS Marketplace Agent Pay API integration
 - KMS signer for quote token generation
-- SellerKeyResolver for payment verification (KMS, JWKS, auto-discovery)
+- SellerKeyResolver for payment verification (KMS, JWKS, static key; required)
 - JWT-based quote and payment tokens (ES384)
 - Auto-capture on payment creation
 - Client token idempotency

@@ -31,14 +31,18 @@ import type {
  * ```typescript
  * import { x402Facilitator } from '@x402/core/facilitator';
  * import { x402ResourceServer } from '@x402/core/server';
- * import { InProcessFacilitatorClient, AgenticCommerceFacilitatorScheme } from '@aws/fiat-extension-for-x402';
+ * import {
+ *   AgenticCommerceVerifier,
+ *   ExactAgenticCommerceFacilitatorScheme,
+ *   InProcessFacilitatorClient,
+ * } from '@aws/fiat-extension-for-x402';
  *
- * // Create facilitator with Agentic Commerce scheme
+ * // Create facilitator with the exact Agentic Commerce scheme
+ * const verifier = new AgenticCommerceVerifier({
+ *   sellerKeyResolver: { type: 'kms', kmsKeyArn, region: 'us-east-1' },
+ * });
  * const facilitator = new x402Facilitator()
- *   .register('aws:base', new AgenticCommerceFacilitatorScheme({
- *     agenticCommerceId: 'my-agentic-commerce',
- *     agenticCommerce: { baseUrl: 'https://pay.example.com' }
- *   }));
+ *   .register('aws:base', new ExactAgenticCommerceFacilitatorScheme({ verifier }));
  *
  * // Wrap in client
  * const facilitatorClient = new InProcessFacilitatorClient(facilitator);

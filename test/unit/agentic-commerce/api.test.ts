@@ -11,10 +11,10 @@
 
 import { describe, it, expect } from 'vitest';
 import * as jose from 'jose';
-import { createMockAgenticCommerceClient } from '../../helpers/mock-agentic-commerce-client';
+import { FakePaymentService } from '../../helpers/fake-payment-service';
 import { ExactAgenticCommerceScheme as AgenticCommerceServerSchemeImpl } from '../../../src/agentic-commerce/exact/server';
 import { toQuoteSigner } from '../../../src/signers/protocol';
-import { settlePayment } from '../../../src/agentic-commerce/facilitator/settle';
+import { settleExactPayment } from '../../../src/agentic-commerce/exact/facilitator';
 import { DEFAULT_NETWORK, SCHEME_EXACT } from '../../../src/constants';
 import type { PaymentRequirements } from '@x402/core/types';
 
@@ -31,12 +31,11 @@ describe('Agentic Commerce API Integration', () => {
   });
 
   describe('Task 36: Auto-capture (no settle call)', () => {
-    it('settlePayment returns success immediately without HTTP call', async () => {
-      const mock = await createMockAgenticCommerceClient('test-pay');
-
-      const result = await settlePayment(
-        mock.agenticCommerceClient,
-        { x402Version: 2, payload: {} as any },
+    it('settle returns the payment token payment_id immediately, without an HTTP call', async () => {
+      const service = await FakePaymentService.create();
+      const paymentToken = await service.issue('quote');
+      const result = settleExactPayment(
+        { x402Version: 2, payload: { paymentToken, paymentId: 'buyer-chosen' } } as never,
         {
           scheme: SCHEME_EXACT,
           network: 'aws:base',
@@ -45,12 +44,11 @@ describe('Agentic Commerce API Integration', () => {
           payTo: 'seller',
           maxTimeoutSeconds: 300,
           extra: {},
-        },
-        { paymentToken: 'tok', paymentId: 'awsmp-123', transactionId: 'awsmp-123' }
+        }
       );
 
       expect(result.success).toBe(true);
-      expect(result.transaction).toBe('awsmp-123');
+      expect(result.transaction).toBe(jose.decodeJwt(paymentToken).payment_id);
       expect(result.network).toBe('aws:base');
     });
   });

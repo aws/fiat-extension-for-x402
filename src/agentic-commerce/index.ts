@@ -5,9 +5,26 @@
  */
 
 export {
+  ExactAgenticCommerceFacilitatorScheme,
   ExactAgenticCommerceServerScheme,
   registerExactAgenticCommerceServer,
+  type ExactAgenticCommerceFacilitatorSchemeConfig,
   type ExactAgenticCommerceServerSchemeConfig,
   type RegisterExactAgenticCommerceServerOptions,
 } from './exact';
-export { AgenticCommerceScheme as AgenticCommerceFacilitatorScheme } from './facilitator';
+export {
+  AgenticCommerceVerifier,
+  type AgenticCommerceInvalidReason,
+  type AgenticCommerceVerifierConfig,
+  type JwksRequestHeaders,
+  type VerificationRequirements,
+  type VerificationResult,
+} from './verifier';
+export type {
+  JwksSellerKeyResolver,
+  KmsCredentials,
+  KmsPublicKeyClient,
+  KmsSellerKeyResolver,
+  SellerKeyResolver,
+  StaticSellerKeyResolver,
+} from './keys';
