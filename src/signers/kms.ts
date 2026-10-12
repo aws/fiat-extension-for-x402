@@ -6,22 +6,28 @@
  * Provides a production-ready QuoteSigner that signs quote tokens
  * using an AWS KMS asymmetric key (EC P-256, P-384, or P-521).
  *
+ * Follows the Python SDK's `fiat_extension_x402/signers/kms.py` (commit
+ * 62230e6). `signQuote` is async (a TS deviation, PYTHON-DELTA A19).
+ *
  * Usage:
  * ```typescript
- * import { createKmsQuoteSigner, ExactAgenticCommerceServerScheme } from '@aws/fiat-extension-for-x402';
+ * import { KmsQuoteSigner, ExactAgenticCommerceServerScheme } from '@aws/fiat-extension-for-x402';
  *
  * const server = new ExactAgenticCommerceServerScheme({
- *   signer: createKmsQuoteSigner({
+ *   signer: new KmsQuoteSigner({
  *     keyArn: 'arn:aws:kms:us-east-1:123456789012:alias/my-quote-signing-key',
  *     region: 'us-east-1',
- *   })
+ *     serviceUrl: 'https://api.myservice.com',
+ *   }),
  * });
  * ```
  */
 
 import { KMSClient, SignCommand, type SigningAlgorithmSpec } from '@aws-sdk/client-kms';
 import type { AwsCredentialIdentityProvider } from '@aws-sdk/types';
-import type { QuoteSigner } from '../config';
+import { pyStr } from '../agentic-commerce/python';
+import { SigningError } from '../types';
+import { assertServiceUrl, type QuoteSigner } from './protocol';
 
 /**
  * Configuration for the KMS signer.
@@ -48,7 +54,7 @@ const ALG_MAP: Record<string, string> = {
   ECDSA_SHA_512: 'ES512',
 };
 
-/** Maps KMS algorithm to component byte length for DER→raw conversion */
+/** Maps KMS algorithm to the fixed-width byte length of each r/s component */
 const COMPONENT_LENGTH: Record<string, number> = {
   ECDSA_SHA_256: 32,
   ECDSA_SHA_384: 48,
@@ -56,17 +62,14 @@ const COMPONENT_LENGTH: Record<string, number> = {
 };
 
 /**
- * Create a QuoteSigner backed by AWS KMS.
+ * Quote signer backed by an AWS KMS asymmetric EC key.
  *
- * Signs quote tokens using a KMS asymmetric EC key. The private key never
- * leaves KMS — signing happens server-side via the KMS Sign API.
- *
- * @param config - KMS signer configuration
- * @returns A QuoteSigner that signs with KMS
+ * The private key never leaves KMS: signing happens server-side via the KMS
+ * `Sign` API.
  *
  * @example
  * ```typescript
- * const signer = createKmsQuoteSigner({
+ * const signer = new KmsQuoteSigner({
  *   keyArn: 'arn:aws:kms:us-east-1:123456789012:alias/my-quote-key',
  *   region: 'us-east-1',
  *   serviceUrl: 'https://api.myservice.com',
@@ -75,93 +78,183 @@ const COMPONENT_LENGTH: Record<string, number> = {
  * const server = new ExactAgenticCommerceServerScheme({ signer });
  * ```
  */
-export function createKmsQuoteSigner(config: KmsQuoteSignerConfig): QuoteSigner {
-  const { keyArn, region, serviceUrl, credentials, algorithm = 'ECDSA_SHA_384', kid } = config;
+export class KmsQuoteSigner implements QuoteSigner {
+  private readonly keyArn: string;
+  private readonly serviceUrl: string;
+  private readonly algorithm: string;
+  private readonly jwtAlg: string;
+  private readonly componentLength: number;
+  private readonly kid: string;
+  private readonly kmsClient: KMSClient;
 
-  const jwtAlg = ALG_MAP[algorithm];
-  if (!jwtAlg) throw new Error(`Unsupported algorithm: ${algorithm}`);
+  /**
+   * @param config - KMS signer configuration
+   * @throws SigningError if the algorithm is
+   *   not supported or `serviceUrl` is empty
+   */
+  constructor(config: KmsQuoteSignerConfig) {
+    const { keyArn, region, serviceUrl, credentials, algorithm = 'ECDSA_SHA_384', kid } = config;
+    assertServiceUrl(serviceUrl);
+    if (!Object.hasOwn(ALG_MAP, algorithm)) {
+      throw new SigningError(`Unsupported algorithm: ${pyStr(algorithm)}`, {
+        supported: Object.keys(ALG_MAP),
+      });
+    }
+    this.keyArn = keyArn;
+    this.serviceUrl = serviceUrl;
+    this.algorithm = algorithm;
+    this.jwtAlg = ALG_MAP[algorithm]!;
+    this.componentLength = COMPONENT_LENGTH[algorithm]!;
 
-  const componentLength = COMPONENT_LENGTH[algorithm]!;
+    // Derive kid from ARN if not explicitly provided
+    // e.g., 'arn:aws:kms:us-east-1:123:alias/my-key' -> 'my-key'
+    // e.g., 'arn:aws:kms:us-east-1:123:key/abc-123'  -> 'key/abc-123'
+    const arnLastSegment = keyArn.split(':').pop() ?? keyArn;
+    this.kid =
+      kid ?? (arnLastSegment.startsWith('alias/') ? arnLastSegment.slice(6) : arnLastSegment);
 
-  // Derive kid from ARN if not explicitly provided
-  // e.g., 'arn:aws:kms:us-east-1:123:alias/my-key' → 'my-key'
-  // e.g., 'arn:aws:kms:us-east-1:123:key/abc-123'  → 'key/abc-123'
-  const arnLastSegment = keyArn.split(':').pop() ?? keyArn;
-  const resolvedKid =
-    kid ?? (arnLastSegment.startsWith('alias/') ? arnLastSegment.slice(6) : arnLastSegment);
+    this.kmsClient = new KMSClient({
+      region,
+      ...(credentials && { credentials }),
+    });
+  }
 
-  const kmsClient = new KMSClient({
-    region,
-    ...(credentials && { credentials }),
-  });
+  /**
+   * Sign a quote token payload via KMS and return the compact JWT.
+   *
+   * @param payload - Quote token claims to sign
+   * @returns The compact JWS
+   * @throws SigningError if the KMS call fails or returns no signature
+   * @throws Error if the DER signature from KMS is malformed (Python raises
+   *   ValueError or OverflowError there, not SigningError)
+   */
+  async signQuote(payload: object): Promise<string> {
+    const header = Buffer.from(
+      JSON.stringify({ alg: this.jwtAlg, typ: 'JWT', kid: this.kid })
+    ).toString('base64url');
+    const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const message = Buffer.from(`${header}.${body}`);
 
-  return {
-    signQuote: async (payload: unknown): Promise<string> => {
-      const header = Buffer.from(
-        JSON.stringify({ alg: jwtAlg, typ: 'JWT', kid: resolvedKid })
-      ).toString('base64url');
-      const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
-      const message = Buffer.from(`${header}.${body}`);
-
-      const response = await kmsClient.send(
+    let signature: Uint8Array | undefined;
+    try {
+      ({ Signature: signature } = await this.kmsClient.send(
         new SignCommand({
-          KeyId: keyArn,
+          KeyId: this.keyArn,
           Message: message,
           MessageType: 'RAW',
-          SigningAlgorithm: algorithm as SigningAlgorithmSpec,
+          SigningAlgorithm: this.algorithm as SigningAlgorithmSpec,
         })
-      );
+      ));
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new SigningError(`KMS Sign API call failed: ${detail}`, undefined, { cause: error });
+    }
 
-      if (!response.Signature) {
-        throw new Error('KMS Sign returned no signature');
-      }
+    if (!signature?.length) {
+      throw new SigningError('KMS Sign returned no signature');
+    }
 
-      const signature = derToRawBase64url(response.Signature, componentLength);
-      return `${header}.${body}.${signature}`;
-    },
+    const raw = derToRaw(signature, this.componentLength);
+    return `${header}.${body}.${Buffer.from(raw).toString('base64url')}`;
+  }
 
-    getPublicKey: () => ({}), // Not needed — Agentic Commerce fetches the public key from KMS directly
-
-    getServiceUrl: () => serviceUrl,
-  };
+  /** The service URL (issuer) */
+  getServiceUrl(): string {
+    return this.serviceUrl;
+  }
 }
 
 /**
- * Convert a DER-encoded ECDSA signature to raw r||s base64url format.
+ * Create a QuoteSigner backed by AWS KMS.
  *
- * KMS returns signatures in DER (ASN.1) format:
- *   SEQUENCE { INTEGER r, INTEGER s }
- *
- * JWTs require raw concatenation: r (fixed-length) || s (fixed-length)
+ * @deprecated Use `new KmsQuoteSigner(config)`, the Python SDK's shape.
+ * @param config - KMS signer configuration
+ * @returns A {@link KmsQuoteSigner} whose methods are bound, with the former
+ *   factory's `getPublicKey()`, which returns `{}`
  */
-function derToRawBase64url(derSig: Uint8Array, componentLength: number): string {
-  const der = Buffer.from(derSig);
-  let offset = 2;
-  // Handle long-form length encoding
-  if (der[1]! > 0x80) offset += der[1]! & 0x7f;
+export function createKmsQuoteSigner(
+  config: KmsQuoteSignerConfig
+): KmsQuoteSigner & { getPublicKey(): Record<string, never> } {
+  // Bound own methods, so the object can be destructured or spread as the
+  // factory's former object literal could, and its getPublicKey().
+  const signer = new KmsQuoteSigner(config);
+  return Object.assign(signer, {
+    signQuote: signer.signQuote.bind(signer),
+    getServiceUrl: signer.getServiceUrl.bind(signer),
+    getPublicKey: (): Record<string, never> => ({}),
+  });
+}
 
-  // Read r
-  offset++; // skip 0x02 tag
-  const rLen = der[offset++]!;
-  const r = der.subarray(offset, offset + rLen);
-  offset += rLen;
+/** Read a DER length at `offset`: short form, or minimal long form. */
+function readDerLength(der: Uint8Array, offset: number): { length: number; next: number } {
+  const first = der[offset];
+  if (first === undefined) throw new Error('truncated');
+  if (first < 0x80) return { length: first, next: offset + 1 };
+  const count = first & 0x7f;
+  // More than 2 length bytes cannot occur here. BER's indefinite length (0x80,
+  // no length bytes) reads as 0 and fails the minimal-form check below.
+  if (count > 2 || offset + 1 + count > der.length) {
+    throw new Error('invalid length');
+  }
+  let length = 0;
+  for (let i = 0; i < count; i++) length = length * 256 + der[offset + 1 + i];
+  // DER: the shortest form, so long form only for lengths of 128 or more,
+  // without leading zero bytes.
+  if (length < 0x80 || der[offset + 1] === 0) throw new Error('invalid length');
+  return { length, next: offset + 1 + count };
+}
 
-  // Read s
-  offset++; // skip 0x02 tag
-  const sLen = der[offset++]!;
-  const s = der.subarray(offset, offset + sLen);
+/** Read a DER INTEGER at `offset` as a non-negative, minimally encoded big-endian value. */
+function readDerUnsignedInteger(
+  der: Uint8Array,
+  offset: number,
+  end: number,
+  name: string
+): { value: Uint8Array; next: number } {
+  if (der[offset] !== 0x02) throw new Error(`${name} is not an INTEGER`);
+  const { length, next } = readDerLength(der, offset + 1);
+  if (length === 0 || next + length > end) throw new Error(`${name} is truncated`);
+  const content = der.subarray(next, next + length);
+  if (content[0] & 0x80) throw new Error(`${name} is negative`);
+  if (content.length > 1 && content[0] === 0 && !(content[1] & 0x80)) {
+    throw new Error(`${name} is not minimally encoded`);
+  }
+  return { value: content[0] === 0 ? content.subarray(1) : content, next: next + length };
+}
 
-  // Pad/trim to fixed component length
-  const raw = Buffer.alloc(componentLength * 2);
-  // r may have a leading zero byte for positive sign — skip it if longer than componentLength
-  const rStart = r.length > componentLength ? r.length - componentLength : 0;
-  const rDest = r.length >= componentLength ? 0 : componentLength - r.length;
-  r.subarray(rStart).copy(raw, rDest);
-  // Same for s
-  const sStart = s.length > componentLength ? s.length - componentLength : 0;
-  const sDest =
-    s.length >= componentLength ? componentLength : componentLength + (componentLength - s.length);
-  s.subarray(sStart).copy(raw, sDest);
+/**
+ * Convert a DER-encoded ECDSA signature to fixed-width raw `r||s` format.
+ *
+ * KMS returns signatures in DER (ASN.1) format, `SEQUENCE { INTEGER r,
+ * INTEGER s }`. JWTs require raw concatenation: r (fixed-length) || s
+ * (fixed-length). Parsed strictly, as `cryptography`'s
+ * `decode_dss_signature` does in the Python SDK: malformed DER, a negative
+ * or non-minimal integer, trailing bytes, or an r or s wider than
+ * `componentLength` (Python's `int.to_bytes` overflow) are rejected.
+ *
+ * @internal
+ * @throws Error on a malformed signature: Python's `_der_to_raw` raises
+ *   ValueError or OverflowError, which `sign_quote` does not wrap in SigningError
+ */
+export function derToRaw(derSignature: Uint8Array, componentLength: number): Uint8Array {
+  try {
+    const der = derSignature;
+    if (der[0] !== 0x30) throw new Error('not a SEQUENCE');
+    const { length, next } = readDerLength(der, 1);
+    if (next + length !== der.length) throw new Error('SEQUENCE length does not match');
+    const r = readDerUnsignedInteger(der, next, der.length, 'r');
+    const s = readDerUnsignedInteger(der, r.next, der.length, 's');
+    if (s.next !== der.length) throw new Error('trailing data in SEQUENCE');
 
-  return raw.toString('base64url');
+    const raw = new Uint8Array(componentLength * 2);
+    for (const [index, { value }] of [r, s].entries()) {
+      if (value.length > componentLength) {
+        throw new Error(`${index === 0 ? 'r' : 's'} is wider than ${componentLength} bytes`);
+      }
+      raw.set(value, (index + 1) * componentLength - value.length);
+    }
+    return raw;
+  } catch (error) {
+    throw new Error(`Invalid DER ECDSA signature from KMS: ${(error as Error).message}`);
+  }
 }

@@ -4,6 +4,7 @@
  * Quote token and payment token signers.
  */
 
-export { createKmsQuoteSigner, type KmsQuoteSignerConfig } from './kms';
+export { KmsQuoteSigner, createKmsQuoteSigner, type KmsQuoteSignerConfig } from './kms';
+export { LocalQuoteSigner } from './local';
 export { toQuoteSigner, toPaymentTokenSigner } from './protocol';
-export type { QuoteSigner, PaymentTokenSigner } from './protocol';
+export type { QuoteSigner, QuoteSignerInterface, PaymentTokenSigner } from './protocol';

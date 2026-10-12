@@ -24,12 +24,12 @@ Register the `exact` server scheme on the stock x402 resource server. On every
 ```typescript
 import { x402ResourceServer } from '@x402/core/server';
 import {
-  createKmsQuoteSigner,
+  KmsQuoteSigner,
   registerExactAgenticCommerceServer,
 } from '@aws/fiat-extension-for-x402';
 
 // Once at startup
-const signer = createKmsQuoteSigner({
+const signer = new KmsQuoteSigner({
   keyArn: 'arn:aws:kms:us-east-1:YOUR_ACCOUNT:alias/your-signing-key',
   region: 'us-east-1',
   serviceUrl: 'https://api.your-service.com',
@@ -48,21 +48,66 @@ The quote token carries `payTo` and `settlement.product_id` (both the product
 ID). The 402 itself carries `payTo: 'urn:x402:agentic-commerce:see-quote'` and a
 `maxTimeoutSeconds` equal to the quote's lifetime (default 300 s).
 
-### Option B: Self-hosted keys
+### Option B: Your own key with a JWKS URL
+
+Sign with your own private key and publish the public key at
+`https://<seller>/.well-known/jwks.json`, the JWKS URL registered for the
+listing:
 
 ```typescript
-import { ExactAgenticCommerceServerScheme, toQuoteSigner } from '@aws/fiat-extension-for-x402';
-import * as jose from 'jose';
+import { readFileSync } from 'node:fs';
+import {
+  AgenticCommerceVerifier,
+  ExactAgenticCommerceServerScheme,
+  LocalQuoteSigner,
+  jwksDocument,
+} from '@aws/fiat-extension-for-x402';
 
-const { privateKey, publicKey } = await jose.generateKeyPair('ES384');
-
-// Signs with the key's own alg (ES384 here).
-const signer = toQuoteSigner(privateKey, await jose.exportJWK(publicKey), 'https://api.your-service.com');
+// 1. Load the key. The algorithm follows the key: P-256/P-384/P-521, or RSA
+//    of at least 2048 bits. Pass `password` for an encrypted PEM.
+const signer = LocalQuoteSigner.fromPem(readFileSync('quote-key.pem'), {
+  kid: 'quote-key-2026-10',
+  serviceUrl: 'https://api.your-service.com',
+});
 server.register('aws:base', new ExactAgenticCommerceServerScheme({ signer }));
 
-// Host your public key at: {serviceUrl}/.well-known/jwks.json
-// The serviceUrl you pass becomes the quote token's `iss` claim; it must not be empty.
+// 2. Serve the public key, built once at startup. Leave this route out of the
+//    payment routes.
+const jwks = jwksDocument(signer.publicJwk);
+app.get('/.well-known/jwks.json', (_req, res) => res.json(jwks));
+
+// 3. Point the facilitator at the JWKS (no headers are sent to it).
+const verifier = new AgenticCommerceVerifier({
+  sellerKeyResolver: { type: 'jwks', jwksUrl: 'https://api.your-service.com' },
+});
 ```
+
+Create a P-384 key with OpenSSL:
+
+```bash
+openssl ecparam -name secp384r1 -genkey -noout | openssl pkcs8 -topk8 -nocrypt -out quote-key.pem
+```
+
+Every key needs a unique `kid`: verifiers pick the key named in the quote's
+header. To rotate, publish both keys (`jwksDocument(next.publicJwk,
+current.publicJwk)`), switch the signer to the new key, and remove the old key
+once its quotes have expired. Facilitators cache the JWKS for up to an hour, so
+publish a new key at least an hour before signing with it.
+
+`jwksDocument` accepts only keys verifiers will use: EC on P-256, P-384 or
+P-521, or RSA of at least 2048 bits, each with a unique `kid` and an `alg` that
+matches the key. It parses the key material and rejects anything malformed or
+containing private key fields. `LocalQuoteSigner` refuses a public JWK with
+private key fields, and `publicJwk` never holds any. Never publish the PEM.
+
+To keep the key elsewhere, for example in an HSM that signs remotely, implement
+`QuoteSigner` (`signQuote(payload): Promise<string>` and `getServiceUrl()`).
+
+For local development, `new LocalQuoteSigner(privateKey, publicJwk, serviceUrl)`
+takes a key pair directly, and the facilitator can use
+`{ type: 'static', publicJwk }`. As in the Python SDK, the JWK's `alg` defaults
+to `ES256`, so set it for a P-384, P-521 or RSA key; the constructor checks it
+matches the key and that the JWK is the key's public half.
 
 ---
 
@@ -249,8 +294,13 @@ if (!result.isValid) {
 }
 ```
 
-Configuration and signing errors throw `ValidationError` or `SigningError`-style
-subclasses of `AgenticCommerceError`.
+Configuration errors throw `ValidationError`. The quote signers
+(`LocalQuoteSigner`, `KmsQuoteSigner`) throw `SigningError` (code
+`SIGNING_ERROR`) when they are misconfigured, a PEM cannot be loaded, or the
+KMS Sign call fails or returns no signature. When a PEM fails to load or the
+KMS Sign call fails, the original error is its `cause`. As in the Python SDK, a malformed DER signature from KMS is a plain
+`Error`, and an error from the signing library itself is passed through.
+`SigningError` and `ValidationError` extend `AgenticCommerceError`.
 
 ---
 

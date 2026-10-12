@@ -8,7 +8,7 @@
  */
 
 import type { Network, SchemeNetworkServer } from '@x402/core/types';
-import type { QuoteSigner } from '../../config';
+import type { QuoteSigner } from '../../signers/protocol';
 import { DEFAULT_NETWORK } from '../../constants';
 import type { DPoPNonceStore } from '../../types';
 import { ExactAgenticCommerceScheme } from './server';
@@ -42,7 +42,7 @@ export interface RegisterExactAgenticCommerceServerOptions {
  * @example
  * ```typescript
  * const server = registerExactAgenticCommerceServer(new x402ResourceServer(facilitatorClient), {
- *   signer: createKmsQuoteSigner({ keyArn, region, serviceUrl }),
+ *   signer: new KmsQuoteSigner({ keyArn, region, serviceUrl }),
  * });
  * ```
  */

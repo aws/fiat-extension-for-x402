@@ -243,13 +243,15 @@ export class AgenticCommerceError extends Error {
    * @param message - Human-readable error message
    * @param code - Machine-readable error code
    * @param details - Additional error context
+   * @param options - `cause`: the error this one wraps
    */
   constructor(
     message: string,
     public code: string,
-    public details?: Record<string, unknown>
+    public details?: Record<string, unknown>,
+    options?: ErrorOptions
   ) {
-    super(message);
+    super(message, options);
     this.name = 'AgenticCommerceError';
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, AgenticCommerceError);
@@ -266,6 +268,25 @@ export class ValidationError extends AgenticCommerceError {
     this.name = 'ValidationError';
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, ValidationError);
+    }
+  }
+}
+
+/**
+ * Error thrown when quote token signing fails, or a quote signer is
+ * misconfigured (the Python SDK's `SigningError`, exceptions.py:31-35)
+ */
+export class SigningError extends AgenticCommerceError {
+  /**
+   * @param message - Human-readable error message
+   * @param details - Additional error context
+   * @param options - `cause`: the error this one wraps (Python's `raise ... from exc`)
+   */
+  constructor(message: string, details?: Record<string, unknown>, options?: ErrorOptions) {
+    super(message, 'SIGNING_ERROR', details, options);
+    this.name = 'SigningError';
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, SigningError);
     }
   }
 }

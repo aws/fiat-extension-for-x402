@@ -8,13 +8,19 @@
  * service-side (quote token signing) and Agentic Commerce-side (payment token signing).
  */
 
-import type { KeyObject } from 'node:crypto';
+import { KeyObject } from 'node:crypto';
 import * as jose from 'jose';
+import { pyRepr } from '../agentic-commerce/python';
 import { ALLOWED_ALGORITHMS } from '../security';
-import { QuoteTokenPayload, PaymentTokenPayload, ValidationError } from '../types';
+import { stripPythonWhitespace } from '../utils';
+import { QuoteTokenPayload, PaymentTokenPayload, SigningError, ValidationError } from '../types';
 
-// The JWS alg of each EC curve, by JWK `crv` and by Node.js / WebCrypto curve name.
-const EC_CURVE_ALGORITHMS: Record<string, string> = {
+/**
+ * The JWS alg of each EC curve, by JWK `crv` and by Node.js / WebCrypto curve name.
+ *
+ * @internal
+ */
+export const EC_CURVE_ALGORITHMS: Record<string, string> = {
   'P-256': 'ES256',
   'P-384': 'ES384',
   'P-521': 'ES512',
@@ -23,6 +29,52 @@ const EC_CURVE_ALGORITHMS: Record<string, string> = {
   secp521r1: 'ES512',
 };
 
+/**
+ * JWK members that only private keys carry (RFC 7518 section 6), as the
+ * Python SDK's `PRIVATE_JWK_MEMBERS` (signers/local.py:26).
+ *
+ * @internal
+ */
+export const PRIVATE_JWK_MEMBERS: readonly string[] = ['d', 'p', 'q', 'dp', 'dq', 'qi', 'oth', 'k'];
+
+/**
+ * The private members of a JWK, sorted and written as Python writes
+ * `sorted(set)`, for example `['d', 'p']`; an empty string when there are none.
+ *
+ * @internal
+ */
+export function privateJwkMembers(jwk: object): string {
+  const leaked = PRIVATE_JWK_MEMBERS.filter((member) => Object.hasOwn(jwk, member)).sort();
+  return leaked.length ? `[${leaked.map((member) => pyRepr(member)).join(', ')}]` : '';
+}
+
+/** Refuse a public JWK that carries private key material. */
+function assertPublicJwk(publicKey: jose.JWK): void {
+  const leaked =
+    typeof publicKey === 'object' && publicKey !== null ? privateJwkMembers(publicKey) : '';
+  if (leaked) {
+    throw new ValidationError(
+      `publicKey contains private key members: ${leaked}. Pass only the public key.`
+    );
+  }
+}
+
+/**
+ * The quote signers' service URL check: it becomes the quote's `iss` claim
+ * (Python signers/local.py:52-56 and signers/kms.py:89-93).
+ *
+ * @internal
+ * @throws SigningError if `serviceUrl` is empty or only whitespace
+ */
+export function assertServiceUrl(serviceUrl: unknown): void {
+  if (typeof serviceUrl !== 'string' || !stripPythonWhitespace(serviceUrl)) {
+    throw new SigningError(
+      "serviceUrl is required and must be non-empty. It becomes the quote token's " +
+        "'iss' claim, which the service requires."
+    );
+  }
+}
+
 /** The alg of a public JWK: ES* by curve, RS256 for RSA. */
 function algorithmOfJwk(jwk: jose.JWK): string | undefined {
   if (jwk.kty === 'EC') return EC_CURVE_ALGORITHMS[String(jwk.crv)];
@@ -30,19 +82,67 @@ function algorithmOfJwk(jwk: jose.JWK): string | undefined {
   return undefined;
 }
 
+/** @internal */
+export interface PrivateKeyInfo {
+  kty: 'EC' | 'RSA';
+  /** The JWS alg the key signs with, or undefined for an unsupported curve */
+  alg?: string;
+  /** Curve name, for EC keys */
+  curve?: string;
+  /** Modulus length, for RSA keys */
+  bits?: number;
+}
+
+// WebCrypto algorithms whose keys sign JWTs this package accepts.
+const SIGNING_CRYPTO_KEY_ALGORITHMS = ['ECDSA', 'RSASSA-PKCS1-v1_5'];
+
+/**
+ * A private signing key as a Node.js KeyObject, or undefined. A WebCrypto
+ * CryptoKey must be an ECDSA or RSASSA-PKCS1-v1_5 key (a private one always
+ * has the `sign` usage: WebCrypto refuses empty usages). It is converted, so
+ * it signs as its key type does whatever hash it was made for (an
+ * RSASSA-PKCS1-v1_5 CryptoKey made for SHA-512 still signs RS256).
+ *
+ * @internal
+ */
+export function privateKeyObject(key: unknown): KeyObject | undefined {
+  if (key instanceof KeyObject) return key.type === 'private' ? key : undefined;
+  const cryptoKey = key as { type?: unknown; algorithm?: { name?: unknown } };
+  if (
+    typeof key !== 'object' ||
+    key === null ||
+    cryptoKey.type !== 'private' ||
+    !SIGNING_CRYPTO_KEY_ALGORITHMS.includes(String(cryptoKey.algorithm?.name))
+  ) {
+    return undefined;
+  }
+  try {
+    return KeyObject.from(key as Parameters<typeof KeyObject.from>[0]);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The key type, curve and size of a private KeyObject; undefined unless EC or RSA.
+ *
+ * @internal
+ */
+export function describePrivateKey(key: KeyObject): PrivateKeyInfo | undefined {
+  if (key.asymmetricKeyType === 'ec') {
+    const curve = String(key.asymmetricKeyDetails?.namedCurve);
+    return { kty: 'EC', alg: EC_CURVE_ALGORITHMS[curve], curve };
+  }
+  if (key.asymmetricKeyType === 'rsa') {
+    return { kty: 'RSA', alg: 'RS256', bits: key.asymmetricKeyDetails?.modulusLength };
+  }
+  return undefined;
+}
+
 /** The alg of a Node.js KeyObject or a WebCrypto CryptoKey: ES* by curve, RS256 for RSA. */
 function algorithmOfPrivateKey(key: jose.KeyLike): string | undefined {
-  if (typeof key !== 'object' || key === null) return undefined;
-  const keyObject = key as Partial<KeyObject>;
-  if (keyObject.asymmetricKeyType === 'ec') {
-    return EC_CURVE_ALGORITHMS[String(keyObject.asymmetricKeyDetails?.namedCurve)];
-  }
-  if (keyObject.asymmetricKeyType === 'rsa') return 'RS256';
-  // A WebCrypto CryptoKey
-  const { algorithm } = key as { algorithm?: { name?: string; namedCurve?: string } };
-  if (algorithm?.name === 'ECDSA') return EC_CURVE_ALGORITHMS[String(algorithm.namedCurve)];
-  if (algorithm?.name === 'RSASSA-PKCS1-v1_5') return 'RS256';
-  return undefined;
+  const keyObject = privateKeyObject(key);
+  return keyObject && describePrivateKey(keyObject)?.alg;
 }
 
 /**
@@ -65,28 +165,33 @@ function signingAlgorithm(privateKey: jose.KeyLike, publicKey: jose.JWK): string
 }
 
 /**
- * Signer for service-side operations (quote token signing)
+ * Signs the seller's quote tokens: the one quote-signer interface of this
+ * package, with the Python SDK's shape (`QuoteSigner` protocol in
+ * signers/protocol.py at 62230e6). `signQuote` is async (PYTHON-DELTA A19).
+ *
+ * Implement it to keep the key elsewhere, for example in an HSM that signs
+ * remotely. {@link KmsQuoteSigner} and {@link LocalQuoteSigner} implement it.
  */
 export interface QuoteSigner {
   /**
-   * Sign a quote token JWT
-   * @param payload - Quote token payload to sign
-   * @returns Signed JWT string
+   * Sign quote token claims.
+   * @param payload - Quote token claims to sign
+   * @returns Signed compact JWS (`header.payload.signature`)
    */
   signQuote(payload: QuoteTokenPayload): Promise<string>;
 
   /**
-   * Get the public key for verification (JWK format)
-   * @returns Public key in JWK format
-   */
-  getPublicKey(): jose.JWK;
-
-  /**
-   * Get the service URL (issuer)
+   * The service URL used as the `iss` claim in quote tokens.
    * @returns Service URL
    */
   getServiceUrl(): string;
 }
+
+/**
+ * @deprecated Use {@link QuoteSigner}. The former loose signer interface,
+ * now the same type.
+ */
+export type QuoteSignerInterface = QuoteSigner;
 
 /**
  * Signer for Agentic Commerce-side operations (payment token signing)
@@ -132,8 +237,9 @@ function protectedHeader(alg: string, publicKey: jose.JWK): jose.JWTHeaderParame
  * @param privateKey - Private key for signing (RS256, ES256, ES384 or ES512)
  * @param publicKey - Public key in JWK format
  * @param serviceUrl - Service URL (issuer)
- * @returns QuoteSigner instance
- * @throws ValidationError if the key's alg is not one of ALLOWED_ALGORITHMS
+ * @returns QuoteSigner instance, with `getPublicKey()` returning `publicKey`
+ * @throws ValidationError if `publicKey` carries private key members, or the
+ *   key's alg is not one of ALLOWED_ALGORITHMS
  *
  * @example
  * ```typescript
@@ -153,7 +259,8 @@ export function toQuoteSigner(
   privateKey: jose.KeyLike,
   publicKey: jose.JWK,
   serviceUrl: string
-): QuoteSigner {
+): QuoteSigner & { getPublicKey(): jose.JWK } {
+  assertPublicJwk(publicKey);
   const header = protectedHeader(signingAlgorithm(privateKey, publicKey), publicKey);
   return {
     async signQuote(payload: QuoteTokenPayload): Promise<string> {
@@ -177,7 +284,8 @@ export function toQuoteSigner(
  * @param publicKey - Public key in JWK format
  * @param agenticCommerceId - Agentic Commerce identifier
  * @returns PaymentTokenSigner instance
- * @throws ValidationError if the key's alg is not one of ALLOWED_ALGORITHMS
+ * @throws ValidationError if `publicKey` carries private key members, or the
+ *   key's alg is not one of ALLOWED_ALGORITHMS
  *
  * @example
  * ```typescript
@@ -198,6 +306,7 @@ export function toPaymentTokenSigner(
   publicKey: jose.JWK,
   agenticCommerceId: string
 ): PaymentTokenSigner {
+  assertPublicJwk(publicKey);
   const header = protectedHeader(signingAlgorithm(privateKey, publicKey), publicKey);
   return {
     async signPayment(payload: PaymentTokenPayload): Promise<string> {
