@@ -203,11 +203,11 @@ export interface DPoPProofPayload {
  * Options for verifying DPoP proof
  */
 export interface DPoPVerificationOptions {
-  /** HTTP method to verify */
+  /** Expected `htm`, compared exactly (pass it upper-cased); empty skips the check */
   method: string;
-  /** HTTP URL to verify */
+  /** Expected `htu`, compared exactly; empty skips the check */
   url: string;
-  /** Access token to verify binding (optional) */
+  /** Access token the proof must be bound to (`ath`) (optional) */
   accessToken?: string;
   /** Maximum age in seconds (default: 60) */
   maxAge?: number;
@@ -216,7 +216,12 @@ export interface DPoPVerificationOptions {
 }
 
 /**
- * Store for tracking used nonces (replay protection)
+ * Store of seen DPoP proof ids (`jti`), for replay protection.
+ *
+ * `has` is called, then `add` if the id is new. A synchronous store is checked
+ * and updated with no await in between. An asynchronous store (for example one
+ * shared by several seller instances) is not: two concurrent requests with the
+ * same proof can both pass unless `has` itself records the id atomically.
  */
 export interface DPoPNonceStore {
   /** Check if nonce has been used */

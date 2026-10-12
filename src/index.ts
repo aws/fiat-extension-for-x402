@@ -40,7 +40,6 @@ export { AgenticCommerceFacilitatorClient } from './agentic-commerce/facilitator
 export type {
   AgenticCommerceFacilitatorAuthConfig,
   AgenticCommerceFacilitatorClientConfig,
-  VerifyRequestContext,
 } from './agentic-commerce/facilitator-client';
 
 // Signers

@@ -10,6 +10,7 @@
  */
 
 import type {
+  DeepReadonly,
   PaymentPayload,
   PaymentRequirements,
   SchemeNetworkFacilitator,
@@ -18,7 +19,6 @@ import type {
 } from '@x402/core/types';
 import { decodeJwt } from 'jose';
 import { AGENTIC_COMMERCE_CAIP_FAMILY, SCHEME_EXACT } from '../../constants';
-import { extractDPoPThumbprint, verifyDPoPProof } from '../../dpop';
 import { ValidationError } from '../../types';
 import { isPlainObject, isTruthy, pyStr } from '../python';
 import type { AgenticCommerceVerifier, VerificationRequirements } from '../verifier';
@@ -27,19 +27,6 @@ import type { AgenticCommerceVerifier, VerificationRequirements } from '../verif
 export interface ExactAgenticCommerceFacilitatorSchemeConfig {
   /** Verifies payment tokens. Configure it with the seller's key. */
   verifier: AgenticCommerceVerifier;
-}
-
-/**
- * HTTP request context for DPoP verification.
- * Pass this when verifying payments that may be DPoP-bound.
- */
-export interface VerifyRequestContext {
-  /** HTTP method of the buyer's retry request (e.g. 'GET', 'POST') */
-  method: string;
-  /** Full URL of the buyer's retry request */
-  url: string;
-  /** DPoP proof JWT from the request's DPoP header */
-  dpopProof?: string;
 }
 
 /**
@@ -106,7 +93,13 @@ export class ExactAgenticCommerceScheme implements SchemeNetworkFacilitator {
   }
 }
 
-function paymentTokenOf(payload: PaymentPayload): unknown {
+/**
+ * The payment token in `payload.payload.paymentToken`; shared by the server
+ * scheme's DPoP check and the facilitator, so both read the same token.
+ *
+ * @internal
+ */
+export function paymentTokenOf(payload: DeepReadonly<PaymentPayload>): unknown {
   const inner: unknown = payload?.payload;
   return isPlainObject(inner) ? inner.paymentToken : undefined;
 }
@@ -120,8 +113,7 @@ function paymentTokenOf(payload: PaymentPayload): unknown {
 export async function verifyExactPayment(
   verifier: AgenticCommerceVerifier,
   payload: PaymentPayload,
-  requirements: PaymentRequirements,
-  requestContext?: VerifyRequestContext
+  requirements: PaymentRequirements
 ): Promise<VerifyResponse> {
   const paymentToken = paymentTokenOf(payload);
   if (typeof paymentToken !== 'string' || !paymentToken) {
@@ -138,10 +130,6 @@ export async function verifyExactPayment(
       invalidReason: result.invalidReason,
       invalidMessage: result.invalidMessage,
     };
-  }
-  const dpopFailure = await checkDPoPBinding(paymentToken, requestContext);
-  if (dpopFailure) {
-    return dpopFailure;
   }
   return result.payer === undefined ? { isValid: true } : { isValid: true, payer: result.payer };
 }
@@ -215,50 +203,4 @@ function routeProductId(requirements: PaymentRequirements): string {
   } catch {
     return '';
   }
-}
-
-/**
- * Until the `exact` server scheme checks DPoP proofs in its `onBeforeVerify`
- * hook, as the Python SDK does, a DPoP-bound payment token (`cnf.jkt`) is
- * accepted here only with a matching proof in `requestContext`.
- */
-async function checkDPoPBinding(
-  paymentToken: string,
-  requestContext?: VerifyRequestContext
-): Promise<VerifyResponse | undefined> {
-  const cnf = decodeJwt(paymentToken).cnf;
-  if (!isPlainObject(cnf) || !Object.hasOwn(cnf, 'jkt')) {
-    return undefined;
-  }
-  if (!requestContext?.dpopProof) {
-    return {
-      isValid: false,
-      invalidReason: 'dpop_required',
-      invalidMessage: 'Payment token is DPoP-bound but no DPoP proof provided',
-    };
-  }
-  try {
-    const thumbprint = await extractDPoPThumbprint(requestContext.dpopProof);
-    if (thumbprint !== cnf.jkt) {
-      return {
-        isValid: false,
-        invalidReason: 'dpop_invalid',
-        invalidMessage: 'DPoP proof thumbprint does not match payment token binding',
-      };
-    }
-    // As the Python SDK's before_verify: htu without query and fragment, and
-    // the proof bound to this payment token (ath).
-    await verifyDPoPProof(requestContext.dpopProof, {
-      method: requestContext.method,
-      url: requestContext.url.split('?', 1)[0].split('#', 1)[0],
-      accessToken: paymentToken,
-    });
-  } catch (error) {
-    return {
-      isValid: false,
-      invalidReason: 'dpop_invalid',
-      invalidMessage: error instanceof Error ? error.message : String(error),
-    };
-  }
-  return undefined;
 }
