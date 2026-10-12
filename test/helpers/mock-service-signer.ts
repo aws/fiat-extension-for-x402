@@ -6,7 +6,7 @@
  */
 
 import * as jose from 'jose';
-import type { QuoteSigner } from '../../src/config';
+import type { QuoteSigner } from '../../src/signers/protocol';
 
 /**
  * Create a mock service signer for testing
@@ -27,8 +27,6 @@ export async function createMockServiceSigner(
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
     },
-
-    getPublicKey: () => publicKey,
 
     getServiceUrl: () => serviceUrl,
   };

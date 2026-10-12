@@ -10,13 +10,13 @@
 
 import { webcrypto } from 'node:crypto';
 import type { PaymentRequirements } from '@x402/core/types';
-import type { QuoteSigner } from '../../config';
+import type { QuoteSigner } from '../../signers/protocol';
 import {
   DEFAULT_QUOTE_VALIDITY_SECONDS,
   QUOTE_TOKEN_AUDIENCE,
   SENTINEL_PAY_TO,
 } from '../../constants';
-import { ValidationError } from '../../types';
+import { ValidationError, type QuoteTokenPayload } from '../../types';
 import { stripPythonWhitespace } from '../../utils';
 import { isPlainObject, isTruthy } from '../python';
 
@@ -106,7 +106,8 @@ export async function enhancePaymentRequirements(
   }
 
   // quote.py:83-89
-  extra.quoteToken = await signer.signQuote(claims);
+  // The claims are the QuoteTokenPayload fields, with Python's types and order.
+  extra.quoteToken = await signer.signQuote(claims as unknown as QuoteTokenPayload);
   return {
     ...requirements,
     payTo: SENTINEL_PAY_TO,

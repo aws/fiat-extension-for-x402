@@ -6,7 +6,7 @@
  * are randomised, so these bytes are fixed fixtures: do not regenerate them.
  *
  * The seller key is derived from the label "fiat-x402-fixture-seller-v1"; it is
- * not a secret, and only its public half is needed here.
+ * not a secret (see sellerPrivateKey).
  */
 
 import { createHash, createPrivateKey, type KeyObject } from 'crypto';
@@ -105,6 +105,22 @@ export function buyerPrivateKey(): KeyObject {
   const d = (BigInt(`0x${digest}`) % n).toString(16).padStart(64, '0');
   return createPrivateKey({
     key: { ...BUYER_PUBLIC_JWK, d: Buffer.from(d, 'hex').toString('base64url') },
+    format: 'jwk',
+  });
+}
+
+/**
+ * The seller's quote-signing private key, derived as the Python probe derives
+ * it: the P-256 scalar is int(sha512("fiat-x402-fixture-seller-v1")) mod n.
+ * A test key, not a secret; no private key is stored in the repository.
+ */
+export function sellerPrivateKey(): KeyObject {
+  const n = BigInt('0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551');
+  const digest = createHash('sha512').update('fiat-x402-fixture-seller-v1').digest('hex');
+  const d = (BigInt(`0x${digest}`) % n).toString(16).padStart(64, '0');
+  const { kty, crv, x, y } = SELLER_PUBLIC_JWK;
+  return createPrivateKey({
+    key: { kty, crv, x, y, d: Buffer.from(d, 'hex').toString('base64url') },
     format: 'jwk',
   });
 }

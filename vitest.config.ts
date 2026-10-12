@@ -18,17 +18,14 @@ export default defineConfig({
         '**/*.config.*',
         '**/index.ts',
       ],
-      // Coverage thresholds - set to current levels, improve over time.
-      // Vitest 4 replaced v8-to-istanbul with AST-aware remapping, which
-      // counts branches in files that are never loaded by a test (for
-      // example src/signers/kms.ts, previously reported as 0/0 and
-      // so as 100%). Measured branch coverage is therefore 74.6% where the
-      // old, less accurate instrumentation reported 83.88%; the tests
-      // themselves are unchanged.
+      // Coverage thresholds: never lower them. Vitest 4's AST-aware
+      // remapping also counts branches in files that no test loads, which
+      // briefly put branches at 74.6% (the gate was 74). With the signer
+      // tests the branch gate is back at 75.
       thresholds: {
         lines: 70,
         functions: 70,
-        branches: 74,
+        branches: 75,
         statements: 70,
       },
       // Include all source files even if not imported in tests.

@@ -13,6 +13,7 @@ export {
   ExactAgenticCommerceFacilitatorScheme,
   registerExactAgenticCommerceServer,
   AgenticCommerceVerifier,
+  jwksDocument,
 } from './agentic-commerce';
 export type {
   ExactAgenticCommerceServerSchemeConfig,
@@ -31,9 +32,6 @@ export type {
   KmsPublicKeyClient,
 } from './agentic-commerce';
 
-// Configuration types
-export type { QuoteSigner as QuoteSignerInterface } from './config';
-
 // Facilitator client implementation
 export { InProcessFacilitatorClient } from './facilitator-client';
 export { AgenticCommerceFacilitatorClient } from './agentic-commerce/facilitator-client';
@@ -44,12 +42,14 @@ export type {
 
 // Signers
 export {
+  KmsQuoteSigner,
+  LocalQuoteSigner,
   createKmsQuoteSigner,
   toQuoteSigner,
   toPaymentTokenSigner,
   type KmsQuoteSignerConfig,
 } from './signers';
-export type { QuoteSigner, PaymentTokenSigner } from './signers';
+export type { QuoteSigner, QuoteSignerInterface, PaymentTokenSigner } from './signers';
 
 // Types
 export type {
@@ -74,6 +74,7 @@ export {
   AgenticCommerceError,
   ValidationError,
   SignatureError,
+  SigningError,
   ExpiryError,
   MismatchError,
   DPoPError,

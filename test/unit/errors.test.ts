@@ -8,6 +8,7 @@ import {
   ExpiryError,
   MismatchError,
   DPoPError,
+  SigningError,
 } from '../../src/types';
 
 describe('Error Types', () => {
@@ -104,6 +105,23 @@ describe('Error Types', () => {
     });
   });
 
+  describe('SigningError', () => {
+    it('should create signing error with message and details', () => {
+      const error = new SigningError('KMS failed', { supported: ['ECDSA_SHA_384'] });
+      expect(error.message).toBe('KMS failed');
+      expect(error.code).toBe('SIGNING_ERROR');
+      expect(error.details).toEqual({ supported: ['ECDSA_SHA_384'] });
+      expect(error.name).toBe('SigningError');
+      expect(error instanceof AgenticCommerceError).toBe(true);
+    });
+
+    it('should create signing error without details', () => {
+      const error = new SigningError('KMS failed');
+      expect(error.code).toBe('SIGNING_ERROR');
+      expect(error.details).toBeUndefined();
+    });
+  });
+
   describe('DPoPError', () => {
     it('should create DPoP error with message and details', () => {
       const error = new DPoPError('Invalid DPoP proof', { reason: 'stale' });
@@ -130,6 +148,7 @@ describe('Error Types', () => {
         new ExpiryError('test', 123, 456),
         new MismatchError('test', 'a', 'b'),
         new DPoPError('test'),
+        new SigningError('test'),
       ];
 
       errors.forEach((error) => {

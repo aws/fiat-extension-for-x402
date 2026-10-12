@@ -20,6 +20,7 @@ export {
   type VerificationRequirements,
   type VerificationResult,
 } from './verifier';
+export { jwksDocument } from './keys';
 export type {
   JwksSellerKeyResolver,
   KmsCredentials,

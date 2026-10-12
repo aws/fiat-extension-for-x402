@@ -9,14 +9,11 @@ import type { QuoteTokenPayload, PaymentTokenPayload } from '../../../src/types'
 describe('Agentic Commerce Signers', () => {
   describe('QuoteSigner', () => {
     let privateKey: jose.KeyLike;
-    let publicKey: jose.KeyLike;
     let signer: QuoteSigner;
 
     beforeEach(async () => {
       // Generate test key pair
-      const { privateKey: priv, publicKey: pub } = await jose.generateKeyPair('RS256');
-      privateKey = priv;
-      publicKey = pub;
+      ({ privateKey } = await jose.generateKeyPair('RS256'));
 
       // Create mock signer
       signer = {
@@ -25,7 +22,6 @@ describe('Agentic Commerce Signers', () => {
             .setProtectedHeader({ alg: 'RS256' })
             .sign(privateKey);
         },
-        getPublicKey: () => publicKey,
         getServiceUrl: () => 'https://api.example.com',
       };
     });
@@ -61,10 +57,8 @@ describe('Agentic Commerce Signers', () => {
       expect(url).toMatch(/^https?:\/\//);
     });
 
-    it('should return public key', () => {
-      const key = signer.getPublicKey();
-      expect(key).toBeDefined();
-      expect(key).toBe(publicKey);
+    it('needs only signQuote and getServiceUrl, as the Python protocol', () => {
+      expect(Object.keys(signer).sort()).toEqual(['getServiceUrl', 'signQuote']);
     });
   });
 

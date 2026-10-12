@@ -26,7 +26,7 @@ import type {
 } from '@x402/core/types';
 import type { BeforeVerifyHook, HTTPAdapter, VerifyContext } from '@x402/core/server';
 import { decodeJwt } from 'jose';
-import type { QuoteSigner } from '../../config';
+import type { QuoteSigner } from '../../signers/protocol';
 import {
   ASSET_TRANSFER_METHOD,
   DEFAULT_ASSET,

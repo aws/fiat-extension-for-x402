@@ -148,7 +148,7 @@ This eliminates the need for a separate facilitator service. The `AgenticCommerc
 | **Authentication** | `src/auth/` | Pluggable auth for Agent Pay API calls: API Key, AWS SigV4, OAuth2, Custom. Factory pattern via `createAuthenticator()`. |
 | **DPoP** | `src/dpop/` | RFC 9449 Demonstrating Proof-of-Possession: proof verification and JWK thumbprints, used by the `exact` server scheme's `onBeforeVerify` hook. |
 | **Discovery** | `src/discovery.ts` | Network registry (`registerNetwork`) and OIDC-based Agent Pay endpoint discovery. |
-| **Signers** | `src/signers/protocol.ts` | `toQuoteSigner()` and `toPaymentTokenSigner()` — adapter functions that wrap `jose` key pairs into the `QuoteSigner` / `PaymentTokenSigner` interfaces. |
+| **Signers** | `src/signers/` | `QuoteSigner` (`signQuote`, `getServiceUrl`, the Python SDK's protocol) and its implementations: `KmsQuoteSigner` (`kms.ts`, the key stays in AWS KMS) and `LocalQuoteSigner` (`local.ts`, a key you manage, `fromPem` and `publicJwk`). `protocol.ts` also has the `toQuoteSigner()` and `toPaymentTokenSigner()` adapters for `jose` key pairs. |
 | **Types** | `src/types.ts` | All Agent Pay-specific types: `QuoteTokenPayload`, `PaymentTokenPayload`, `AgenticCommercePayloadV2`, settlement types, DPoP types, error classes. |
 | **Constants** | `src/constants.ts` | `SCHEME_EXACT`, `AGENTIC_COMMERCE_CAIP_FAMILY`, `SENTINEL_PAY_TO`, default validity windows. |
 | **Utilities** | `src/utils.ts` | JWT decode/verify helpers, transaction ID parsing, money parsing, service JWKS caching. |
@@ -343,6 +343,7 @@ All Agent Pay errors extend `AgenticCommerceError`, which extends `Error`:
 | Error class | Code | When thrown |
 |-------------|------|------------|
 | `ValidationError` | `VALIDATION_ERROR` | Schema/format validation failures, missing required fields |
+| `SigningError` | `SIGNING_ERROR` | Quote signing failures and quote signer misconfiguration (`LocalQuoteSigner`, `KmsQuoteSigner`); optional `details` |
 | `SignatureError` | `SIGNATURE_ERROR` | JWT signature verification failures (includes `tokenType: 'quote' \| 'payment'`) |
 | `ExpiryError` | `EXPIRY_ERROR` | Token `exp` is in the past (includes `expiry` and `currentTime` timestamps) |
 | `MismatchError` | `MISMATCH_ERROR` | Expected vs actual data mismatch during verification (includes `expected` and `actual`) |
@@ -400,7 +401,7 @@ src/
 │   ├── client/scheme.ts        # SchemeNetworkClient implementation
 │   ├── exact/                  # exact scheme: server.ts, quote.ts, register.ts, facilitator.ts
 │   ├── verifier.ts             # AgenticCommerceVerifier: the payment gate
-│   └── keys.ts                 # SellerKeyResolver: KMS, JWKS or static key
+│   └── keys.ts                 # SellerKeyResolver (KMS, JWKS or static key) and jwksDocument
 ├── auth/
 │   ├── types.ts                # Auth config interfaces
 │   ├── factory.ts              # createAuthenticator()
