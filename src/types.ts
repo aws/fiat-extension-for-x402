@@ -126,16 +126,6 @@ export interface QuoteTokenPayload {
 }
 
 /**
- * Payment context embedded in payment token
- */
-export interface PaymentContext {
-  /** Transaction ID from Agentic Commerce (format: {network}:{id}) */
-  transaction_id: string;
-  /** Original quote token (signed JWT from service) */
-  quote_token: string;
-}
-
-/**
  * Payment token JWT payload
  * This is the structure of the signed JWT from Agentic Commerce
  */
@@ -156,8 +146,6 @@ export interface PaymentTokenPayload {
   quote_token?: string;
   /** JWT ID (same as payment_id) */
   jti?: string;
-  /** @deprecated Legacy payment context — Agentic Commerce now uses top-level fields */
-  payment_context?: PaymentContext;
   /** Confirmation claim for DPoP (optional) */
   cnf?: {
     /** JWK thumbprint of DPoP public key */
@@ -173,8 +161,6 @@ export interface AgenticCommercePayloadV2 {
   paymentToken: string;
   /** Payment ID from Agentic Commerce (format: awsmp-{UUIDv7}) */
   paymentId: string;
-  /** @deprecated Use paymentId. Kept for backward compatibility. */
-  transactionId?: string;
 }
 
 // ============================================================================

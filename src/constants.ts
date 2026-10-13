@@ -28,32 +28,9 @@ export const ASSET_TRANSFER_METHOD = 'payment-token';
 export const DYNAMIC_EXTRA_FIELDS: readonly string[] = Object.freeze(['quoteToken']);
 
 /**
- * Agentic Commerce settlement method codes (Agentic Commerce-specific, not official ISO 20022)
- */
-export const SETTLEMENT_METHODS = {
-  INST: 'INST', // Instant settlement
-  CLRG: 'CLRG', // Clearing/batch settlement
-  CRDT: 'CRDT', // Credit/invoice settlement
-} as const;
-
-/**
- * Settlement cycle codes
- */
-export const SETTLEMENT_CYCLES = {
-  MNTH: 'MNTH', // Monthly
-  WEEK: 'WEEK', // Weekly
-  QRTR: 'QRTR', // Quarterly
-} as const;
-
-/**
  * Default quote token validity (5 minutes)
  */
 export const DEFAULT_QUOTE_VALIDITY_SECONDS = 300;
-
-/**
- * Default payment token validity (1 hour)
- */
-export const DEFAULT_PAYMENT_VALIDITY_SECONDS = 3600;
 
 /**
  * CAIP family for Agentic Commerce (used in facilitator)
@@ -113,7 +90,7 @@ export const QUOTE_TOKEN_AUDIENCE = 'aws:marketplace';
 /**
  * Default base URL for Agentic Commerce's JWKS (signing key) endpoint.
  * The SDK appends /.well-known/jwks.json to this automatically.
- * Override via the jwksBaseUrl constructor parameter for beta/testing.
+ * Override it with the verifier's paymentTokenJwksUrl option.
  */
 export const DEFAULT_PAYMENT_TOKEN_JWKS_BASE_URL =
   'https://agenticcommerce-marketplace.us-east-1.api.aws';

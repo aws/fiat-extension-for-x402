@@ -15,17 +15,10 @@ describe('Agentic Commerce Package Exports', () => {
     expect('AgenticCommerceFacilitatorScheme' in AgenticCommerce).toBe(false);
   });
 
-  it('should export signer functions', () => {
-    expect(AgenticCommerce.toQuoteSigner).toBeDefined();
-    expect(AgenticCommerce.toPaymentTokenSigner).toBeDefined();
-  });
-
   it('should export the quote signers and the JWKS helper', () => {
     expect(typeof AgenticCommerce.LocalQuoteSigner.fromPem).toBe('function');
     expect(typeof AgenticCommerce.KmsQuoteSigner).toBe('function');
     expect(typeof AgenticCommerce.jwksDocument).toBe('function');
-    // Kept, deprecated: it returns a KmsQuoteSigner.
-    expect(typeof AgenticCommerce.createKmsQuoteSigner).toBe('function');
   });
 
   it('should export error classes', () => {
@@ -40,16 +33,13 @@ describe('Agentic Commerce Package Exports', () => {
   it('should export constants', () => {
     expect(AgenticCommerce.SCHEME_EXACT).toBe('exact');
     expect(AgenticCommerce.AGENTIC_COMMERCE_CAIP_FAMILY).toBe('aws:*');
-    expect(AgenticCommerce.SETTLEMENT_METHODS).toBeDefined();
-    expect(AgenticCommerce.SETTLEMENT_CYCLES).toBeDefined();
+    expect(AgenticCommerce.SENTINEL_PAY_TO).toBe('urn:x402:agentic-commerce:see-quote');
   });
 
   it('should export utility functions', () => {
     expect(AgenticCommerce.decodeQuoteToken).toBeDefined();
     expect(AgenticCommerce.verifyQuoteToken).toBeDefined();
     expect(AgenticCommerce.verifyPaymentToken).toBeDefined();
-    expect(AgenticCommerce.extractQuoteFromPayment).toBeDefined();
-    expect(AgenticCommerce.generateTransactionId).toBeDefined();
     expect(AgenticCommerce.parseMoneyToDecimal).toBeDefined();
   });
 });

@@ -232,7 +232,6 @@ Buyer Agent                    Seller API                  Agent Pay Service
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| `QUOTE_TOKEN_AUDIENCE` | `aws:marketplace` | Required `aud` in quote tokens |
 | `PAYMENT_TOKEN_ISSUER` | `awsmp-agentpay.amazonaws.com` | `iss` in payment tokens |
 | `DEFAULT_NETWORK` | `aws:base` | Network identifier for AWS Marketplace |
 

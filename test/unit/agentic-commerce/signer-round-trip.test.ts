@@ -56,9 +56,9 @@ vi.mock('@aws-sdk/client-kms', () => {
 import { AgenticCommerceVerifier } from '../../../src/agentic-commerce/verifier';
 import { jwksDocument, type SellerKeyResolver } from '../../../src/agentic-commerce/keys';
 import { enhancePaymentRequirements } from '../../../src/agentic-commerce/exact/quote';
-import { KmsQuoteSigner, createKmsQuoteSigner } from '../../../src/signers/kms';
+import { KmsQuoteSigner } from '../../../src/signers/kms';
 import { LocalQuoteSigner } from '../../../src/signers/local';
-import { toQuoteSigner, type QuoteSigner } from '../../../src/signers/protocol';
+import type { QuoteSigner } from '../../../src/signers/protocol';
 import {
   FakePaymentService,
   SELLER_URL,
@@ -210,11 +210,6 @@ describe.each([
     (algorithm: 'ECDSA_SHA_256' | 'ECDSA_SHA_384' | 'ECDSA_SHA_512') =>
       new KmsQuoteSigner({ keyArn: ARN, region: 'us-east-1', serviceUrl: SELLER_URL, algorithm }),
   ],
-  [
-    'createKmsQuoteSigner',
-    (algorithm: 'ECDSA_SHA_256' | 'ECDSA_SHA_384' | 'ECDSA_SHA_512') =>
-      createKmsQuoteSigner({ keyArn: ARN, region: 'us-east-1', serviceUrl: SELLER_URL, algorithm }),
-  ],
 ] as const)('%s', (_name, create) => {
   it.each([
     ['ECDSA_SHA_256', 'P-256'],
@@ -232,17 +227,5 @@ describe.each([
       expect(result).toMatchObject({ isValid: true });
       expect(jose.decodeProtectedHeader(quoteToken).kid).toBe('quote-key');
     }
-  });
-});
-
-describe('toQuoteSigner', () => {
-  it.each(LOCAL_KEYS)('%s: verifies through the static resolver', async (_name, generate) => {
-    const { privateKey, publicKey } = generate();
-    const publicJwk = { ...publicKey.export({ format: 'jwk' }), kid: 'k' } as jose.JWK;
-    const { result } = await signThenVerify(toQuoteSigner(privateKey, publicJwk, SELLER_URL), {
-      type: 'static',
-      publicJwk,
-    });
-    expect(result).toMatchObject({ isValid: true });
   });
 });

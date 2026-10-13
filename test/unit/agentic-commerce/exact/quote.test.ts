@@ -5,7 +5,7 @@ import { webcrypto } from 'node:crypto';
 import * as jose from 'jose';
 import type { PaymentRequirements } from '@x402/core/types';
 import { enhancePaymentRequirements } from '../../../../src/agentic-commerce/exact/quote';
-import { toQuoteSigner } from '../../../../src/signers/protocol';
+import { toQuoteSigner } from '../../../helpers/jwt-signers';
 import {
   DEFAULT_QUOTE_VALIDITY_SECONDS,
   QUOTE_TOKEN_AUDIENCE,

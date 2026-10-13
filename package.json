@@ -1,10 +1,11 @@
 {
   "name": "@aws/fiat-extension-for-x402",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "AWS Marketplace Agentic Commerce payment schemes for the x402 protocol",
   "type": "module",
   "files": [
     "dist",
+    "CHANGELOG.md",
     "README.md",
     "LICENSE",
     "NOTICE"
@@ -34,14 +35,16 @@
       }
     }
   },
+  "sideEffects": false,
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:coverage:open": "npm run test:coverage && open coverage/index.html",
     "build": "tsup",
-    "attw": "npm run build && attw --pack . --profile node16",
-    "publint": "npm run build && publint",
+    "attw": "attw --pack . --profile node16",
+    "publint": "publint",
+    "check:package": "npm run build && npm run attw && npm run publint",
     "typecheck": "tsc --noEmit",
     "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
     "lint": "eslint src test --max-warnings 21",
@@ -62,7 +65,7 @@
   "author": "Amazon Web Services",
   "license": "Apache-2.0",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.19"
   },
   "peerDependencies": {
     "@x402/core": ">=2.23.0 <3"
@@ -89,7 +92,7 @@
     "@x402/express": ">=2.23.0 <3",
     "eslint": "10.11.0",
     "express": "^4.18.2",
-    "prettier": "^3.9.9",
+    "prettier": "3.9.9",
     "publint": "0.3.25",
     "tsup": "^8.0.1",
     "tsx": "^4.23.15",

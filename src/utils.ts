@@ -4,9 +4,8 @@
  * Utility functions for Agentic Commerce x402 extension
  */
 
-import { webcrypto } from 'node:crypto';
 import * as jose from 'jose';
-import { WELL_KNOWN_JWKS_PATH } from './constants';
+import { ALLOWED_ALGORITHMS } from './security';
 import {
   QuoteTokenPayload,
   PaymentTokenPayload,
@@ -14,9 +13,6 @@ import {
   SignatureError,
   ExpiryError,
 } from './types';
-
-// Use Node.js crypto for UUID generation
-const crypto = webcrypto;
 
 /**
  * Decode a quote token without verification
@@ -32,29 +28,43 @@ export function decodeQuoteToken(token: string): QuoteTokenPayload {
 }
 
 /**
+ * Verify a JWT signed with one of ALLOWED_ALGORITHMS. jose checks `exp`
+ * after the signature, so an expired token here is genuine: ExpiryError.
+ * Any other failure is a SignatureError.
+ */
+async function verifyToken(
+  token: string,
+  publicKey: jose.JWK | jose.KeyLike,
+  kind: 'quote' | 'payment'
+): Promise<jose.JWTPayload> {
+  const label = kind === 'quote' ? 'Quote token' : 'Payment token';
+  try {
+    const { payload } = await jose.jwtVerify(token, publicKey, {
+      algorithms: [...ALLOWED_ALGORITHMS],
+    });
+    return payload;
+  } catch (error) {
+    if (error instanceof jose.errors.JWTExpired) {
+      const now = Math.floor(Date.now() / 1000);
+      throw new ExpiryError(`${label} expired`, error.payload.exp ?? now, now);
+    }
+    throw new SignatureError(`${label} signature verification failed`, kind);
+  }
+}
+
+/**
  * Verify a quote token signature
  * @param token - Quote token JWT
  * @param publicKey - Public key for verification
  * @returns Verified quote token payload
+ * @throws ExpiryError if the token is genuine but expired; SignatureError otherwise
  */
 export async function verifyQuoteToken(
   token: string,
   publicKey: jose.JWK | jose.KeyLike
 ): Promise<QuoteTokenPayload> {
-  try {
-    const { payload } = await jose.jwtVerify(token, publicKey);
-
-    // Check expiry
-    const now = Math.floor(Date.now() / 1000);
-    if (payload.exp && payload.exp < now) {
-      throw new ExpiryError('Quote token expired', payload.exp, now);
-    }
-
-    return payload as unknown as QuoteTokenPayload;
-  } catch (error) {
-    if (error instanceof ExpiryError) throw error;
-    throw new SignatureError('Quote token signature verification failed', 'quote');
-  }
+  const payload = await verifyToken(token, publicKey, 'quote');
+  return payload as unknown as QuoteTokenPayload;
 }
 
 /**
@@ -62,47 +72,14 @@ export async function verifyQuoteToken(
  * @param token - Payment token JWT
  * @param publicKey - Public key for verification
  * @returns Verified payment token payload
+ * @throws ExpiryError if the token is genuine but expired; SignatureError otherwise
  */
 export async function verifyPaymentToken(
   token: string,
   publicKey: jose.JWK | jose.KeyLike
 ): Promise<PaymentTokenPayload> {
-  try {
-    const { payload } = await jose.jwtVerify(token, publicKey);
-
-    // Check expiry
-    const now = Math.floor(Date.now() / 1000);
-    if (payload.exp && payload.exp < now) {
-      throw new ExpiryError('Payment token expired', payload.exp, now);
-    }
-
-    return payload as unknown as PaymentTokenPayload;
-  } catch (error) {
-    if (error instanceof ExpiryError) throw error;
-    throw new SignatureError('Payment token signature verification failed', 'payment');
-  }
-}
-
-/**
- * Extract quote token from payment token
- * @param payment - Payment token payload
- * @returns Quote token JWT string
- */
-export function extractQuoteFromPayment(payment: PaymentTokenPayload): string {
-  // Agentic Commerce returns quote_token at top level; fallback to payment_context for backward compat
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- pre-existing `any` fallback, tracked with the no-explicit-any cleanup
-  return (payment as any).quote_token || payment.payment_context?.quote_token;
-}
-
-/**
- * Generate a transaction ID
- * @param network - Network identifier (e.g., "aws:base")
- * @param agenticCommerceId - Agentic Commerce identifier
- * @returns Transaction ID in format {network}:{uniqueId}
- */
-export function generateTransactionId(network: string, agenticCommerceId: string): string {
-  const uniqueId = crypto.randomUUID().replace(/-/g, '').substring(0, 16);
-  return `${network}:${uniqueId}`;
+  const payload = await verifyToken(token, publicKey, 'payment');
+  return payload as unknown as PaymentTokenPayload;
 }
 
 // Money amounts in route prices: a string such as "$1.50" or "1.50 USD", or a
@@ -211,130 +188,4 @@ export function parseMoney(money: string | number): { amount: string; currency: 
 export function parseMoneyToDecimal(money: string | number): { amount: number; currency: string } {
   const { amount, currency } = parseMoney(money);
   return { amount: Number(amount), currency };
-}
-
-/**
- * Parse transaction ID into components
- * @param transactionId - Transaction ID (format: {network}:{id})
- * @returns Network and ID components
- */
-export function parseTransactionId(transactionId: string): { network: string; id: string } {
-  const parts = transactionId.split(':');
-  if (parts.length < 2) {
-    throw new ValidationError('Invalid transaction ID format. Expected {network}:{id}', {
-      transactionId,
-    });
-  }
-
-  const network = parts.slice(0, -1).join(':');
-  const id = parts[parts.length - 1];
-
-  if (!network || !id) {
-    throw new ValidationError('Invalid transaction ID format. Expected {network}:{id}', {
-      transactionId,
-    });
-  }
-
-  return { network, id };
-}
-
-/**
- * Format transaction ID from components
- * @param network - Network identifier
- * @param id - Transaction ID
- * @returns Formatted transaction ID
- */
-export function formatTransactionId(network: string, id: string): string {
-  if (!network || !network.includes(':')) {
-    throw new ValidationError('Network must be in scheme:provider format', { network });
-  }
-  return `${network}:${id}`;
-}
-
-/**
- * Check if transaction ID is valid
- * @param transactionId - Transaction ID to validate
- * @returns True if valid, false otherwise
- */
-export function isValidTransactionId(transactionId: string): boolean {
-  try {
-    parseTransactionId(transactionId);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Extract network from transaction ID
- * @param transactionId - Transaction ID
- * @returns Network identifier
- */
-export function extractNetworkFromTransactionId(transactionId: string): string {
-  return parseTransactionId(transactionId).network;
-}
-
-// ============================================================================
-// Service JWKS Cache
-// ============================================================================
-
-interface ServiceJWKSCacheEntry {
-  jwks: ReturnType<typeof jose.createRemoteJWKSet>;
-  expiresAt: number;
-}
-
-const serviceJWKSCache = new Map<string, ServiceJWKSCacheEntry>();
-const SERVICE_JWKS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
-
-/**
- * Fetch service's JWKS for quote token signature verification.
- * Returns a jose remote JWK set function that can be passed to jwtVerify.
- * Results are cached for 1 hour.
- *
- * @param serviceUrl - Service URL (the quote token's `iss` claim)
- * @returns A function compatible with jose.jwtVerify's key argument
- */
-export function fetchServiceJWKS(serviceUrl: string): ReturnType<typeof jose.createRemoteJWKSet> {
-  const jwksUrl = `${serviceUrl.replace(/\/$/, '')}${WELL_KNOWN_JWKS_PATH}`;
-  const now = Date.now();
-
-  const cached = serviceJWKSCache.get(jwksUrl);
-  if (cached && cached.expiresAt > now) {
-    return cached.jwks;
-  }
-
-  const jwks = jose.createRemoteJWKSet(new URL(jwksUrl));
-
-  serviceJWKSCache.set(jwksUrl, {
-    jwks,
-    expiresAt: now + SERVICE_JWKS_CACHE_TTL_MS,
-  });
-
-  return jwks;
-}
-
-/**
- * Clear the service JWKS cache.
- * @param serviceUrl - Optional service URL to clear a specific entry. If omitted, clears all.
- */
-export function clearServiceJWKSCache(serviceUrl?: string): void {
-  if (serviceUrl) {
-    const jwksUrl = `${serviceUrl.replace(/\/$/, '')}${WELL_KNOWN_JWKS_PATH}`;
-    serviceJWKSCache.delete(jwksUrl);
-  } else {
-    serviceJWKSCache.clear();
-  }
-}
-
-/**
- * Fetch service public key from OIDC discovery
- * @deprecated Use fetchServiceJWKS instead — it returns a JWKS set compatible with jose.jwtVerify
- * @param serviceUrl - Service URL
- * @returns Public key in JWK format
- */
-export async function fetchServicePublicKey(serviceUrl: string): Promise<jose.JWK> {
-  throw new Error(
-    'fetchServicePublicKey is deprecated. Use fetchServiceJWKS() instead, ' +
-      'which returns a JWKS set compatible with jose.jwtVerify.'
-  );
 }

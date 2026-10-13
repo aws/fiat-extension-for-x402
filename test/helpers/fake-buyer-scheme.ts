@@ -42,7 +42,6 @@ export class FakeBuyerScheme implements SchemeNetworkClient {
     const payload: AgenticCommercePayloadV2 = {
       paymentToken: result.paymentToken,
       paymentId: result.paymentId,
-      transactionId: result.paymentId,
     };
     return { x402Version, payload: payload as unknown as Record<string, unknown> };
   }
