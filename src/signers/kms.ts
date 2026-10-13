@@ -6,9 +6,6 @@
  * Provides a production-ready QuoteSigner that signs quote tokens
  * using an AWS KMS asymmetric key (EC P-256, P-384, or P-521).
  *
- * Follows the Python SDK's `fiat_extension_x402/signers/kms.py` (commit
- * 62230e6). `signQuote` is async (a TS deviation, PYTHON-DELTA A19).
- *
  * Usage:
  * ```typescript
  * import { KmsQuoteSigner, ExactAgenticCommerceServerScheme } from '@aws/fiat-extension-for-x402';
@@ -25,7 +22,7 @@
 
 import { KMSClient, SignCommand, type SigningAlgorithmSpec } from '@aws-sdk/client-kms';
 import type { AwsCredentialIdentityProvider } from '@aws-sdk/types';
-import { pyStr } from '../agentic-commerce/python';
+import { displayText } from '../agentic-commerce/json-value';
 import { SigningError } from '../types';
 import { assertServiceUrl, type QuoteSigner } from './protocol';
 
@@ -96,7 +93,7 @@ export class KmsQuoteSigner implements QuoteSigner {
     const { keyArn, region, serviceUrl, credentials, algorithm = 'ECDSA_SHA_384', kid } = config;
     assertServiceUrl(serviceUrl);
     if (!Object.hasOwn(ALG_MAP, algorithm)) {
-      throw new SigningError(`Unsupported algorithm: ${pyStr(algorithm)}`, {
+      throw new SigningError(`Unsupported algorithm: ${displayText(algorithm)}`, {
         supported: Object.keys(ALG_MAP),
       });
     }
@@ -125,8 +122,8 @@ export class KmsQuoteSigner implements QuoteSigner {
    * @param payload - Quote token claims to sign
    * @returns The compact JWS
    * @throws SigningError if the KMS call fails or returns no signature
-   * @throws Error if the DER signature from KMS is malformed (Python raises
-   *   ValueError or OverflowError there, not SigningError)
+   * @throws Error if the DER signature from KMS is malformed (not a
+   *   SigningError: the KMS call succeeded, but its output is unusable)
    */
   async signQuote(payload: object): Promise<string> {
     const header = Buffer.from(
@@ -167,7 +164,7 @@ export class KmsQuoteSigner implements QuoteSigner {
 /**
  * Create a QuoteSigner backed by AWS KMS.
  *
- * @deprecated Use `new KmsQuoteSigner(config)`, the Python SDK's shape.
+ * @deprecated Use `new KmsQuoteSigner(config)`.
  * @param config - KMS signer configuration
  * @returns A {@link KmsQuoteSigner} whose methods are bound, with the former
  *   factory's `getPublicKey()`, which returns `{}`
@@ -227,14 +224,12 @@ function readDerUnsignedInteger(
  *
  * KMS returns signatures in DER (ASN.1) format, `SEQUENCE { INTEGER r,
  * INTEGER s }`. JWTs require raw concatenation: r (fixed-length) || s
- * (fixed-length). Parsed strictly, as `cryptography`'s
- * `decode_dss_signature` does in the Python SDK: malformed DER, a negative
- * or non-minimal integer, trailing bytes, or an r or s wider than
- * `componentLength` (Python's `int.to_bytes` overflow) are rejected.
+ * (fixed-length). Parsed strictly: malformed DER, a negative or non-minimal
+ * integer, trailing bytes, or an r or s wider than `componentLength` are
+ * rejected.
  *
  * @internal
- * @throws Error on a malformed signature: Python's `_der_to_raw` raises
- *   ValueError or OverflowError, which `sign_quote` does not wrap in SigningError
+ * @throws Error on a malformed signature (a plain Error, not a SigningError)
  */
 export function derToRaw(derSignature: Uint8Array, componentLength: number): Uint8Array {
   try {

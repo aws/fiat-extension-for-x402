@@ -9,7 +9,7 @@
 # Do not add entries for new code: use example.com or a placeholder instead.
 
 # Default payment-token JWKS host. The verifier's paymentTokenJwksUrl option
-# overrides it; the Python SDK has the same default (constants.py:42 at 62230e6).
+# overrides it.
 # It must be replaced by a stable public host, or kept with sign-off, before
 # the package is first published (PR 13).
 src/constants.ts d3aeb2cjjowogc.cloudfront.net # PR 13: replace the default JWKS host before publishing

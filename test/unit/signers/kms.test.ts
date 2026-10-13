@@ -1,8 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * KmsQuoteSigner (and the deprecated createKmsQuoteSigner), following the
- * Python SDK's tests/unit/signers/test_kms_signer.py (commit 62230e6).
+ * KmsQuoteSigner (and the deprecated createKmsQuoteSigner): kid derivation,
+ * algorithms, signing through KMS, and how KMS errors are reported.
  *
  * KMS is mocked; no test calls AWS.
  */
@@ -121,7 +121,7 @@ describe.each([
     expect(sendMock.mock.calls[0][0].input.SigningAlgorithm).toBe('ECDSA_SHA_384');
   });
 
-  it("derives the kid from the ARN unless one is given (FIXTURES.md's four vectors)", async () => {
+  it('derives the kid from the ARN unless one is given', async () => {
     sendMock.mockResolvedValue({ Signature: der([1], [2]) });
     const vectors: [string, string | undefined, string][] = [
       ['arn:aws:kms:us-east-1:111122223333:alias/my-quote-key', undefined, 'my-quote-key'],
@@ -132,7 +132,7 @@ describe.each([
       ],
       ['1234abcd-12ab', undefined, '1234abcd-12ab'],
       ['alias/foo', undefined, 'foo'],
-      // kid=, and an empty kid is kept (Python tests `kid is not None`)
+      // An explicit kid wins, and an empty kid is kept rather than derived
       ['arn:aws:kms:us-east-1:111122223333:alias/my-quote-key', 'explicit-kid', 'explicit-kid'],
       ['arn:aws:kms:us-east-1:111122223333:alias/my-quote-key', '', ''],
     ];
@@ -164,7 +164,7 @@ describe.each([
     }
   );
 
-  it('wraps a KMS error, keeping it as the cause (Python: raise ... from exc)', async () => {
+  it('wraps a KMS error, keeping it as the cause', async () => {
     const kmsError = Object.assign(new Error('AccessDeniedException: not allowed'), {
       name: 'AccessDeniedException',
       $metadata: { requestId: 'req-1' },
@@ -180,7 +180,7 @@ describe.each([
     expect((error as Error).cause).toBe(kmsError);
   });
 
-  it('rejects a malformed DER signature from KMS with a plain Error, as Python does', async () => {
+  it('rejects a malformed DER signature from KMS with a plain Error', async () => {
     sendMock.mockResolvedValue({ Signature: Uint8Array.from([0x30, 0x00]) });
     const signer = create({ keyArn, region: 'us-east-1', serviceUrl });
     const error = await signer.signQuote({} as never).catch((e: unknown) => e);
@@ -237,7 +237,7 @@ describe('createKmsQuoteSigner (deprecated)', () => {
     );
   });
 
-  it("reports a null algorithm as Python's None", () => {
+  it('reports a null algorithm as None', () => {
     expectSigningError(
       () =>
         new KmsQuoteSigner({ keyArn, region: 'us-east-1', serviceUrl, algorithm: null as never }),
@@ -292,10 +292,10 @@ describe('KMS signatures with leading zero bytes in r or s', () => {
 });
 
 /**
- * derToRaw against Python's `decode_dss_signature` then `int.to_bytes`
- * (signers/kms.py:43-55). Each case was run through cryptography 50.0.2:
- * the accepted ones give these bytes, the rejected ones raise ValueError
- * (malformed DER) or OverflowError (wider than the component).
+ * derToRaw turns a DER ECDSA signature into the fixed-width r || s form a JWS
+ * uses, each component left-padded to the given size. It accepts a leading
+ * sign byte and long-form lengths, and rejects malformed DER and a component
+ * wider than the size.
  */
 describe('derToRaw', () => {
   const accepted: [string, Uint8Array, number, number[]][] = [
@@ -417,8 +417,8 @@ describe('derToRaw', () => {
   ];
 
   it.each(rejected)('rejects %s', (_name, signature, size, reason) => {
-    // Not a SigningError: Python's _der_to_raw raises ValueError or
-    // OverflowError, which sign_quote does not wrap.
+    // Not a SigningError: a malformed signature is a plain Error, which
+    // signQuote does not wrap.
     let caught: unknown;
     try {
       derToRaw(signature, size);

@@ -2,9 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Helper that registers the `exact` server scheme on an x402 resource server.
- *
- * Follows the Python SDK's `register_exact_agentic_commerce_server`
- * (fiat_extension_x402/agentic_commerce/exact/register.py:27-52 at commit 62230e6).
  */
 
 import type { Network, SchemeNetworkServer } from '@x402/core/types';
@@ -54,7 +51,7 @@ export function registerExactAgenticCommerceServer<
     dpopNonceStore: options.dpopNonceStore,
     dpopMaxAgeSeconds: options.dpopMaxAgeSeconds,
   });
-  // An empty list falls back to the default, as Python's `networks or [...]` does.
+  // An empty list falls back to the default network.
   const networks = options.networks?.length ? options.networks : [DEFAULT_NETWORK as Network];
   for (const network of networks) {
     server.register(network, scheme);

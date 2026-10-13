@@ -1,9 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * LocalQuoteSigner, ported from the Python SDK's
- * tests/unit/signers/test_local_signer.py (commit 62230e6), plus the
- * cross-language fixture and the TS-only guards.
+ * LocalQuoteSigner: construction from a key pair or a PEM, the checks on each,
+ * signing, and the fixed seller key and quote vectors.
  *
  * Every private key is generated (or, for the fixture, derived) at test time;
  * no private key PEM is stored in the repository.
@@ -15,13 +14,13 @@ import * as jose from 'jose';
 import { LocalQuoteSigner } from '../../../src/signers/local';
 import type { QuoteSigner } from '../../../src/signers/protocol';
 import { SigningError } from '../../../src/types';
-import * as fixtures from '../../helpers/cross-language-fixtures';
+import * as fixtures from '../../helpers/fixed-vectors';
 
 const SELLER_URL = 'https://seller.example.com';
 
 type Curve = 'P-256' | 'P-384' | 'P-521';
 
-/** An EC key pair and its public JWK with alg and kid, as tests/support.py:ec_key builds it */
+/** An EC key pair and its public JWK with alg and kid */
 function ecKey(kid: string, curve: Curve = 'P-256', alg = 'ES256') {
   const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: curve });
   const jwk = { ...publicKey.export({ format: 'jwk' }), alg, kid } as jose.JWK;
@@ -144,7 +143,7 @@ describe('LocalQuoteSigner', () => {
     }
   );
 
-  it("lists every private member, sorted as Python's sorted() does", () => {
+  it('lists every private member, sorted', () => {
     const { privateKey, jwk } = ecKey('seller-key');
     expectSigningError(
       () => new LocalQuoteSigner(privateKey, { ...jwk, q: 'x', d: 'x', dp: 'x' }, SELLER_URL),
@@ -177,7 +176,7 @@ describe('LocalQuoteSigner', () => {
     );
   });
 
-  describe('TS-only guards (Python fails later, when signing or verifying)', () => {
+  describe('checks made at construction rather than when signing or verifying', () => {
     it.each([
       [
         'ES384 on a P-256 key',
@@ -289,7 +288,7 @@ describe('LocalQuoteSigner', () => {
       }
     );
 
-    it('rejects a kid that is not a string, which PyJWT refuses when signing', () => {
+    it('rejects a kid that is not a string', () => {
       const { privateKey, jwk } = ecKey('k');
       expectSigningError(
         () =>
@@ -388,7 +387,7 @@ describe('LocalQuoteSigner.fromPem', () => {
     expect(payload).toEqual({ a: 1 });
   });
 
-  it('loads an RSA key from a string, with key_ops as PyJWT writes it', async () => {
+  it("loads an RSA key from a string, with key_ops ['verify'] in its public JWK", async () => {
     const { privateKey, publicKey } = rsaKey(2048);
     const signer = LocalQuoteSigner.fromPem(pem(privateKey), { kid: 'r1', serviceUrl: SELLER_URL });
 
@@ -432,7 +431,7 @@ describe('LocalQuoteSigner.fromPem', () => {
     }
   });
 
-  it('treats an empty password for an encrypted PEM as none, as cryptography does', () => {
+  it('treats an empty password for an encrypted PEM as none', () => {
     for (const password of ['', new Uint8Array(0)]) {
       expectSigningError(
         () =>
@@ -455,7 +454,7 @@ describe('LocalQuoteSigner.fromPem', () => {
     );
   });
 
-  it('loads the first private key block of a bundle, as cryptography does', () => {
+  it('loads the first private key block of a bundle', () => {
     const plainKey = ecKey('unused', 'P-384').privateKey;
     const plain = pem(plainKey);
     const encrypted = pem(ecKey('unused').privateKey, 'pass-phrase');
@@ -484,7 +483,7 @@ describe('LocalQuoteSigner.fromPem', () => {
     ).toBe('P-384');
   });
 
-  it('names an unsupported curve as cryptography does (secp192r1, not prime192v1)', () => {
+  it('names an unsupported curve by its SEC name (secp192r1, not prime192v1)', () => {
     const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'prime192v1' });
     expectSigningError(
       () => LocalQuoteSigner.fromPem(pem(privateKey), { kid: 'k1', serviceUrl: SELLER_URL }),
@@ -492,7 +491,7 @@ describe('LocalQuoteSigner.fromPem', () => {
     );
   });
 
-  it('treats a null password as no password, as Python treats None', () => {
+  it('treats a null password as no password', () => {
     const plain = pem(ecKey('unused').privateKey);
     const signer = LocalQuoteSigner.fromPem(plain, {
       kid: 'k1',
@@ -539,8 +538,8 @@ describe('LocalQuoteSigner.fromPem', () => {
 
   it('reports a wrong password that decrypts to undecodable bytes as a format error', () => {
     // About 1 in 100 wrong passwords pass the padding check and fail to decode
-    // (ERR_OSSL_UNSUPPORTED). cryptography 50 reports those as "Could not
-    // deserialize key data", not as a wrong password. Find one.
+    // (ERR_OSSL_UNSUPPORTED). Those are reported as a format error, not as a
+    // wrong password. Find one.
     const encrypted = pem(ecKey('unused').privateKey, 'pass-phrase');
     for (let i = 0; i < 3000; i++) {
       try {
@@ -565,7 +564,7 @@ describe('LocalQuoteSigner.fromPem', () => {
     throw new Error('no wrong password failed with ERR_OSSL_UNSUPPORTED');
   });
 
-  it("reports a PEM with no private key block with cryptography's message", () => {
+  it('reports a PEM with no private key block', () => {
     const publicPem = ecKey('unused').publicKey.export({ type: 'spki', format: 'pem' }) as string;
     const openssh = pemBlock(['OPENSSH', 'PRIVATE', 'KEY'].join(' '), 'AAAA');
     for (const text of [publicPem, openssh]) {
@@ -578,7 +577,7 @@ describe('LocalQuoteSigner.fromPem', () => {
   });
 
   it.each(['', 'hello', 'not a key'])(
-    "reports text with no PEM section (%j) with cryptography's MalformedFraming",
+    'reports text with no PEM section (%j) as MalformedFraming',
     (text) => {
       expectSigningError(
         () => LocalQuoteSigner.fromPem(text, { kid: 'k1', serviceUrl: SELLER_URL }),
@@ -589,7 +588,7 @@ describe('LocalQuoteSigner.fromPem', () => {
     }
   );
 
-  it('skips an OPENSSH PRIVATE KEY block before the key, as cryptography does', () => {
+  it('skips an OPENSSH PRIVATE KEY block before the key', () => {
     const openssh = pemBlock(['OPENSSH', 'PRIVATE', 'KEY'].join(' '), 'AAAA');
     const signer = LocalQuoteSigner.fromPem(
       `${openssh}${pem(ecKey('unused', 'P-384').privateKey)}`,
@@ -601,7 +600,7 @@ describe('LocalQuoteSigner.fromPem', () => {
     expect(signer.publicJwk.crv).toBe('P-384');
   });
 
-  it("fails with a wrong password, with cryptography's message", () => {
+  it('fails with a wrong password', () => {
     const encrypted = pem(ecKey('unused', 'P-384').privateKey, 'pass-phrase');
     expectSigningError(
       () =>
@@ -610,7 +609,7 @@ describe('LocalQuoteSigner.fromPem', () => {
     );
   });
 
-  it("fails without the password of an encrypted PEM, with cryptography's message", () => {
+  it('fails without the password of an encrypted PEM', () => {
     const encrypted = pem(ecKey('unused').privateKey, 'pass-phrase');
     const traditional = ecKey('unused').privateKey.export({
       type: 'sec1',
@@ -632,7 +631,7 @@ describe('LocalQuoteSigner.fromPem', () => {
     expect(signer.publicJwk.alg).toBe('ES256');
   });
 
-  it('refuses a password for an unencrypted PEM, as cryptography does', () => {
+  it('refuses a password for an unencrypted PEM', () => {
     expectSigningError(
       () =>
         LocalQuoteSigner.fromPem(pem(ecKey('unused').privateKey), {
@@ -665,7 +664,7 @@ describe('LocalQuoteSigner.fromPem', () => {
     );
   });
 
-  it('checks the kid before loading the PEM, as Python does', () => {
+  it('checks the kid before loading the PEM', () => {
     expectSigningError(
       () => LocalQuoteSigner.fromPem('not a key', { kid: '', serviceUrl: SELLER_URL }),
       'kid is required and must be non-empty.'
@@ -688,7 +687,7 @@ describe('LocalQuoteSigner.fromPem', () => {
     );
   });
 
-  it('checks the curve before the service URL, as Python does', () => {
+  it('checks the curve before the service URL', () => {
     const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'secp256k1' });
     expectSigningError(
       () => LocalQuoteSigner.fromPem(pem(privateKey), { kid: 'k1', serviceUrl: '' }),
@@ -700,7 +699,7 @@ describe('LocalQuoteSigner.fromPem', () => {
     ['DSA', () => generateKeyPairSync('dsa', { modulusLength: 2048, divisorLength: 256 })],
     ['RSA-PSS', () => generateKeyPairSync('rsa-pss', { modulusLength: 2048 })],
     ['X25519', () => generateKeyPairSync('x25519')],
-  ] as const)('rejects a %s key as Python does, before any JWK export', (_name, generate) => {
+  ] as const)('rejects a %s key before any JWK export', (_name, generate) => {
     expectSigningError(
       () =>
         LocalQuoteSigner.fromPem(pem(generate().privateKey), { kid: 'k1', serviceUrl: SELLER_URL }),
@@ -735,18 +734,18 @@ describe('LocalQuoteSigner.fromPem', () => {
     );
   });
 
-  describe('cross-language fixture (FIXTURES.md section 1 and 2)', () => {
+  describe('the fixed seller key and quote vectors', () => {
     const signer = () =>
       LocalQuoteSigner.fromPem(pem(fixtures.sellerPrivateKey()), {
         kid: 'fixture-seller-1',
         serviceUrl: fixtures.SELLER_URL,
       });
 
-    it("derives Python's public_jwk, member for member and in order", () => {
+    it('derives the fixture public JWK, member for member and in order', () => {
       expect(JSON.stringify(signer().publicJwk)).toBe(JSON.stringify(fixtures.SELLER_PUBLIC_JWK));
     });
 
-    it("signs the fixture quote with Python's exact header and payload bytes", async () => {
+    it('signs the fixture quote with its exact header and payload bytes', async () => {
       const [header, body] = fixtures.QUOTE_TOKEN.split('.');
       const token = await signer().signQuote(JSON.parse(fixtures.QUOTE_PAYLOAD_JSON) as object);
       expect(token.split('.').slice(0, 2)).toEqual([header, body]);

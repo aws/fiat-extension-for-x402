@@ -10,9 +10,8 @@
  * - settle() is a no-op: the service captured the payment when it issued the token
  * - getSupported() fetches `/.well-known/x402-supported` from the service
  *
- * The Python SDK has no counterpart; it registers the facilitator scheme on an
- * in-process x402 facilitator, which `ExactAgenticCommerceFacilitatorScheme`
- * with `InProcessFacilitatorClient` also does here.
+ * To verify in-process instead, register `ExactAgenticCommerceFacilitatorScheme`
+ * on an x402 facilitator and use `InProcessFacilitatorClient`.
  */
 
 import type { FacilitatorClient } from '@x402/core/http';

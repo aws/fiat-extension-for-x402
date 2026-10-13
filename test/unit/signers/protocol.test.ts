@@ -57,7 +57,7 @@ describe('Agentic Commerce Signers', () => {
       expect(url).toMatch(/^https?:\/\//);
     });
 
-    it('needs only signQuote and getServiceUrl, as the Python protocol', () => {
+    it('needs only signQuote and getServiceUrl', () => {
       expect(Object.keys(signer).sort()).toEqual(['getServiceUrl', 'signQuote']);
     });
   });

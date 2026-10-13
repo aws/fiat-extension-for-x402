@@ -7,10 +7,6 @@
  * signed by the AWS Marketplace Agentic Commerce service that embeds the quote
  * token the seller signed. Verification is cryptographic and needs no call to
  * the service other than fetching its public keys.
- *
- * Follows the Python SDK's `AgenticCommerceVerifier`
- * (fiat_extension_x402/agentic_commerce/verifier.py at commit 62230e6): the
- * same checks in the same order, with the same reasons and messages.
  */
 
 import { createPublicKey, type KeyObject } from 'node:crypto';
@@ -23,7 +19,14 @@ import {
 import { ALLOWED_ALGORITHMS, secureCompare } from '../security';
 import { ValidationError } from '../types';
 import type { KmsSellerKeyResolver, SellerKeyResolver } from './keys';
-import { isPlainObject, isTruthy, pyEquals, pyInt, pyStr, rstripSlashes } from './python';
+import {
+  isPlainObject,
+  isTruthy,
+  looseEquals,
+  toInteger,
+  displayText,
+  rstripSlashes,
+} from './json-value';
 
 // Seller keys (JWKS or KMS) are cached for an hour. The service's own keys are
 // fetched on every verification: its JWKS endpoint sends Cache-Control: no-store
@@ -66,7 +69,7 @@ export interface VerificationRequirements {
   extra?: Record<string, unknown>;
   /**
    * The route's AWS Marketplace product ID. When given, the quote's `payTo`
-   * and `settlement.product_id` must equal it. Not a Python SDK check.
+   * and `settlement.product_id` must equal it.
    */
   productId?: string;
 }
@@ -91,8 +94,8 @@ export interface AgenticCommerceVerifierConfig {
 }
 
 /**
- * A JWT validation failure, the counterpart of PyJWT's `PyJWTError`. When the
- * verifier tries several keys, only this kind of error moves on to the next key.
+ * A JWT validation failure. When the verifier tries several keys, only this
+ * kind of error moves on to the next key.
  *
  * @internal
  */
@@ -182,7 +185,7 @@ export class AgenticCommerceVerifier {
     }
 
     const now = Math.floor(Date.now() / 1000);
-    if (!pyEquals(paymentClaims.iss, this.paymentTokenIssuer)) {
+    if (!looseEquals(paymentClaims.iss, this.paymentTokenIssuer)) {
       return invalid('invalid_payment', 'Payment token issuer is not the payment service');
     }
     const exp = paymentClaims.exp;
@@ -194,7 +197,7 @@ export class AgenticCommerceVerifier {
     if (typeof quoteToken !== 'string' || !quoteToken) {
       return invalid('invalid_quote', 'Missing quote token in payment token');
     }
-    if (!secureCompare(quoteToken, pyStr(expectedQuoteToken))) {
+    if (!secureCompare(quoteToken, displayText(expectedQuoteToken))) {
       return invalid('invalid_quote', 'Payment token was issued for a different quote');
     }
 
@@ -205,7 +208,7 @@ export class AgenticCommerceVerifier {
       return invalid('invalid_quote', `Quote token signature invalid: ${errorMessage(error)}`);
     }
 
-    if (!pyEquals(paymentClaims.aud, quoteClaims.iss)) {
+    if (!looseEquals(paymentClaims.aud, quoteClaims.iss)) {
       return invalid('invalid_payment', 'Payment token audience is not the quote issuer');
     }
     const quoteExp = quoteClaims.exp;
@@ -214,23 +217,23 @@ export class AgenticCommerceVerifier {
     }
 
     const price = quoteClaims.price;
-    const asset = requirements.asset === undefined ? '' : pyStr(requirements.asset);
+    const asset = requirements.asset === undefined ? '' : displayText(requirements.asset);
     const currency = asset.replaceAll('iso4217:', '');
     if (
       !isPlainObject(price) ||
-      !pyEquals(price.amount, requirements.amount) ||
-      !pyEquals(price.currency, currency)
+      !looseEquals(price.amount, requirements.amount) ||
+      !looseEquals(price.currency, currency)
     ) {
       return invalid('invalid_payment', 'Amount or currency mismatch');
     }
 
-    // Not in the Python SDK: x402 core does not match on the product, so bind it here.
+    // x402 core does not match on the product, so bind it here.
     if (requirements.productId !== undefined) {
       const settlement = quoteClaims.settlement;
       if (
-        !pyEquals(quoteClaims.payTo, requirements.productId) ||
+        !looseEquals(quoteClaims.payTo, requirements.productId) ||
         !isPlainObject(settlement) ||
-        !pyEquals(settlement.product_id, requirements.productId)
+        !looseEquals(settlement.product_id, requirements.productId)
       ) {
         return invalid('invalid_payment', 'Quote is for a different product');
       }
@@ -311,8 +314,7 @@ function validateSellerKeyResolver(resolver: unknown): void {
 }
 
 async function fetchJwks(url: string, headers: Record<string, string>): Promise<unknown> {
-  // Redirects are not followed (as httpx in the Python SDK), so the headers
-  // never reach another host.
+  // Redirects are not followed, so the headers never reach another host.
   const response = await fetch(url, {
     headers,
     redirect: 'manual',
@@ -348,7 +350,7 @@ async function verifyWithJwks(token: string, jwks: unknown): Promise<Record<stri
   const candidates = keys.filter((key: unknown) => {
     if (kid === null) return true;
     if (!isPlainObject(key)) throw new ValidationError('JWKS keys must be JSON objects');
-    return pyEquals(key.kid, kid);
+    return looseEquals(key.kid, kid);
   });
   if (candidates.length === 0) {
     throw new ValidationError('No matching key found in JWKS');
@@ -365,7 +367,7 @@ async function verifyWithJwks(token: string, jwks: unknown): Promise<Record<stri
   throw lastError;
 }
 
-// Algorithm family of each JWK `kty`, and the default `alg` of each EC curve (PyJWK).
+// Algorithm family of each JWK `kty`, and the default `alg` of each EC curve.
 const KEY_TYPE_ALGORITHMS: Record<string, RegExp> = {
   EC: /^ES(256|256K|384|512)$/,
   RSA: /^(RS|PS)(256|384|512)$/,
@@ -379,7 +381,8 @@ const EC_CURVE_ALGORITHMS: Record<string, string> = {
 };
 
 /**
- * A public key from a JWK, rejecting the JWKs that PyJWT's `PyJWK` rejects.
+ * A public key from a JWK. A JWK without `kty`, or with an `alg` (given or
+ * implied by its curve) outside its key type's family, is rejected.
  *
  * @internal
  */
@@ -395,19 +398,19 @@ export function importJwk(keyData: unknown): KeyObject {
   if (!isTruthy(alg)) {
     const crv = keyData.crv;
     if (kty === 'EC') {
-      alg = isTruthy(crv) ? EC_CURVE_ALGORITHMS[pyStr(crv)] : 'ES256';
-      if (alg === undefined) throw new JwtError(`Unsupported crv: ${pyStr(crv)}`);
+      alg = isTruthy(crv) ? EC_CURVE_ALGORITHMS[displayText(crv)] : 'ES256';
+      if (alg === undefined) throw new JwtError(`Unsupported crv: ${displayText(crv)}`);
     } else if (kty === 'RSA') {
       alg = 'RS256';
     } else if (kty === 'OKP') {
       if (!isTruthy(crv)) throw new JwtError(`crv is not found: ${JSON.stringify(keyData)}`);
-      if (crv !== 'Ed25519') throw new JwtError(`Unsupported crv: ${pyStr(crv)}`);
+      if (crv !== 'Ed25519') throw new JwtError(`Unsupported crv: ${displayText(crv)}`);
       alg = 'EdDSA';
     } else {
-      throw new JwtError(`Unsupported kty: ${pyStr(kty)}`);
+      throw new JwtError(`Unsupported kty: ${displayText(kty)}`);
     }
   }
-  const family = KEY_TYPE_ALGORITHMS[pyStr(kty)];
+  const family = KEY_TYPE_ALGORITHMS[displayText(kty)];
   if (family === undefined || typeof alg !== 'string' || !family.test(alg)) {
     throw new JwtError(`Unable to find an algorithm for key: ${JSON.stringify(keyData)}`);
   }
@@ -421,7 +424,7 @@ export function importJwk(keyData: unknown): KeyObject {
 async function verifyWithKey(token: string, key: KeyObject): Promise<Record<string, unknown>> {
   const alg = unverifiedHeader(token).alg ?? '';
   if (typeof alg !== 'string' || !ALLOWED_ALGORITHMS.includes(alg)) {
-    throw new ValidationError(`Algorithm not allowed: ${pyStr(alg)}`);
+    throw new ValidationError(`Algorithm not allowed: ${displayText(alg)}`);
   }
   let payload: Uint8Array;
   try {
@@ -451,10 +454,12 @@ export function parseClaims(payload: Uint8Array): Record<string, unknown> {
 }
 
 /**
- * The checks PyJWT's `jwt.decode` makes with expiry and audience turned off:
- * `iat` and `nbf` must be integers and not in the future (no leeway), and
- * `sub` and `jti` must be strings. Expiry is checked by the caller. With
- * `verifyIat: false` (PyJWT's `verify_iat` option) `iat` is not checked.
+ * The registered-claim checks made on every verified token: `iat` and `nbf`
+ * must be integers and not in the future (no leeway), and `sub` and `jti`
+ * must be strings. Expiry and audience are not checked here: the verifier
+ * checks the payment token's `exp` and `aud` and the quote token's `exp` (not
+ * its `aud`), and DPoP proofs check freshness from `iat` instead. With
+ * `verifyIat: false`, `iat` is not checked.
  *
  * @internal
  */
@@ -464,12 +469,12 @@ export function validateRegisteredClaims(
 ): void {
   const now = Date.now() / 1000;
   if (verifyIat && Object.hasOwn(claims, 'iat')) {
-    const iat = pyInt(claims.iat);
+    const iat = toInteger(claims.iat);
     if (iat === undefined) throw new JwtError('Issued At claim (iat) must be an integer.');
     if (iat > now) throw new JwtError('The token is not yet valid (iat)');
   }
   if (Object.hasOwn(claims, 'nbf')) {
-    const nbf = pyInt(claims.nbf);
+    const nbf = toInteger(claims.nbf);
     if (nbf === undefined) throw new JwtError('Not Before claim (nbf) must be an integer.');
     if (nbf > now) throw new JwtError('The token is not yet valid (nbf)');
   }

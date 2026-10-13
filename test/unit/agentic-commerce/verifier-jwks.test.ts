@@ -1,10 +1,9 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Key selection from a JWKS, as the Python SDK's `_verify_with_jwks` with
- * PyJWT's `PyJWK` (verifier.py:239-251 at commit 62230e6): with no `kid`
- * every key is tried, a key PyJWK cannot load is skipped, and a JWKS that is
- * not a set of JSON objects fails.
+ * Key selection from a JWKS: with no `kid` every key is tried, a key that
+ * cannot be loaded is skipped, and a JWKS that is not a set of JSON objects
+ * fails.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -106,7 +105,7 @@ describe('payment-token JWKS key selection', () => {
 
   it('fails when the payload is not a JSON object', async () => {
     vi.stubGlobal('fetch', jwksFetch({ [SERVICE_JWKS_URL]: service.jwks }));
-    // A token signed over a JSON array is rejected as PyJWT rejects it.
+    // A token signed over a JSON array has no claims set, so it is rejected.
     const privateKey = (service as unknown as { privateKey: KeyLike }).privateKey;
     const token = await new CompactSign(new TextEncoder().encode('[1]'))
       .setProtectedHeader({ alg: 'ES384', kid: service.jwk.kid })

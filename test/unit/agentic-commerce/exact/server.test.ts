@@ -86,7 +86,7 @@ describe('ExactAgenticCommerceScheme: declaration', () => {
 });
 
 describe('ExactAgenticCommerceScheme: parsePrice', () => {
-  // The full Python TestParsePrice matrix is in test/unit/price-parsing.test.ts.
+  // The full parsePrice matrix is in test/unit/price-parsing.test.ts.
   it.each([
     ['$1.50', { amount: '1.50', asset: 'iso4217:USD', extra: {} }],
     ['2 EUR', { amount: '2', asset: 'iso4217:EUR', extra: {} }],

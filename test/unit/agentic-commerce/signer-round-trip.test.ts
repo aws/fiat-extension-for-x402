@@ -4,7 +4,7 @@
  * Sign then verify, for every quote signer: the server scheme's quote
  * (enhancePaymentRequirements) is signed by the signer, embedded in a payment
  * token, and verified by AgenticCommerceVerifier with the seller key resolver
- * that matches the signer (README "Quote signing" in the Python SDK).
+ * that matches the signer.
  *
  * KMS is mocked: Sign signs locally, GetPublicKey returns the local public key.
  */

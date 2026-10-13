@@ -1,30 +1,29 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * jwksDocument, ported from the Python SDK's
- * tests/unit/agentic_commerce/test_keys.py (commit 62230e6). The messages are
- * Python's (agentic_commerce/keys.py:63-124); the key-material details after
- * "invalid key material:" are PyJWT's where PyJWT raises them itself.
+ * jwksDocument: which public JWKs it accepts, and the message it gives for each
+ * rejected one. Most details after "invalid key material:" come from the SDK's
+ * own checks; a few are the Node.js key import error.
  */
 
 import { describe, expect, it } from 'vitest';
 import { generateKeyPairSync } from 'node:crypto';
 import type { JWK } from 'jose';
 import { jwksDocument } from '../../../src/agentic-commerce/keys';
-import { base64urlDecode } from '../../../src/agentic-commerce/python';
+import { base64urlDecode } from '../../../src/agentic-commerce/json-value';
 import { LocalQuoteSigner } from '../../../src/signers/local';
 import { ValidationError } from '../../../src/types';
-import * as fixtures from '../../helpers/cross-language-fixtures';
+import * as fixtures from '../../helpers/fixed-vectors';
 
 type Curve = 'P-256' | 'P-384' | 'P-521';
 
-/** tests/support.py:ec_key: a public EC JWK with alg and kid */
+/** A public EC JWK with alg and kid */
 function ecJwk(kid: string, curve: Curve = 'P-256', alg = 'ES256'): JWK {
   const { publicKey } = generateKeyPairSync('ec', { namedCurve: curve });
   return { ...publicKey.export({ format: 'jwk' }), alg, kid } as JWK;
 }
 
-/** test_keys.py:_rsa_jwk */
+/** A public RSA JWK of the given size, with kid `rsa-<bits>` */
 function rsaJwk(bits: number, extra: Record<string, unknown> = {}): JWK {
   const { publicKey } = generateKeyPairSync('rsa', { modulusLength: bits });
   return { ...publicKey.export({ format: 'jwk' }), kid: `rsa-${bits}`, ...extra } as JWK;
@@ -75,7 +74,7 @@ describe('jwksDocument', () => {
     expect(jwksDocument(jwk)).toEqual({ keys: [jwk] });
   });
 
-  it("accepts a LocalQuoteSigner's public JWK, and Python's fixture JWK", () => {
+  it("accepts a LocalQuoteSigner's public JWK, and the fixture seller JWK", () => {
     const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
     const signer = LocalQuoteSigner.fromPem(
       privateKey.export({ type: 'pkcs8', format: 'pem' }) as string,
@@ -196,7 +195,7 @@ describe('jwksDocument', () => {
     expectInvalid([jwk as unknown as JWK], `JWK current: invalid key material: ${detail}`);
   });
 
-  it("rejects an EC point that is not on the curve, with cryptography's message", () => {
+  it('rejects an EC point that is not on the curve', () => {
     const jwk = ecJwk('current');
     const zero = Buffer.alloc(32).toString('base64url');
     for (const change of [{ y: ecJwk('other').y }, { x: zero, y: zero }]) {
@@ -227,7 +226,7 @@ describe('jwksDocument', () => {
     ['an even e', 'AQAC', 'e must be odd.'],
     ['e = 1', 'AQ', 'e must be >= 3 and < n.'],
     ['an empty e', '', 'e must be >= 3 and < n.'],
-  ])('rejects RSA public numbers that cryptography rejects: %s', (_name, e, detail) => {
+  ])('rejects invalid RSA public numbers: %s', (_name, e, detail) => {
     expectInvalid(
       [{ ...rsaJwk(2048), e }],
       `JWK rsa-2048: invalid key material: Unable to construct key from JWK: ${detail}`
@@ -249,7 +248,7 @@ describe('jwksDocument', () => {
     );
   });
 
-  it('rejects a value that is not an object (not a Python SDK message)', () => {
+  it('rejects a value that is not an object', () => {
     expectInvalid([null as unknown as JWK], 'Every JWK must be an object');
   });
 
@@ -259,8 +258,9 @@ describe('jwksDocument', () => {
 });
 
 /**
- * PyJWT 2.14.0's base64url_decode on the same inputs (run with Python 3 and
- * PyJWT 2.14.0): the decoded bytes in hex, or the error.
+ * base64urlDecode is lenient: it accepts both alphabets, adds missing padding
+ * and skips characters outside the alphabet. Each case gives the decoded bytes
+ * in hex, or the error.
  */
 describe('base64urlDecode', () => {
   it.each([
@@ -299,7 +299,7 @@ describe('base64urlDecode', () => {
     expect(() => base64urlDecode(input)).not.toThrow('Unable to construct key');
   });
 
-  it("rejects a lone surrogate, as Python's str.encode('utf-8') does", () => {
+  it('rejects a lone surrogate, which has no UTF-8 encoding', () => {
     expect(() => base64urlDecode('AA\ud800AA')).toThrow(
       "'utf-8' codec can't encode character '\\ud800' in position 2: surrogates not allowed"
     );
@@ -307,7 +307,7 @@ describe('base64urlDecode', () => {
     expect(base64urlDecode('AAAA\ud83d\ude00').toString('hex')).toBe('000000');
   });
 
-  it("reports a lone surrogate in a JWK as Python's jwks_document does", () => {
+  it('reports a lone surrogate in a JWK as invalid key material', () => {
     const jwk = ecJwk('k');
     expectInvalid(
       [{ ...jwk, x: `\ud800${jwk.x as string}` }],
@@ -316,7 +316,7 @@ describe('base64urlDecode', () => {
     );
   });
 
-  it('decodes RSA e before n, as PyJWT does, so e reports first', () => {
+  it('decodes RSA e before n, so e reports first', () => {
     expectInvalid(
       [{ ...rsaJwk(2048), n: 'A', e: 'AAAAA' }],
       'JWK rsa-2048: invalid key material: Unable to construct key from JWK: ' +
@@ -324,11 +324,11 @@ describe('base64urlDecode', () => {
     );
   });
 
-  it('rejects a value that is not a string, as force_bytes does', () => {
+  it('rejects a value that is not a string', () => {
     expect(() => base64urlDecode(5)).toThrow(new TypeError('Expected a string value'));
   });
 
-  it('rejects an EC coordinate with a stray character, as PyJWT does', () => {
+  it('rejects an EC coordinate with a stray character', () => {
     const jwk = ecJwk('current');
     expectInvalid(
       [{ ...jwk, x: `${jwk.x as string}.` }],

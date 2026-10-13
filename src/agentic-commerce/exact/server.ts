@@ -11,9 +11,6 @@
  * const server = new x402ResourceServer(facilitatorClient);
  * server.register('aws:base', new ExactAgenticCommerceServerScheme({ signer }));
  * ```
- *
- * Follows the Python SDK's `ExactAgenticCommerceScheme`
- * (fiat_extension_x402/agentic_commerce/exact/server.py:48-172 at commit 62230e6).
  */
 
 import type {
@@ -36,11 +33,11 @@ import {
 import { extractDPoPThumbprint, verifyDPoPProof } from '../../dpop';
 import { type DPoPNonceStore, ValidationError } from '../../types';
 import { parseMoney } from '../../utils';
-import { isPlainObject } from '../python';
+import { isPlainObject } from '../json-value';
 import { paymentTokenOf } from './facilitator';
 import { enhancePaymentRequirements } from './quote';
 
-/** Default maximum age of a DPoP proof, in seconds (server.py:42). */
+/** Default maximum age of a DPoP proof, in seconds. */
 const DEFAULT_DPOP_MAX_AGE_SECONDS = 60;
 
 /**
@@ -62,7 +59,7 @@ export interface ExactAgenticCommerceServerSchemeConfig {
 type AbortResult = { abort: true; reason: 'dpop_required' | 'dpop_invalid' };
 
 // Verify before the handler runs; settlement after it is a no-op because the
-// service captures the payment when it issues the payment token (server.py:60-64).
+// service captures the payment when it issues the payment token.
 const PAYMENT_FLOWS: Readonly<Record<string, PaymentFlowConfig>> = Object.freeze({
   [ASSET_TRANSFER_METHOD]: Object.freeze({
     supported: Object.freeze(['authorization'] as const),
@@ -127,7 +124,7 @@ export class ExactAgenticCommerceScheme implements SchemeNetworkServer {
    */
   async parsePrice(price: Price, network: Network): Promise<AssetAmount> {
     if (typeof price === 'object' && price !== null) {
-      // server.py:95-98: Python validates the object as an AssetAmount.
+      // An object price must be an AssetAmount: string amount and asset.
       const { amount, asset } = price as Partial<AssetAmount>;
       if (typeof amount !== 'string' || typeof asset !== 'string') {
         throw new ValidationError(`Invalid price: ${JSON.stringify(price)}`);
@@ -161,7 +158,7 @@ export class ExactAgenticCommerceScheme implements SchemeNetworkServer {
   }
 
   /**
-   * Check the DPoP proof of a DPoP-bound payment token (server.py:129-172).
+   * Check the DPoP proof of a DPoP-bound payment token.
    *
    * A payment token bound to a key (`cnf.jkt`) is accepted only with a `DPoP`
    * header proving possession of that key, for this request's method and URL,

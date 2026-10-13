@@ -8,8 +8,7 @@ import { ExactAgenticCommerceScheme } from '../../../../src/agentic-commerce/exa
 import * as exactEntry from '../../../../src/agentic-commerce/exact';
 import * as root from '../../../../src/index';
 
-// Mirrors the Python SDK's register_exact_agentic_commerce_server
-// (agentic_commerce/exact/register.py:27-52 at commit 62230e6).
+// registerExactAgenticCommerceServer: the networks and scheme it registers.
 
 const signer = {
   signQuote: async () => 'signed-quote',
@@ -39,7 +38,7 @@ describe('registerExactAgenticCommerceServer', () => {
     expect(scheme.scheme).toBe('exact');
   });
 
-  it('falls back to aws:base for an empty network list, as Python does', () => {
+  it('falls back to aws:base for an empty network list', () => {
     const server = recordingServer();
     registerExactAgenticCommerceServer(server, { signer, networks: [] });
     expect(server.registered.map(([network]) => network)).toEqual(['aws:base']);

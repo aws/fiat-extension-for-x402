@@ -20,7 +20,7 @@ describe('Agentic Commerce Package Exports', () => {
     expect(AgenticCommerce.toPaymentTokenSigner).toBeDefined();
   });
 
-  it("should export the Python SDK's quote signers and the JWKS helper", () => {
+  it('should export the quote signers and the JWKS helper', () => {
     expect(typeof AgenticCommerce.LocalQuoteSigner.fromPem).toBe('function');
     expect(typeof AgenticCommerce.KmsQuoteSigner).toBe('function');
     expect(typeof AgenticCommerce.jwksDocument).toBe('function');

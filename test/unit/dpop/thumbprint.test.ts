@@ -5,7 +5,7 @@ import { generateDPoPKeyPair } from '../../helpers/dpop';
 import { computeJWKThumbprint } from '../../../src/dpop/verification';
 import { DPoPError } from '../../../src/types';
 import { createHash } from 'crypto';
-import { BUYER_JKT, BUYER_PUBLIC_JWK } from '../../helpers/cross-language-fixtures';
+import { BUYER_JKT, BUYER_PUBLIC_JWK } from '../../helpers/fixed-vectors';
 
 describe('DPoP JWK thumbprint', () => {
   describe('computeJWKThumbprint', () => {
@@ -45,7 +45,6 @@ describe('DPoP JWK thumbprint', () => {
     });
   });
 
-  // As the Python SDK's compute_jwk_thumbprint (dpop/verification.py:156-175).
   it('matches the RFC 7638 section 3.1 example', async () => {
     const jwk = {
       kty: 'RSA',
@@ -62,22 +61,22 @@ describe('DPoP JWK thumbprint', () => {
     expect(await computeJWKThumbprint(jwk)).toBe('NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs');
   });
 
-  it('matches the cross-language buyer key thumbprint', async () => {
+  it('matches the fixture buyer key thumbprint', async () => {
     expect(await computeJWKThumbprint({ ...BUYER_PUBLIC_JWK, alg: 'ES256', use: 'sig' })).toBe(
       BUYER_JKT
     );
   });
 
-  it('hashes the required members that are present, as Python does', async () => {
-    // sha256('{"kty":"EC"}'): Python omits missing members instead of raising.
+  it('hashes the required members that are present', async () => {
+    // sha256('{"kty":"EC"}'): missing members are omitted instead of raising.
     expect(await computeJWKThumbprint({ kty: 'EC' })).toBe(
       createHash('sha256').update('{"kty":"EC"}').digest('base64url')
     );
-    // Nested values are dumped as Python does, with sorted keys.
+    // Nested values are serialised with sorted keys.
     expect(await computeJWKThumbprint({ kty: 'EC', x: [1, { b: 2, a: null }] } as never)).toBe(
       createHash('sha256').update('{"kty":"EC","x":[1,{"a":null,"b":2}]}').digest('base64url')
     );
-    // Python's json.dumps escapes non-ASCII characters.
+    // Non-ASCII characters are escaped as \uXXXX.
     expect(await computeJWKThumbprint({ kty: 'EC', crv: '\u00e9' })).toBe(
       createHash('sha256').update('{"crv":"\\u00e9","kty":"EC"}').digest('base64url')
     );

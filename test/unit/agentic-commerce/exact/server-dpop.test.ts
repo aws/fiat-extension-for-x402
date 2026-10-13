@@ -1,9 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * The exact server scheme's onBeforeVerify hook, against the Python SDK's
- * before_verify (agentic_commerce/exact/server.py:129-172) and its tests
- * (tests/unit/agentic_commerce/exact/test_server.py:207-312) at commit 62230e6.
+ * The exact server scheme's onBeforeVerify hook: the DPoP checks it runs before
+ * x402 core calls the facilitator, and the abort result it returns on failure.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -51,7 +50,7 @@ function httpAdapter(headers: Record<string, string>, method = 'GET', url = URL)
   };
 }
 
-/** A buyer with a DPoP key and a payment token bound to it (Python's _Buyer) */
+/** A buyer with a DPoP key and a payment token bound to it */
 class Buyer {
   private constructor(
     readonly key: DPoPKeyPair,
@@ -228,10 +227,10 @@ describe('onBeforeVerify: the proof', () => {
   });
 });
 
-describe('onBeforeVerify never throws (TS only)', () => {
+describe('onBeforeVerify never throws', () => {
   // x402 core logs an error thrown by a hook and calls the facilitator anyway
-  // (server/index.js:1562-1564), whereas Python core re-raises it. Every error
-  // must therefore abort.
+  // (server/index.js:1562-1564), so a thrown error would let an unchecked
+  // payment through. Every error must therefore abort.
   it('aborts with dpop_invalid when the nonce store fails', async () => {
     const s = scheme({
       dpopNonceStore: { has: () => Promise.reject(new Error('down')), add: () => {} },
@@ -249,9 +248,9 @@ describe('onBeforeVerify never throws (TS only)', () => {
   });
 });
 
-describe('onBeforeVerify: an empty request method or URL (TS only)', () => {
-  // verifyDPoPProof skips the htm or htu check when nothing is expected, as
-  // Python's verify_dpop_proof does; the hook refuses instead.
+describe('onBeforeVerify: an empty request method or URL', () => {
+  // verifyDPoPProof skips the htm or htu check when nothing is expected; the
+  // hook refuses instead.
   it.each([
     ['an empty URL', 'GET', ''],
     ['a URL that is only a query', 'GET', '?city=Seattle'],

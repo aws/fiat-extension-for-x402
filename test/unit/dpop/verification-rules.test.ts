@@ -1,10 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * verifyDPoPProof and extractDPoPThumbprint against the Python SDK's
- * verify_dpop_proof and extract_dpop_thumbprint (dpop/verification.py:32-153
- * and tests/unit/dpop/test_proof_verification.py at commit 62230e6): the same
- * checks, in the same order, with the same messages.
+ * verifyDPoPProof and extractDPoPThumbprint: each check, in the order it runs,
+ * with the exact message it fails with.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -20,7 +18,7 @@ import {
   DPOP_PROOF,
   FIXED_NOW,
   PAYMENT_TOKEN,
-} from '../../helpers/cross-language-fixtures';
+} from '../../helpers/fixed-vectors';
 
 const NOW = FIXED_NOW + 10;
 const EXPECTED = { method: 'GET', url: DPOP_HTU, accessToken: PAYMENT_TOKEN };
@@ -70,8 +68,8 @@ async function rejects(dpop: string, message: string, options: object = EXPECTED
   expect((error as Error).message).toBe(message);
 }
 
-describe('verifyDPoPProof: the cross-language fixture', () => {
-  it('returns the claims of the Python-minted proof at FIXED_NOW+10', async () => {
+describe('verifyDPoPProof: the fixed proof vector', () => {
+  it('returns the claims of the fixture proof at FIXED_NOW+10', async () => {
     expect(await verifyDPoPProof(DPOP_PROOF, { ...EXPECTED, maxAge: 60 })).toEqual({
       jti: 'dpop-fixture-0001',
       htm: 'GET',
@@ -87,7 +85,7 @@ describe('verifyDPoPProof: the cross-language fixture', () => {
   });
 });
 
-describe('verifyDPoPProof: each check, with Python messages', () => {
+describe('verifyDPoPProof: each check, with its message', () => {
   it('1. the header must decode', async () => {
     for (const bad of ['not-a-jwt', 'a.b', `${b64([1])}.e30.sig`]) {
       await rejects(bad, 'Invalid DPoP proof: cannot decode header');
@@ -137,7 +135,7 @@ describe('verifyDPoPProof: each check, with Python messages', () => {
       await proof({}, {}, other.privateKey),
       'DPoP proof signature verification failed: Signature verification failed'
     );
-    // PyJWT's remaining claim checks: nbf, and string sub and jti.
+    // The remaining registered-claim checks: nbf, and string sub and jti.
     await rejects(
       await proof({ nbf: NOW + 60 }),
       'DPoP proof signature verification failed: The token is not yet valid (nbf)'
@@ -146,7 +144,7 @@ describe('verifyDPoPProof: each check, with Python messages', () => {
       await proof({ jti: 7 }),
       'DPoP proof signature verification failed: JWT ID must be a string'
     );
-    // exp is not checked (verify_exp=False).
+    // exp is not checked: freshness comes from iat.
     expect(await verifyDPoPProof(await proof({ exp: NOW - 60 }), EXPECTED)).toBeTruthy();
   });
 
@@ -167,7 +165,7 @@ describe('verifyDPoPProof: each check, with Python messages', () => {
       ...EXPECTED,
       maxAge: 10,
     });
-    // Python's int(): a numeric string is an integer; anything else is refused.
+    // A numeric string iat is read as an integer; anything else is refused.
     expect(await verifyDPoPProof(await proof({ iat: String(FIXED_NOW) }), EXPECTED)).toBeTruthy();
     await rejects(await proof({ iat: 'soon' }), 'Invalid DPoP proof iat: soon');
   });
@@ -237,7 +235,7 @@ describe('verifyDPoPProof: each check, with Python messages', () => {
     expect(addedBeforeOtherWork).toBe(true);
   });
 
-  it('passes nonce store errors through, as Python does', async () => {
+  it('passes nonce store errors through', async () => {
     const failure = new Error('store unavailable');
     const nonceStore: DPoPNonceStore = { has: () => Promise.reject(failure), add: () => {} };
     await expect(verifyDPoPProof(DPOP_PROOF, { ...EXPECTED, nonceStore })).rejects.toBe(failure);

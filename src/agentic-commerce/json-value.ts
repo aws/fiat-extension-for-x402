@@ -1,18 +1,21 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Python value semantics for JSON values, so this SDK accepts and rejects the
- * same inputs as the Python SDK. Internal: not exported from the package.
+ * Value rules for decoded JSON, defined the same way everywhere in the
+ * package: equality, truthiness, integer parsing, the text form of values
+ * (used both in error messages and in comparisons), and the decoding of JWK
+ * members (base64url, big-endian integers). Their output is part of the
+ * verifier's behaviour. Internal: not exported from the package.
  */
 
-import { stripPythonWhitespace } from '../utils';
+import { stripWhitespace } from '../utils';
 
-/** A JSON object (Python `dict`) */
+/** A JSON object (not null, not an array) */
 export function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** Python truthiness: also false for an empty array or object, which JavaScript treats as true. */
+/** Truthiness that is also false for an empty array or object, which JavaScript treats as true. */
 export function isTruthy(value: unknown): boolean {
   if (Array.isArray(value)) return value.length > 0;
   if (isPlainObject(value)) return Object.keys(value).length > 0;
@@ -20,39 +23,48 @@ export function isTruthy(value: unknown): boolean {
 }
 
 /**
- * Python `==` on decoded JSON values. A missing value and `null` are both
- * Python's `None`, and `True == 1` as in Python.
+ * Equality of decoded JSON values, compared by value: a missing value equals
+ * `null`, and `true` equals 1 (and `false` equals 0).
  */
-export function pyEquals(a: unknown, b: unknown): boolean {
+export function looseEquals(a: unknown, b: unknown): boolean {
   const x = typeof a === 'boolean' ? Number(a) : (a ?? null);
   const y = typeof b === 'boolean' ? Number(b) : (b ?? null);
   if (x === y) return true;
   if (Array.isArray(x) && Array.isArray(y)) {
-    return x.length === y.length && x.every((item, i) => pyEquals(item, y[i]));
+    return x.length === y.length && x.every((item, i) => looseEquals(item, y[i]));
   }
   if (isPlainObject(x) && isPlainObject(y)) {
     const keys = Object.keys(x);
     return (
       keys.length === Object.keys(y).length &&
-      keys.every((key) => Object.hasOwn(y, key) && pyEquals(x[key], y[key]))
+      keys.every((key) => Object.hasOwn(y, key) && looseEquals(x[key], y[key]))
     );
   }
   return false;
 }
 
-/** Python `int(value)` on a decoded JSON value, or undefined where Python raises. */
-export function pyInt(value: unknown): number | undefined {
+/**
+ * A decoded JSON value as an integer: a boolean as 0 or 1, a finite number
+ * truncated, or a string of decimal digits (optional sign, `_` between
+ * digits, surrounding whitespace). Undefined for anything else.
+ */
+export function toInteger(value: unknown): number | undefined {
   if (typeof value === 'boolean') return Number(value);
   if (typeof value === 'number') return Number.isFinite(value) ? Math.trunc(value) : undefined;
   if (typeof value === 'string') {
-    const text = stripPythonWhitespace(value);
+    const text = stripWhitespace(value);
     return /^[+-]?\d+(?:_\d+)*$/.test(text) ? Number(text.replace(/_/g, '')) : undefined;
   }
   return undefined;
 }
 
-/** Python `str(value)` for the scalar JSON values that appear in messages. */
-export function pyStr(value: unknown): string {
+/**
+ * The text form of a scalar JSON value: the string itself, `None`, `True` and
+ * `False` for null and booleans, and JSON for anything else. Used in error
+ * messages, and also as the comparison form of values (quote tokens, key types,
+ * curves, assets), so its output is part of the verifier's behaviour.
+ */
+export function displayText(value: unknown): string {
   if (value === null || value === undefined) return 'None';
   if (value === true) return 'True';
   if (value === false) return 'False';
@@ -60,7 +72,7 @@ export function pyStr(value: unknown): string {
 }
 
 /**
- * Python `value.rstrip('/')`: every trailing '/' removed, in linear time
+ * Every trailing '/' removed, in linear time
  * (a regex such as `/\/+$/` is quadratic on a long run of '/' mid-string).
  */
 export function rstripSlashes(value: string): string {
@@ -69,29 +81,31 @@ export function rstripSlashes(value: string): string {
   return value.slice(0, end);
 }
 
-// Python's str.isprintable() is false for these categories (Other and
-// Separator), except the ASCII space. Tested one character at a time.
+// Characters escaped in quoted message text: the Unicode Other and Separator
+// categories, except the ASCII space. Tested one character at a time.
 const NOT_PRINTABLE = /^[\p{C}\p{Z}]$/u;
 
-/** Python's repr escape of a non-printable code point */
-function pyEscape(code: number): string {
+/** The escape of a non-printable code point: \xNN, \uNNNN or \UNNNNNNNN */
+function escapeCodePoint(code: number): string {
   if (code < 0x100) return `\\x${code.toString(16).padStart(2, '0')}`;
   if (code < 0x10000) return `\\u${code.toString(16).padStart(4, '0')}`;
   return `\\U${code.toString(16).padStart(8, '0')}`;
 }
 
 /**
- * Python `repr(value)` for the JSON values that appear in messages: strings
- * in single quotes (double quotes when the text holds a ' and no "), None,
- * True and False, lists and dicts.
+ * A JSON value quoted for an error message: strings in single quotes (double
+ * quotes when the text holds a ' and no "), with non-printable characters
+ * escaped; None, True and False; arrays and objects as [a, b] and {'k': v}.
  */
-export function pyRepr(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(pyRepr).join(', ')}]`;
+export function quotedLiteral(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(quotedLiteral).join(', ')}]`;
   if (isPlainObject(value)) {
-    const items = Object.entries(value).map(([key, item]) => `${pyRepr(key)}: ${pyRepr(item)}`);
+    const items = Object.entries(value).map(
+      ([key, item]) => `${quotedLiteral(key)}: ${quotedLiteral(item)}`
+    );
     return `{${items.join(', ')}}`;
   }
-  if (typeof value !== 'string') return pyStr(value);
+  if (typeof value !== 'string') return displayText(value);
   const quote = value.includes("'") && !value.includes('"') ? '"' : "'";
   let out = quote;
   for (const ch of value) {
@@ -100,15 +114,15 @@ export function pyRepr(value: unknown): string {
     else if (ch === '\n') out += '\\n';
     else if (ch === '\r') out += '\\r';
     else if (ch === '\t') out += '\\t';
-    else if (ch !== ' ' && NOT_PRINTABLE.test(ch)) out += pyEscape(code);
+    else if (ch !== ' ' && NOT_PRINTABLE.test(ch)) out += escapeCodePoint(code);
     else out += ch;
   }
   return out + quote;
 }
 
 /**
- * Python `str.encode('utf-8')` refuses a lone surrogate (UnicodeEncodeError, a
- * ValueError); Buffer.from would replace it with U+FFFD instead.
+ * A lone surrogate has no UTF-8 encoding, so it is refused; Buffer.from would
+ * silently replace it with U+FFFD instead.
  */
 function assertEncodable(value: string): void {
   let position = 0;
@@ -127,7 +141,7 @@ function assertEncodable(value: string): void {
   }
 }
 
-// Value of each base64 character after urlsafe_b64decode's '-' to '+', '_' to '/'.
+// Value of each base64 character; the URL-safe '-' and '_' count as '+' and '/'.
 function base64Value(byte: number): number {
   if (byte >= 0x41 && byte <= 0x5a) return byte - 0x41; // A-Z
   if (byte >= 0x61 && byte <= 0x7a) return byte - 0x61 + 26; // a-z
@@ -138,11 +152,11 @@ function base64Value(byte: number): number {
 }
 
 /**
- * PyJWT's `base64url_decode` (jwt/utils.py): the UTF-8 bytes are padded with
- * '=' to a multiple of 4, then decoded as CPython's non-strict
- * `binascii.a2b_base64` does: other characters are skipped, a complete pad
- * ends the input, and a partial final quantum is an error. The errors carry
- * Python's messages (PyJWK adds "Unable to construct key from JWK: ").
+ * Base64url decoding of a JWK member: the UTF-8 bytes are padded with '=' to
+ * a multiple of 4, then decoded leniently: characters outside the alphabet
+ * are skipped, a complete pad ends the input, and a partial final quantum is
+ * an error. Callers that parse a JWK add "Unable to construct key from JWK: "
+ * to the error message.
  *
  * @internal
  */
@@ -176,7 +190,6 @@ export function base64urlDecode(value: unknown): Buffer {
     }
     quadPos = (quadPos + 1) % 4;
   }
-  // binascii.Error, a ValueError
   if (quadPos === 1) {
     throw new Error(
       'Invalid base64-encoded string: number of data ' +
@@ -188,7 +201,7 @@ export function base64urlDecode(value: unknown): Buffer {
 }
 
 /**
- * Big-endian bytes as an unsigned integer (Python `int.from_bytes(b, 'big')`).
+ * Big-endian bytes as an unsigned integer.
  *
  * @internal
  */

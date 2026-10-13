@@ -1,8 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * AgenticCommerceVerifier: every check, in the Python SDK's order
- * (fiat_extension_x402/agentic_commerce/verifier.py:105-162 at commit 62230e6),
+ * AgenticCommerceVerifier: every check, in the order the verifier runs them,
  * with one passing and one failing case each.
  */
 
@@ -31,7 +30,7 @@ import {
   jwksFetch,
   requestUrl,
 } from '../../helpers/fake-payment-service';
-import * as fixtures from '../../helpers/cross-language-fixtures';
+import * as fixtures from '../../helpers/fixed-vectors';
 
 const PRODUCT = 'prod-abc123';
 
@@ -388,7 +387,7 @@ describe('AgenticCommerceVerifier', () => {
       );
     });
 
-    it('fails when iat is in the future (PyJWT, no leeway)', async () => {
+    it('fails when iat is in the future (no leeway)', async () => {
       const quote = await sellerQuote();
       const future = Math.floor(Date.now() / 1000) + 3600;
       await expectInvalid(
@@ -409,7 +408,7 @@ describe('AgenticCommerceVerifier', () => {
       );
     });
 
-    it('accepts iat as an integer string, as int() does', async () => {
+    it('accepts iat as a string of decimal digits', async () => {
       const quote = await sellerQuote();
       const iat = String(Math.floor(Date.now() / 1000));
       await expectValid(await service.issue(quote, { claims: { iat } }), wire(quote));
@@ -823,7 +822,7 @@ describe('AgenticCommerceVerifier', () => {
       );
     });
 
-    it('does not check the quote aud (as Python)', async () => {
+    it('does not check the quote aud', async () => {
       const quote = await customQuote({ aud: 'someone-else' });
       await expectValid(await service.issue(quote), wire(quote));
     });
@@ -879,7 +878,7 @@ describe('AgenticCommerceVerifier', () => {
     });
   });
 
-  describe('11. product (not in the Python SDK)', () => {
+  describe('11. product', () => {
     it('passes when the quote is for the route product', async () => {
       const quote = await sellerQuote();
       await expectValid(await service.issue(quote), wire(quote, { productId: PRODUCT }));
@@ -922,7 +921,7 @@ describe('AgenticCommerceVerifier', () => {
       });
     });
 
-    it('verifies the token minted by the Python SDK (cross-language fixture)', async () => {
+    it('verifies the fixed payment token vector', async () => {
       vi.useFakeTimers({ toFake: ['Date'] });
       vi.setSystemTime((fixtures.FIXED_NOW + 10) * 1000);
       vi.stubGlobal('fetch', jwksFetch({ [SERVICE_JWKS_URL]: fixtures.SERVICE_JWKS }));

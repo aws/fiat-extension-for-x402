@@ -1,11 +1,9 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Quote tokens: the seller's signed statement of what a request costs.
- *
- * Follows the Python SDK's `enhance_payment_requirements`
- * (fiat_extension_x402/agentic_commerce/quote.py:23-89 at commit 62230e6), so
- * both SDKs sign the same claims, in the same order, for the same route.
+ * Quote tokens: the seller's signed statement of what a request costs. The
+ * claims are always built in the same order; each quote has its own iat, exp
+ * and jti.
  */
 
 import { webcrypto } from 'node:crypto';
@@ -17,10 +15,10 @@ import {
   SENTINEL_PAY_TO,
 } from '../../constants';
 import { ValidationError, type QuoteTokenPayload } from '../../types';
-import { stripPythonWhitespace } from '../../utils';
-import { isPlainObject, isTruthy } from '../python';
+import { stripWhitespace } from '../../utils';
+import { isPlainObject, isTruthy } from '../json-value';
 
-// Optional route details copied from `extra` into the quote when present (quote.py:20).
+// Optional route details copied from `extra` into the quote when present.
 const OPTIONAL_QUOTE_CLAIMS = ['description', 'dimensions', 'support', 'terms'] as const;
 
 /**
@@ -46,9 +44,9 @@ export async function enhancePaymentRequirements(
   requirements: PaymentRequirements,
   signer: Pick<QuoteSigner, 'signQuote' | 'getServiceUrl'>
 ): Promise<PaymentRequirements> {
-  // quote.py:44-50
+  // The signer's service URL becomes the quote's `iss` claim.
   const issuer = signer.getServiceUrl();
-  if (!issuer || !stripPythonWhitespace(issuer)) {
+  if (!issuer || !stripWhitespace(issuer)) {
     throw new ValidationError(
       'Cannot sign quote token: signer service URL (issuer) is empty. ' +
         'Configure a non-empty serviceUrl on the signer; it becomes the quote ' +
@@ -56,14 +54,15 @@ export async function enhancePaymentRequirements(
     );
   }
 
-  // quote.py:52-54
-  const productId = stripPythonWhitespace(String(requirements.payTo || ''));
+  // `payTo` is the seller's AWS Marketplace product ID.
+  const productId = stripWhitespace(String(requirements.payTo || ''));
   if (!productId) {
     throw new ValidationError("payTo must be the seller's AWS Marketplace product ID");
   }
 
-  // quote.py:56-61. Python's dict() also rejects a non-mapping settlement. A
-  // product_id of undefined counts as absent, since JSON drops it.
+  // `extra.settlement`, when given, must be an object; its product_id defaults
+  // to payTo and must match it. A product_id of undefined counts as absent,
+  // since JSON drops it.
   const extra: Record<string, unknown> = { ...requirements.extra };
   if (isTruthy(extra.settlement) && !isPlainObject(extra.settlement)) {
     throw new ValidationError('extra.settlement must be an object');
@@ -79,11 +78,11 @@ export async function enhancePaymentRequirements(
     );
   }
 
-  // quote.py:62-63. A maxTimeoutSeconds of 0 falls back to the default, as in Python.
+  // A maxTimeoutSeconds of 0 falls back to the default.
   const iat = Math.floor(Date.now() / 1000);
   const exp = iat + (requirements.maxTimeoutSeconds || DEFAULT_QUOTE_VALIDITY_SECONDS);
 
-  // quote.py:65-81. Insertion order is the claim order on the wire.
+  // Insertion order is the claim order on the wire.
   const claims: Record<string, unknown> = {
     iss: issuer,
     aud: QUOTE_TOKEN_AUDIENCE,
@@ -92,7 +91,7 @@ export async function enhancePaymentRequirements(
     jti: webcrypto.randomUUID(),
     price: {
       amount: requirements.amount,
-      // Python's str.replace removes every occurrence.
+      // Every occurrence of the prefix is removed.
       currency: (requirements.asset ?? '').split('iso4217:').join(''),
     },
     payTo: productId,
@@ -105,8 +104,8 @@ export async function enhancePaymentRequirements(
     }
   }
 
-  // quote.py:83-89
-  // The claims are the QuoteTokenPayload fields, with Python's types and order.
+  // The claims are the QuoteTokenPayload fields, built above with their wire
+  // types and order.
   extra.quoteToken = await signer.signQuote(claims as unknown as QuoteTokenPayload);
   return {
     ...requirements,

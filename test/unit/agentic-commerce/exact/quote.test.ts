@@ -21,10 +21,10 @@ import {
   QUOTE_TOKEN,
   SELLER_PUBLIC_JWK,
   SELLER_URL,
-} from '../../../helpers/cross-language-fixtures';
+} from '../../../helpers/fixed-vectors';
 
-// Mirrors the Python SDK's tests/unit/agentic_commerce/test_quote.py (commit
-// 62230e6), plus the FIXTURES.md quote vector.
+// enhancePaymentRequirements: the quote claims it signs and the requirements it
+// returns, plus the fixed quote vector.
 
 function requirements(overrides: Record<string, unknown> = {}): PaymentRequirements {
   return {
@@ -57,7 +57,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('enhancePaymentRequirements: the FIXTURES.md quote vector', () => {
+describe('enhancePaymentRequirements: the fixed quote vector', () => {
   async function enhanceFixture() {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(FIXED_NOW * 1000);
@@ -67,7 +67,7 @@ describe('enhancePaymentRequirements: the FIXTURES.md quote vector', () => {
     return enhancePaymentRequirements(structuredClone(QUOTE_INPUT) as never, signer);
   }
 
-  it('produces the same requirements as Python, except for the quote signature', async () => {
+  it('produces the fixture requirements, except for the quote signature', async () => {
     const enhanced = await enhanceFixture();
     const { quoteToken, ...extra } = enhanced.extra as Record<string, unknown>;
     const { quoteToken: _expected, ...expectedExtra } = QUOTE_OUTPUT.extra;
@@ -77,7 +77,7 @@ describe('enhancePaymentRequirements: the FIXTURES.md quote vector', () => {
     expect(typeof quoteToken).toBe('string');
   });
 
-  it('signs a quote payload byte-identical to the Python payload', async () => {
+  it('signs a quote payload byte-identical to the fixture payload', async () => {
     const enhanced = await enhanceFixture();
     const [, payload] = (enhanced.extra as { quoteToken: string }).quoteToken.split('.');
 
@@ -96,7 +96,7 @@ describe('enhancePaymentRequirements: the FIXTURES.md quote vector', () => {
 });
 
 describe('enhancePaymentRequirements: quote claims', () => {
-  it('signs the required claims in the Python order', async () => {
+  it('signs the required claims in a fixed order', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(FIXED_NOW * 1000 + 999);
     const signer = recordingSigner();
@@ -162,7 +162,7 @@ describe('enhancePaymentRequirements: quote claims', () => {
       await enhancePaymentRequirements(requirements({ extra: { reference } }), signer);
     }
     expect(signer.signed[0].reference).toBe('ORDER-7');
-    // Each of these is falsy in Python, so it falls back to RESOURCE.
+    // Each of these counts as empty, so it falls back to RESOURCE.
     expect(signer.signed.slice(1).map((claims) => claims.reference)).toEqual(
       Array(5).fill('RESOURCE')
     );
@@ -221,7 +221,7 @@ describe('enhancePaymentRequirements: product ID', () => {
     expect(signer.signed[0].settlement).toEqual({ product_id: 'prod-abc123' });
   });
 
-  it('strips whitespace around payTo, as Python does', async () => {
+  it('strips whitespace around payTo', async () => {
     const signer = recordingSigner();
     await enhancePaymentRequirements(requirements({ payTo: ' prod-abc123\n' }), signer);
     expect(signer.signed[0].payTo).toBe('prod-abc123');
@@ -273,7 +273,7 @@ describe('enhancePaymentRequirements: product ID', () => {
   );
 
   it.each([[null], [''], [0], [[]], [{}]])(
-    'treats a settlement of %j, falsy in Python, as empty',
+    'treats a settlement of %j as empty',
     async (settlement) => {
       const signer = recordingSigner();
       await enhancePaymentRequirements(requirements({ extra: { settlement } }), signer);
