@@ -5,16 +5,17 @@ import { generateDPoPKeyPair, createDPoPProof } from '../../helpers/dpop';
 import { verifyDPoPProof, extractDPoPThumbprint } from '../../../src/dpop/verification';
 import { DPoPError, DPoPNonceStore } from '../../../src/types';
 
-// Simple in-memory nonce store for testing
+// Simple in-memory nonce store for testing: an id is seen until its expiry
 class InMemoryNonceStore implements DPoPNonceStore {
-  private nonces = new Set<string>();
+  private nonces = new Map<string, number>();
 
   has(jti: string): Promise<boolean> {
-    return Promise.resolve(this.nonces.has(jti));
+    const expiresAt = this.nonces.get(jti);
+    return Promise.resolve(expiresAt !== undefined && Date.now() / 1000 < expiresAt);
   }
 
-  add(jti: string, _expiresAt: number): Promise<void> {
-    this.nonces.add(jti);
+  add(jti: string, expiresAt: number): Promise<void> {
+    this.nonces.set(jti, expiresAt);
     return Promise.resolve();
   }
 

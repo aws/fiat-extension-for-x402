@@ -82,7 +82,7 @@ describe('payment-token JWKS key selection', () => {
     expect(await verifyAgainst({ keys: [{ kty: 'XX' }] })).toEqual({
       isValid: false,
       invalidReason: 'invalid_payment',
-      invalidMessage: 'Payment token signature invalid: Unsupported kty: XX',
+      invalidMessage: 'Payment token signature invalid: JWK: invalid key material',
     });
   });
 

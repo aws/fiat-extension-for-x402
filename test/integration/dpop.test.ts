@@ -85,11 +85,12 @@ function adapter({ method = 'GET', url = DPOP_HTU, headers = {} }: Request) {
   return { adapter: http, path, method };
 }
 
-/** A nonce store that remembers every `add` */
+/** A nonce store that remembers every `add`, and forgets an id at its expiry */
 class RecordingNonceStore implements DPoPNonceStore {
   readonly added: [string, number][] = [];
   has(jti: string): boolean {
-    return this.added.some(([seen]) => seen === jti);
+    const now = Date.now() / 1000;
+    return this.added.some(([seen, expiresAt]) => seen === jti && now < expiresAt);
   }
   add(jti: string, expiresAt: number): void {
     this.added.push([jti, expiresAt]);
@@ -268,11 +269,12 @@ describe.each<FacilitatorKind>(['in-process facilitator', 'AgenticCommerceFacili
         await expectVerified(app, withProof(await proof({ claims: { iat: FIXED_NOW + 15 } })));
       });
 
-      it('records the proof in the nonce store until iat plus the maximum age', async () => {
+      it('records the proof in the nonce store until the second after it stops being fresh', async () => {
         const store = new RecordingNonceStore();
         const app = await sellerApp({ dpopNonceStore: store });
         await expectVerified(app, withProof(DPOP_PROOF));
-        expect(store.added).toEqual([['dpop-fixture-0001', FIXED_NOW + 60]]);
+        // Fresh up to iat + 60 + 5 seconds of skew.
+        expect(store.added).toEqual([['dpop-fixture-0001', FIXED_NOW + 66]]);
       });
     });
 

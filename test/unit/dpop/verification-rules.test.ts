@@ -208,7 +208,7 @@ describe('verifyDPoPProof: each check, with its message', () => {
     expect(await verifyDPoPProof(DPOP_PROOF, { method: 'GET', url: DPOP_HTU })).toBeTruthy();
   });
 
-  it('11. the nonce store rejects a seen jti and records iat + maxAge', async () => {
+  it('11. the nonce store rejects a seen jti and records iat + maxAge + 6', async () => {
     const seen = new Map<string, number>();
     const nonceStore: DPoPNonceStore = {
       has: (jti) => Promise.resolve(seen.has(jti)),
@@ -218,7 +218,8 @@ describe('verifyDPoPProof: each check, with its message', () => {
       },
     };
     await verifyDPoPProof(DPOP_PROOF, { ...EXPECTED, maxAge: 30, nonceStore });
-    expect([...seen]).toEqual([['dpop-fixture-0001', FIXED_NOW + 30]]);
+    // The proof is fresh up to iat + 30 + 5 skew; the expiry is the second after.
+    expect([...seen]).toEqual([['dpop-fixture-0001', FIXED_NOW + 36]]);
     await rejects(DPOP_PROOF, 'DPoP proof replay detected', { ...EXPECTED, nonceStore });
   });
 

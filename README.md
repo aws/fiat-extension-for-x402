@@ -258,7 +258,10 @@ registerExactAgenticCommerceServer(server, { signer, dpopNonceStore: store });
 ```
 
 `dpopMaxAgeSeconds` (default 60) limits how old a proof may be; 5 seconds of
-clock skew are allowed on either side.
+clock skew are allowed on either side. Each proof id is added to the store with an
+expiry (Unix seconds) one second after the last second in which the proof is still
+fresh, `iat + dpopMaxAgeSeconds + 6` for a whole number of seconds; the store must
+report the id as seen until then.
 
 The proof's `htu` must equal the URL the framework reports for the request
 (`HTTPAdapter.getUrl()`), without its query and fragment. Nothing is normalised

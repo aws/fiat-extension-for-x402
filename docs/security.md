@@ -50,7 +50,7 @@ DPoP binds payment tokens to ephemeral client keys, preventing token theft:
 - The `exact` server scheme's `onBeforeVerify` hook requires a `DPoP` proof whose key thumbprint matches, before the facilitator is called
 - Proofs must be signed with ES256, ES384, ES512, RS256 or PS256 (never HS* or `none`)
 - `htm`, `htu` (without query and fragment, not normalised) and `ath` must match the request and the payment token
-- Replay is rejected with a `dpopNonceStore` shared by all seller instances
+- Replay is rejected with a `dpopNonceStore` shared by all seller instances; each `jti` is stored until the second after its proof stops being fresh, so a store that forgets ids on time still rejects every replay, provided every seller instance's clock agrees with the store's (a store shared by instances whose clocks differ must keep ids for that difference longer)
 
 ## Sensitive Data Handling
 

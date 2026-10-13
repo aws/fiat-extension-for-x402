@@ -381,8 +381,18 @@ const EC_CURVE_ALGORITHMS: Record<string, string> = {
 };
 
 /**
+ * The error for a JWK that cannot be imported. It names the key by its `kid`,
+ * never by its members, which can include private ones.
+ */
+function invalidKeyMaterial(keyData: Record<string, unknown>): JwtError {
+  const label = typeof keyData.kid === 'string' ? `JWK ${keyData.kid}` : 'JWK';
+  return new JwtError(`${label}: invalid key material`);
+}
+
+/**
  * A public key from a JWK. A JWK without `kty`, or with an `alg` (given or
- * implied by its curve) outside its key type's family, is rejected.
+ * implied by its curve) outside its key type's family, is rejected, as is one
+ * that does not make a key; each with `JWK <kid>: invalid key material`.
  *
  * @internal
  */
@@ -392,32 +402,33 @@ export function importJwk(keyData: unknown): KeyObject {
   }
   const kty = keyData.kty;
   if (!isTruthy(kty)) {
-    throw new JwtError(`kty is not found: ${JSON.stringify(keyData)}`);
+    throw invalidKeyMaterial(keyData);
   }
   let alg = keyData.alg;
   if (!isTruthy(alg)) {
     const crv = keyData.crv;
     if (kty === 'EC') {
       alg = isTruthy(crv) ? EC_CURVE_ALGORITHMS[displayText(crv)] : 'ES256';
-      if (alg === undefined) throw new JwtError(`Unsupported crv: ${displayText(crv)}`);
+      if (alg === undefined) throw invalidKeyMaterial(keyData);
     } else if (kty === 'RSA') {
       alg = 'RS256';
     } else if (kty === 'OKP') {
-      if (!isTruthy(crv)) throw new JwtError(`crv is not found: ${JSON.stringify(keyData)}`);
-      if (crv !== 'Ed25519') throw new JwtError(`Unsupported crv: ${displayText(crv)}`);
+      if (crv !== 'Ed25519') throw invalidKeyMaterial(keyData);
       alg = 'EdDSA';
     } else {
-      throw new JwtError(`Unsupported kty: ${displayText(kty)}`);
+      throw invalidKeyMaterial(keyData);
     }
   }
-  const family = KEY_TYPE_ALGORITHMS[displayText(kty)];
+  const family = Object.hasOwn(KEY_TYPE_ALGORITHMS, displayText(kty))
+    ? KEY_TYPE_ALGORITHMS[displayText(kty)]
+    : undefined;
   if (family === undefined || typeof alg !== 'string' || !family.test(alg)) {
-    throw new JwtError(`Unable to find an algorithm for key: ${JSON.stringify(keyData)}`);
+    throw invalidKeyMaterial(keyData);
   }
   try {
     return createPublicKey({ key: keyData, format: 'jwk' });
-  } catch (error) {
-    throw new JwtError(`Unable to construct key from JWK: ${errorMessage(error)}`);
+  } catch {
+    throw invalidKeyMaterial(keyData);
   }
 }
 

@@ -99,14 +99,15 @@ const realFetch = globalThis.fetch;
 /** Decodes and encodes the x402 headers, as a buyer does */
 const httpClient = new x402HTTPClient(new x402Client());
 
-/** A nonce store that remembers every jti */
+/** A nonce store that remembers every jti until its expiry */
 class MemoryNonceStore implements DPoPNonceStore {
-  private readonly seen = new Set<string>();
+  private readonly seen = new Map<string, number>();
   has(jti: string): boolean {
-    return this.seen.has(jti);
+    const expiresAt = this.seen.get(jti);
+    return expiresAt !== undefined && Date.now() / 1000 < expiresAt;
   }
-  add(jti: string): void {
-    this.seen.add(jti);
+  add(jti: string, expiresAt: number): void {
+    this.seen.set(jti, expiresAt);
   }
 }
 

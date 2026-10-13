@@ -114,5 +114,13 @@ built on the stock `@x402/core` server and facilitator.
   token issued for a different quote or product.
 - DPoP-bound payment tokens are refused without a valid proof for the request.
 - Payment-token and quote signatures are limited to RS256, ES256, ES384 and ES512.
+- A DPoP proof's `jti` is added to the `DPoPNonceStore` with the expiry
+  `iat + floor(maxAge + 5) + 1`, the second after the proof stops passing the freshness check.
+  The expiry used to be `iat + maxAge`, which ignored the 5 seconds of clock skew, so a store
+  that forgot ids on time let the same proof be replayed for up to 6 seconds.
+- A JWK that cannot be imported is reported as `JWK <kid>: invalid key material` (`JWK: invalid
+  key material` when its `kid` is not a string). Some of these errors used to contain the whole
+  JWK, and the message reaches the facilitator's `invalidMessage`, so a JWKS published with
+  private key members would have exposed them.
 
 [1.0.0]: https://github.com/aws/fiat-extension-for-x402/releases/tag/v1.0.0

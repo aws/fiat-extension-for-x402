@@ -121,7 +121,8 @@ export async function computeJWKThumbprint(jwk: JWK): Promise<string> {
  * 3. Check freshness (`iat` within `maxAge` + 5 seconds of clock skew).
  * 4. Verify the HTTP method (`htm`) and URL (`htu`) binding: exact matches.
  * 5. Verify `ath` (access token hash) if `accessToken` is provided.
- * 6. Check replay via `nonceStore` if provided.
+ * 6. Check replay via `nonceStore` if provided. The id is added with an
+ *    expiry one second after the last second in which the proof is still fresh.
  *
  * @param proof - DPoP proof JWT
  * @param options - Verification options
@@ -248,7 +249,10 @@ export async function verifyDPoPProof(
     if (isTruthy(seen instanceof Promise ? await seen : seen)) {
       throw new DPoPError('DPoP proof replay detected', { jti });
     }
-    await nonceStore.add(jti, iat + maxAge);
+    // The same proof passes the freshness check up to the last second with
+    // now - iat <= maxAge + CLOCK_SKEW, so the store must keep the id until the
+    // second after it.
+    await nonceStore.add(jti, iat + Math.floor(maxAge + CLOCK_SKEW) + 1);
   }
 
   return claims as DPoPProofPayload;

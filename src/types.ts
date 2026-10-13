@@ -212,7 +212,14 @@ export interface DPoPVerificationOptions {
 export interface DPoPNonceStore {
   /** Check if nonce has been used */
   has(jti: string): Promise<boolean> | boolean;
-  /** Add nonce with expiry */
+  /**
+   * Record a proof id as used until `expiresAt` (Unix time, seconds).
+   *
+   * `has` must return `true` for the id while the time is before `expiresAt`;
+   * the store may forget the id from then on. `expiresAt` is
+   * `iat + floor(maxAge + 5) + 1`, the first second at which the proof is no
+   * longer accepted.
+   */
   add(jti: string, expiresAt: number): Promise<void> | void;
 }
 
