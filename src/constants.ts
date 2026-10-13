@@ -115,4 +115,5 @@ export const QUOTE_TOKEN_AUDIENCE = 'aws:marketplace';
  * The SDK appends /.well-known/jwks.json to this automatically.
  * Override via the jwksBaseUrl constructor parameter for beta/testing.
  */
-export const DEFAULT_PAYMENT_TOKEN_JWKS_BASE_URL = 'https://d3aeb2cjjowogc.cloudfront.net';
+export const DEFAULT_PAYMENT_TOKEN_JWKS_BASE_URL =
+  'https://agenticcommerce-marketplace.us-east-1.api.aws';

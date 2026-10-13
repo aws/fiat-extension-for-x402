@@ -8,12 +8,6 @@
 #   removes a token (or moves its file) must delete or update the entry.
 # Do not add entries for new code: use example.com or a placeholder instead.
 
-# Default payment-token JWKS host. The verifier's paymentTokenJwksUrl option
-# overrides it.
-# It must be replaced by a stable public host, or kept with sign-off, before
-# the package is first published (PR 13).
-src/constants.ts d3aeb2cjjowogc.cloudfront.net # PR 13: replace the default JWKS host before publishing
-
 # Docs, rewritten for seller and facilitator by PR 14.
 README.md agentpay.marketplace.aws.dev # PR 14: README rewrite
 docs/sdk-guide.md pay.aws.amazon.com # PR 14: docs rewrite
