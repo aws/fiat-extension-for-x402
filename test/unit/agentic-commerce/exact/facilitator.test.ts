@@ -61,7 +61,7 @@ function quoteOf(requirements: PaymentRequirements): string {
 }
 
 function payload(accepted: PaymentRequirements, paymentToken: unknown): PaymentPayload {
-  return { x402Version: 2, accepted, payload: { paymentToken } } as PaymentPayload;
+  return { x402Version: 2, accepted, payload: { paymentToken } };
 }
 
 describe('ExactAgenticCommerceFacilitatorScheme', () => {

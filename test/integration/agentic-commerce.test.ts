@@ -152,7 +152,7 @@ describe.each<FacilitatorKind>(['in-process facilitator', 'AgenticCommerceFacili
         accepted,
         payload: { paymentToken: token },
       };
-      const headers = await httpClient.encodePaymentSignatureHeader(payload);
+      const headers = httpClient.encodePaymentSignatureHeader(payload);
       const context = adapter(path, headers);
       return { result: await app.processHTTPRequest(context), context };
     }
@@ -192,10 +192,7 @@ describe.each<FacilitatorKind>(['in-process facilitator', 'AgenticCommerceFacili
 
     it('serves and settles a valid payment, through the stock buyer client', async () => {
       const paymentPayload = await httpClient.createPaymentPayload(await offer('/weather'));
-      const context = adapter(
-        '/weather',
-        await httpClient.encodePaymentSignatureHeader(paymentPayload)
-      );
+      const context = adapter('/weather', httpClient.encodePaymentSignatureHeader(paymentPayload));
       const paid = await app.processHTTPRequest(context);
 
       expect(paid.type).toBe('payment-verified');

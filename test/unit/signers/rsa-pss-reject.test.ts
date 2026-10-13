@@ -199,8 +199,7 @@ describe("an RSA-PSS key with a BER length is rejected, with Node's reason", () 
   it.each([
     [
       'a 5-byte length',
-      (b: Buffer) =>
-        Buffer.concat([Buffer.from([0x30, 0x85, 0, 0, 0, b[2]!, b[3]!]), b.subarray(4)]),
+      (b: Buffer) => Buffer.concat([Buffer.from([0x30, 0x85, 0, 0, 0, b[2], b[3]]), b.subarray(4)]),
     ],
     [
       'an indefinite length',
@@ -230,9 +229,7 @@ describe('fromPem with bytes it cannot read', () => {
     const bytes = new Uint8Array(16);
     structuredClone(bytes.buffer, { transfer: [bytes.buffer] });
     expect(fromPemError(bytes as unknown as string).message).toBe(
-      'Could not load the PEM private key: Unable to load PEM file. See ' +
-        'https://cryptography.io/en/latest/faq/#why-can-t-i-import-my-pem-file for more ' +
-        'details. MalformedFraming'
+      'Could not load the PEM private key: Unable to load PEM file: no PEM data found.'
     );
   });
 
@@ -267,10 +264,10 @@ describe('fromPem with bytes it cannot read', () => {
 });
 
 describe('fromPem with input that is not a PEM', () => {
-  it.each([undefined, null, 42, {}])('reports %j as a SigningError', (value) => {
+  it.each<unknown>([undefined, null, 42, {}])('reports %j as a SigningError', (value) => {
     let caught: unknown;
     try {
-      LocalQuoteSigner.fromPem(value as unknown as string, { kid: 'k', serviceUrl: SELLER_URL });
+      LocalQuoteSigner.fromPem(value as string, { kid: 'k', serviceUrl: SELLER_URL });
     } catch (error) {
       caught = error;
     }

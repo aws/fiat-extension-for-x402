@@ -28,7 +28,7 @@ describe.each([
   });
 
   it.each(['d', 'p', 'q', 'dp', 'dq', 'qi', 'oth', 'k'])('refuses member %s', (member) => {
-    expect(() => adapt(privateKey, { ...publicJwk, [member]: 'x' } as JWK, 'id')).toThrow(
+    expect(() => adapt(privateKey, { ...publicJwk, [member]: 'x' }, 'id')).toThrow(
       `publicKey contains private key members: ['${member}']`
     );
   });

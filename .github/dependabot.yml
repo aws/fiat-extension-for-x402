@@ -12,8 +12,15 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
-        # x402 updates get their own PRs: they can change the scheme contracts.
+        # x402 updates get their own PR: they can change the scheme contracts.
         exclude-patterns: ["@x402/*"]
+      # In one PR, because @x402/express depends on its own @x402/core minor.
+      x402:
+        patterns: ["@x402/*"]
+      # The same for security updates, which groups do not cover by default.
+      x402-security:
+        applies-to: security-updates
+        patterns: ["@x402/*"]
 
   - package-ecosystem: github-actions
     directory: /

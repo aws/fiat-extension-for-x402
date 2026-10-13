@@ -103,7 +103,7 @@ describe('AgenticCommerceFacilitatorClient verify and settle', () => {
       payload: { paymentToken: token },
     } as PaymentPayload;
 
-    await client(async () => ({ 'x-access': 'secret' })).verify(payload, accepted);
+    await client(() => Promise.resolve({ 'x-access': 'secret' })).verify(payload, accepted);
 
     const byUrl = Object.fromEntries(
       fetchStub.mock.calls.map(([input, init]) => [requestUrl(input), init?.headers])
@@ -146,10 +146,7 @@ describe('AgenticCommerceFacilitatorClient verify and settle', () => {
     await new AgenticCommerceFacilitatorClient({
       baseUrl: 'https://facilitator.example.com',
       sellerKeyResolver: resolver,
-    }).verify(
-      { x402Version: 2, accepted, payload: { paymentToken: token } } as PaymentPayload,
-      accepted
-    );
+    }).verify({ x402Version: 2, accepted, payload: { paymentToken: token } }, accepted);
     expect(requestUrl(fetchStub.mock.calls[0][0])).toBe(
       `${DEFAULT_PAYMENT_TOKEN_JWKS_BASE_URL}${WELL_KNOWN_JWKS_PATH}`
     );

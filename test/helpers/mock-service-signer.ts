@@ -23,7 +23,7 @@ export async function createMockServiceSigner(
 
   const signer: QuoteSigner = {
     signQuote: async (payload) => {
-      return await new jose.SignJWT(payload as any)
+      return await new jose.SignJWT({ ...payload })
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
     },

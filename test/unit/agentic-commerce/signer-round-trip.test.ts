@@ -39,7 +39,7 @@ vi.mock('@aws-sdk/client-kms', () => {
         if (command instanceof SignCommand) {
           const { Message, SigningAlgorithm } = command.input;
           return Promise.resolve({
-            Signature: sign(hashes[SigningAlgorithm]!, Message, {
+            Signature: sign(hashes[SigningAlgorithm], Message, {
               key: key.privateKey,
               dsaEncoding: 'der',
             }),
@@ -154,7 +154,7 @@ describe('LocalQuoteSigner', () => {
         ([url]) => requestUrl(url) === SELLER_JWKS_URL
       );
       expect(sellerCalls).toHaveLength(1);
-      expect(sellerCalls[0]![1]?.headers).toEqual({});
+      expect(sellerCalls[0][1]?.headers).toEqual({});
     }
   );
 

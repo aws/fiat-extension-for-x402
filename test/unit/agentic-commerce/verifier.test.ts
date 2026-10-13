@@ -95,7 +95,7 @@ async function customQuote(
     if (value === undefined) delete all[name];
     else all[name] = value;
   }
-  return new jose.SignJWT(all as jose.JWTPayload).setProtectedHeader(header).sign(key);
+  return new jose.SignJWT(all).setProtectedHeader(header).sign(key);
 }
 
 function wire(quoteToken: unknown, overrides: VerificationRequirements = {}) {
@@ -154,9 +154,10 @@ describe('AgenticCommerceVerifier', () => {
     it('does not follow redirects from a JWKS URL', async () => {
       const quote = await sellerQuote();
       const token = await service.issue(quote);
-      const stub = vi.fn(
-        async () =>
+      const stub = vi.fn(() =>
+        Promise.resolve(
           new Response(null, { status: 302, headers: { location: 'https://elsewhere.example' } })
+        )
       );
       vi.stubGlobal('fetch', stub);
       await expectInvalid(
@@ -284,7 +285,7 @@ describe('AgenticCommerceVerifier', () => {
 
     it('accepts headers from a function, called per fetch', async () => {
       const quote = await sellerQuote();
-      const headers = vi.fn(async () => ({ authorization: 'Bearer x' }));
+      const headers = vi.fn(() => Promise.resolve({ authorization: 'Bearer x' }));
       await expectValid(
         await service.issue(quote),
         wire(quote),
@@ -297,7 +298,7 @@ describe('AgenticCommerceVerifier', () => {
     it('fails when the JWKS request is not HTTP 200', async () => {
       vi.stubGlobal(
         'fetch',
-        vi.fn(async () => new Response('{}', { status: 503 }))
+        vi.fn(() => Promise.resolve(new Response('{}', { status: 503 })))
       );
       const quote = await sellerQuote();
       await expectInvalid(
@@ -710,7 +711,7 @@ describe('AgenticCommerceVerifier', () => {
 
       it('verifies with the key from GetPublicKey, cached per ARN', async () => {
         const key = await kmsKey();
-        const send = vi.fn(async () => ({ PublicKey: key.der }));
+        const send = vi.fn(() => Promise.resolve({ PublicKey: key.der }));
         const arn = 'arn:aws:kms:us-east-1:111122223333:alias/quote-key';
         const v = verifier({
           sellerKeyResolver: {
@@ -733,7 +734,7 @@ describe('AgenticCommerceVerifier', () => {
             type: 'kms',
             kmsKeyArn: 'arn',
             region: 'us-east-1',
-            kmsClient: { send: async () => ({ PublicKey: undefined }) },
+            kmsClient: { send: () => Promise.resolve({ PublicKey: undefined }) },
           },
         });
         const quote = await customQuote();
@@ -753,7 +754,7 @@ describe('AgenticCommerceVerifier', () => {
             type: 'kms',
             kmsKeyArn: 'arn',
             region: 'us-east-1',
-            kmsClient: { send: async () => ({ PublicKey: key.der }) },
+            kmsClient: { send: () => Promise.resolve({ PublicKey: key.der }) },
           },
         });
         const other = await jose.generateKeyPair('ES384');
@@ -790,7 +791,7 @@ describe('AgenticCommerceVerifier', () => {
               type: 'kms',
               kmsKeyArn: 'arn',
               region: 'eu-west-1',
-              credentials: async () => credentials,
+              credentials: () => Promise.resolve(credentials),
             },
           });
           const quote = await customQuote({}, key.privateKey, { alg: 'ES384' });

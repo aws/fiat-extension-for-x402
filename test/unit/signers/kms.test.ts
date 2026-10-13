@@ -32,7 +32,12 @@ vi.mock('@aws-sdk/client-kms', () => ({
 
 import { KmsQuoteSigner, createKmsQuoteSigner, derToRaw } from '../../../src/signers/kms';
 import type { QuoteSigner } from '../../../src/signers/protocol';
-import { SigningError } from '../../../src/types';
+import { SigningError, type QuoteTokenPayload } from '../../../src/types';
+
+/** The shape of a KMS command passed to the mocked client */
+interface KmsCommand {
+  input: Record<string, unknown>;
+}
 
 const keyArn = 'arn:aws:kms:us-east-1:123456789012:alias/quote-key';
 const serviceUrl = 'https://api.example.com';
@@ -105,7 +110,7 @@ describe.each([
         expect(payload).toEqual({ iss: serviceUrl, n: i });
       }
 
-      expect(sendMock.mock.calls[0][0].input).toMatchObject({
+      expect((sendMock.mock.calls[0][0] as KmsCommand).input).toMatchObject({
         KeyId: keyArn,
         MessageType: 'RAW',
         SigningAlgorithm: algorithm,
@@ -115,10 +120,10 @@ describe.each([
 
   it('defaults to ECDSA_SHA_384', async () => {
     sendMock.mockResolvedValue({ Signature: der([1], [2]) });
-    const token = await create({ keyArn, region: 'us-east-1', serviceUrl }).signQuote({} as never);
+    const token = await create({ keyArn, region: 'us-east-1', serviceUrl }).signQuote({});
 
     expect(jose.decodeProtectedHeader(token).alg).toBe('ES384');
-    expect(sendMock.mock.calls[0][0].input.SigningAlgorithm).toBe('ECDSA_SHA_384');
+    expect((sendMock.mock.calls[0][0] as KmsCommand).input.SigningAlgorithm).toBe('ECDSA_SHA_384');
   });
 
   it('derives the kid from the ARN unless one is given', async () => {
@@ -138,7 +143,7 @@ describe.each([
     ];
     for (const [arn, kid, expected] of vectors) {
       const signer = create({ keyArn: arn, region: 'us-east-1', serviceUrl, kid });
-      expect(jose.decodeProtectedHeader(await signer.signQuote({} as never)).kid).toBe(expected);
+      expect(jose.decodeProtectedHeader(await signer.signQuote({})).kid).toBe(expected);
     }
   });
 
@@ -155,7 +160,7 @@ describe.each([
     async (response) => {
       sendMock.mockResolvedValue(response);
       const signer = create({ keyArn, region: 'us-east-1', serviceUrl });
-      const error = await signer.signQuote({} as never).catch((e: unknown) => e);
+      const error = await signer.signQuote({}).catch((e: unknown) => e);
       expect(error).toBeInstanceOf(SigningError);
       expect(error).toMatchObject({
         code: 'SIGNING_ERROR',
@@ -171,7 +176,7 @@ describe.each([
     });
     sendMock.mockRejectedValue(kmsError);
     const signer = create({ keyArn, region: 'us-east-1', serviceUrl });
-    const error = await signer.signQuote({} as never).catch((e: unknown) => e);
+    const error = await signer.signQuote({}).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(SigningError);
     expect(error).toMatchObject({
       code: 'SIGNING_ERROR',
@@ -183,7 +188,7 @@ describe.each([
   it('rejects a malformed DER signature from KMS with a plain Error', async () => {
     sendMock.mockResolvedValue({ Signature: Uint8Array.from([0x30, 0x00]) });
     const signer = create({ keyArn, region: 'us-east-1', serviceUrl });
-    const error = await signer.signQuote({} as never).catch((e: unknown) => e);
+    const error = await signer.signQuote({}).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(Error);
     expect(error).not.toBeInstanceOf(SigningError);
     expect((error as Error).message).toBe(
@@ -247,16 +252,25 @@ describe('createKmsQuoteSigner (deprecated)', () => {
 
   it('returns bound methods, so it can be destructured and spread as before', async () => {
     sendMock.mockResolvedValue({ Signature: der([1], [2]) });
-    const { signQuote, getServiceUrl } = createKmsQuoteSigner({
-      keyArn,
-      region: 'us-east-1',
-      serviceUrl,
-    });
+    // Typed as plain function properties: the point is that they work unbound.
+    const bound: { signQuote: (payload: object) => Promise<string>; getServiceUrl: () => string } =
+      createKmsQuoteSigner({ keyArn, region: 'us-east-1', serviceUrl });
+    const { signQuote, getServiceUrl } = bound;
     expect(getServiceUrl()).toBe(serviceUrl);
-    await expect(signQuote({} as never)).resolves.toMatch(/^eyJ/);
+    await expect(signQuote({})).resolves.toMatch(/^eyJ/);
     const signer: QuoteSigner = createKmsQuoteSigner({ keyArn, region: 'us-east-1', serviceUrl });
     const spread: QuoteSigner = { ...signer };
-    await expect(spread.signQuote({} as never)).resolves.toMatch(/^eyJ/);
+    const payload: QuoteTokenPayload = {
+      iss: serviceUrl,
+      aud: 'aws:marketplace',
+      iat: 0,
+      exp: 300,
+      jti: 'quote-1',
+      price: { amount: '0.10', currency: 'USD' },
+      payTo: 'seller-1',
+      reference: 'RESOURCE',
+    };
+    await expect(spread.signQuote(payload)).resolves.toMatch(/^eyJ/);
   });
 });
 
@@ -276,14 +290,14 @@ describe('KMS signatures with leading zero bytes in r or s', () => {
         ).toString('base64url');
         const message = `${header}.${Buffer.from(JSON.stringify(payload)).toString('base64url')}`;
         const signature = sign(hash, Buffer.from(message), { key: privateKey, dsaEncoding: 'der' });
-        const rLength = signature[signature[1]! & 0x80 ? 4 : 3]!;
-        const r = signature.subarray(signature[1]! & 0x80 ? 5 : 4);
-        const sLength = r[rLength + 1]!;
+        const rLength = signature[signature[1] & 0x80 ? 4 : 3];
+        const r = signature.subarray(signature[1] & 0x80 ? 5 : 4);
+        const sLength = r[rLength + 1];
         if (rLength >= size && sLength >= size) continue;
         found = true;
         sendMock.mockResolvedValueOnce({ Signature: signature });
-        const token = await signer.signQuote(payload as never);
-        expect(Buffer.from(token.split('.')[2]!, 'base64url')).toHaveLength(2 * size);
+        const token = await signer.signQuote(payload);
+        expect(Buffer.from(token.split('.')[2], 'base64url')).toHaveLength(2 * size);
         await expect(jose.jwtVerify(token, publicKey)).resolves.toBeDefined();
       }
       expect(found).toBe(true);

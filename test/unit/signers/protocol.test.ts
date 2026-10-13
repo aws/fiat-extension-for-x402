@@ -18,7 +18,7 @@ describe('Agentic Commerce Signers', () => {
       // Create mock signer
       signer = {
         signQuote: async (payload: QuoteTokenPayload) => {
-          return await new jose.SignJWT(payload as any)
+          return await new jose.SignJWT({ ...payload })
             .setProtectedHeader({ alg: 'RS256' })
             .sign(privateKey);
         },
@@ -35,7 +35,6 @@ describe('Agentic Commerce Signers', () => {
         jti: 'quote_123',
         price: { amount: '1.50', currency: 'USD' },
         payTo: 'agentic-commerce-test',
-        capture: 'manual',
         reference: 'TEST',
       };
 
@@ -64,19 +63,19 @@ describe('Agentic Commerce Signers', () => {
 
   describe('PaymentTokenSigner', () => {
     let privateKey: jose.KeyLike;
-    let publicKey: jose.KeyLike;
+    let publicKey: jose.JWK;
     let signer: PaymentTokenSigner;
 
     beforeEach(async () => {
       // Generate test key pair
       const { privateKey: priv, publicKey: pub } = await jose.generateKeyPair('RS256');
       privateKey = priv;
-      publicKey = pub;
+      publicKey = await jose.exportJWK(pub);
 
       // Create mock signer
       signer = {
         signPayment: async (payload: PaymentTokenPayload) => {
-          return await new jose.SignJWT(payload as any)
+          return await new jose.SignJWT({ ...payload })
             .setProtectedHeader({ alg: 'RS256' })
             .sign(privateKey);
         },
@@ -151,7 +150,7 @@ describe('Agentic Commerce Signers', () => {
         jti: 'quote_test',
         price: { amount: '5.00', currency: 'USD' },
         payTo: 'agentic-commerce-id',
-        capture: 'auto',
+        reference: 'TEST',
       };
 
       const token = await signer.signQuote(payload);

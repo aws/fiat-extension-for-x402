@@ -26,7 +26,7 @@ const b64 = (value: unknown) => jose.base64url.encode(JSON.stringify(value));
 
 let buyerKey: jose.KeyLike;
 
-beforeEach(async () => {
+beforeEach(() => {
   buyerKey = buyerPrivateKey();
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(NOW * 1000);
@@ -55,7 +55,7 @@ async function proof(
       typ: 'dpop+jwt',
       jwk: BUYER_PUBLIC_JWK,
       ...header,
-    } as jose.JWTHeaderParameters)
+    })
     .sign(key);
 }
 
@@ -211,8 +211,11 @@ describe('verifyDPoPProof: each check, with its message', () => {
   it('11. the nonce store rejects a seen jti and records iat + maxAge', async () => {
     const seen = new Map<string, number>();
     const nonceStore: DPoPNonceStore = {
-      has: async (jti) => seen.has(jti),
-      add: async (jti, expiresAt) => void seen.set(jti, expiresAt),
+      has: (jti) => Promise.resolve(seen.has(jti)),
+      add: (jti, expiresAt) => {
+        seen.set(jti, expiresAt);
+        return Promise.resolve();
+      },
     };
     await verifyDPoPProof(DPOP_PROOF, { ...EXPECTED, maxAge: 30, nonceStore });
     expect([...seen]).toEqual([['dpop-fixture-0001', FIXED_NOW + 30]]);

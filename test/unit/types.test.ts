@@ -21,7 +21,6 @@ describe('Payment Types', () => {
         quoteToken: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
       };
       expect(extra.quoteToken).toBeDefined();
-      expect(extra.capture).toBeUndefined();
       expect(extra.reference).toBeUndefined();
     });
 
@@ -76,7 +75,6 @@ describe('Payment Types', () => {
           currency: 'USD',
         },
         payTo: 'pay-weather-co-aws',
-        capture: 'manual',
         reference: 'WEATHER_DATA_TIER1',
       };
       expect(payload.iss).toBe('https://api.weather.com');
@@ -96,7 +94,6 @@ describe('Payment Types', () => {
           { amount: '0.12', currency: 'EUR' },
         ],
         payTo: 'pay-weather-co-aws',
-        capture: 'manual',
         reference: 'WEATHER_DATA_TIER1',
       };
       expect(Array.isArray(payload.price)).toBe(true);
@@ -115,7 +112,6 @@ describe('Payment Types', () => {
           currency: 'USD',
         },
         payTo: 'pay-weather-co-aws',
-        capture: 'manual',
         reference: 'WEATHER_DATA_TIER1',
       };
       expect(Array.isArray(payload.aud)).toBe(true);
@@ -134,7 +130,6 @@ describe('Payment Types', () => {
           currency: 'USD',
         },
         payTo: 'pay-weather-co-aws',
-        capture: 'manual',
         reference: 'WEATHER_DATA_TIER1',
         settlement: {
           method: 'CLRG',
@@ -222,10 +217,10 @@ describe('Settlement Types', () => {
 
   describe('SettlementCycle', () => {
     it('should accept valid settlement cycles', () => {
-      const daily: SettlementCycle = 'DAIL';
+      const quarterly: SettlementCycle = 'QRTR';
       const weekly: SettlementCycle = 'WEEK';
       const monthly: SettlementCycle = 'MNTH';
-      expect(daily).toBe('DAIL');
+      expect(quarterly).toBe('QRTR');
       expect(weekly).toBe('WEEK');
       expect(monthly).toBe('MNTH');
     });

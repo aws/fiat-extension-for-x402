@@ -101,7 +101,7 @@ describe.each(Object.entries(sign))('%s signer: signing algorithm', (_name, sign
     );
   });
 
-  it('rejects a key whose alg cannot be determined', async () => {
+  it('rejects a key whose alg cannot be determined', () => {
     expect(() => signWith(new Uint8Array(32) as unknown as jose.KeyLike, {} as jose.JWK)).toThrow(
       'Unsupported signing key: alg unknown'
     );

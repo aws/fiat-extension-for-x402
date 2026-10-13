@@ -32,4 +32,24 @@ export default defineConfig(
       '@typescript-eslint/require-await': 'warn',
     },
   },
+  {
+    // Tests get the same rules, with none downgraded. tsconfig.json leaves
+    // test/ out, so they are typed with tsconfig.test.json.
+    files: ['test/**/*.ts'],
+    extends: [eslint.configs.recommended, tseslint.configs.recommendedTypeChecked],
+    languageOptions: {
+      parserOptions: {
+        project: './tsconfig.test.json',
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      // A leading underscore marks a deliberately unused name, such as a
+      // member left out of a rest object.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
+    },
+  },
 );

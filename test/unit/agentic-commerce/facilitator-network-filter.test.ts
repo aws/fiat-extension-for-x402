@@ -39,7 +39,7 @@ describe('AgenticCommerceFacilitatorClient networkFilter', () => {
     vi.clearAllMocks();
     mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => ({ ...AGENTIC_COMMERCE_SUPPORTED_RESPONSE }),
+      json: () => Promise.resolve({ ...AGENTIC_COMMERCE_SUPPORTED_RESPONSE }),
     });
   });
 

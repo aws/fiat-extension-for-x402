@@ -77,15 +77,15 @@ describe('Agentic Commerce API Integration', () => {
 
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
-        { x402Version: 2, scheme: SCHEME_EXACT, network: 'aws:base' as any },
+        { x402Version: 2, scheme: SCHEME_EXACT, network: 'aws:base' },
         []
       );
 
       // Decode the quote token to verify description and dimensions
-      const quoteToken = (enhanced.extra as any).quoteToken;
+      const { quoteToken } = enhanced.extra as { quoteToken: string };
       const decoded = jose.decodeJwt(quoteToken);
-      expect((decoded as any).description).toBe('Premium API access - 1 request');
-      expect((decoded as any).dimensions).toEqual({ requests: 1, tier: 'premium' });
+      expect(decoded.description).toBe('Premium API access - 1 request');
+      expect(decoded.dimensions).toEqual({ requests: 1, tier: 'premium' });
     });
 
     it('server scheme omits description/dimensions when not provided', async () => {
@@ -108,14 +108,14 @@ describe('Agentic Commerce API Integration', () => {
 
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
-        { x402Version: 2, scheme: SCHEME_EXACT, network: 'aws:base' as any },
+        { x402Version: 2, scheme: SCHEME_EXACT, network: 'aws:base' },
         []
       );
 
-      const quoteToken = (enhanced.extra as any).quoteToken;
+      const { quoteToken } = enhanced.extra as { quoteToken: string };
       const decoded = jose.decodeJwt(quoteToken);
-      expect((decoded as any).description).toBeUndefined();
-      expect((decoded as any).dimensions).toBeUndefined();
+      expect(decoded.description).toBeUndefined();
+      expect(decoded.dimensions).toBeUndefined();
     });
 
     it('dimensions supports mixed string and number values', async () => {
@@ -139,13 +139,13 @@ describe('Agentic Commerce API Integration', () => {
 
       const enhanced = await serverScheme.enhancePaymentRequirements(
         requirements,
-        { x402Version: 2, scheme: SCHEME_EXACT, network: 'aws:base' as any },
+        { x402Version: 2, scheme: SCHEME_EXACT, network: 'aws:base' },
         []
       );
 
-      const quoteToken = (enhanced.extra as any).quoteToken;
+      const { quoteToken } = enhanced.extra as { quoteToken: string };
       const decoded = jose.decodeJwt(quoteToken);
-      expect((decoded as any).dimensions).toEqual(dimensions);
+      expect(decoded.dimensions).toEqual(dimensions);
     });
   });
 });

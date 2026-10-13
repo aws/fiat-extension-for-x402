@@ -81,13 +81,9 @@ describe('SigningError', () => {
     );
 
     send.mockRejectedValueOnce(new Error('AccessDeniedException'));
-    await expect(new KmsQuoteSigner(KMS).signQuote({} as never)).rejects.toBeInstanceOf(
-      SigningError
-    );
+    await expect(new KmsQuoteSigner(KMS).signQuote({})).rejects.toBeInstanceOf(SigningError);
     send.mockResolvedValueOnce({});
-    await expect(new KmsQuoteSigner(KMS).signQuote({} as never)).rejects.toBeInstanceOf(
-      SigningError
-    );
+    await expect(new KmsQuoteSigner(KMS).signQuote({})).rejects.toBeInstanceOf(SigningError);
   });
 
   it('keeps the error it wraps as the cause', () => {
