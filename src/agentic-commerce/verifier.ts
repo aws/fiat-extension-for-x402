@@ -85,8 +85,8 @@ export interface AgenticCommerceVerifierConfig {
   /** Base URL of the service's JWKS. Defaults to the production endpoint. */
   paymentTokenJwksUrl?: string;
   /**
-   * Extra headers sent when fetching the service's JWKS. The production JWKS
-   * needs none. Never sent to a seller JWKS URL.
+   * Extra headers sent when fetching the service's JWKS. Never sent to a
+   * seller JWKS URL.
    */
   jwksRequestHeaders?: JwksRequestHeaders;
   /** Expected `iss` of payment tokens. Defaults to {@link PAYMENT_TOKEN_ISSUER}. */
