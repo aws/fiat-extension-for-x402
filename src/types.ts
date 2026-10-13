@@ -274,13 +274,13 @@ export class ValidationError extends AgenticCommerceError {
 
 /**
  * Error thrown when quote token signing fails, or a quote signer is
- * misconfigured (the Python SDK's `SigningError`, exceptions.py:31-35)
+ * misconfigured
  */
 export class SigningError extends AgenticCommerceError {
   /**
    * @param message - Human-readable error message
    * @param details - Additional error context
-   * @param options - `cause`: the error this one wraps (Python's `raise ... from exc`)
+   * @param options - `cause`: the error this one wraps
    */
   constructor(message: string, details?: Record<string, unknown>, options?: ErrorOptions) {
     super(message, 'SIGNING_ERROR', details, options);

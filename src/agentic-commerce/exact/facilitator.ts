@@ -3,8 +3,6 @@
 /**
  * Facilitator side of the `exact` scheme on AWS Marketplace Agentic Commerce networks.
  *
- * Follows the Python SDK's `ExactAgenticCommerceScheme`
- * (fiat_extension_x402/agentic_commerce/exact/facilitator.py at commit 62230e6).
  * Register it on an x402 facilitator, which can run in the seller's own
  * process (no network hop) or as a separate service.
  */
@@ -20,7 +18,7 @@ import type {
 import { decodeJwt } from 'jose';
 import { AGENTIC_COMMERCE_CAIP_FAMILY, SCHEME_EXACT } from '../../constants';
 import { ValidationError } from '../../types';
-import { isPlainObject, isTruthy, pyStr } from '../python';
+import { isPlainObject, isTruthy, displayText } from '../json-value';
 import type { AgenticCommerceVerifier, VerificationRequirements } from '../verifier';
 
 /** Configuration of the `exact` facilitator scheme */
@@ -146,13 +144,13 @@ export function settleExactPayment(
 ): SettleResponse {
   let claims: Record<string, unknown> = {};
   try {
-    claims = decodeJwt(pyStr(paymentTokenOf(payload) || ''));
+    claims = decodeJwt(displayText(paymentTokenOf(payload) || ''));
   } catch {
-    // An undecodable token settles with an empty transaction, as in Python.
+    // An undecodable token settles with an empty transaction.
   }
   const response: SettleResponse = {
     success: true,
-    transaction: isTruthy(claims.payment_id) ? pyStr(claims.payment_id) : '',
+    transaction: isTruthy(claims.payment_id) ? displayText(claims.payment_id) : '',
     network: requirements.network,
   };
   if (typeof claims.sub === 'string') {

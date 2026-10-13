@@ -88,6 +88,11 @@ Create a P-384 key with OpenSSL:
 openssl ecparam -name secp384r1 -genkey -noout | openssl pkcs8 -topk8 -nocrypt -out quote-key.pem
 ```
 
+Use an EC key (P-256, P-384 or P-521) or a plain RSA key of at least 2048 bits.
+RSA keys marked for RSA-PSS only (`openssl genpkey -algorithm RSA-PSS`) are not
+supported: quote tokens are signed with RS256, which such a key does not allow.
+`LocalQuoteSigner` rejects them, including an encrypted RSA-PSS PEM.
+
 Every key needs a unique `kid`: verifiers pick the key named in the quote's
 header. To rotate, publish both keys (`jwksDocument(next.publicJwk,
 current.publicJwk)`), switch the signer to the new key, and remove the old key
@@ -105,8 +110,7 @@ To keep the key elsewhere, for example in an HSM that signs remotely, implement
 
 For local development, `new LocalQuoteSigner(privateKey, publicJwk, serviceUrl)`
 takes a key pair directly, and the facilitator can use
-`{ type: 'static', publicJwk }`. As in the Python SDK, the JWK's `alg` defaults
-to `ES256`, so set it for a P-384, P-521 or RSA key; the constructor checks it
+`{ type: 'static', publicJwk }`. The JWK's `alg` defaults to `ES256`, so set it for a P-384, P-521 or RSA key; the constructor checks it
 matches the key and that the JWK is the key's public half.
 
 ---
@@ -269,7 +273,7 @@ same adapter unless the route sets `resource`.
 
 The facilitator does not check DPoP: a facilitator called without the server
 scheme's hook (for example directly, outside `x402ResourceServer`) accepts a
-DPoP-bound token without a proof, as in the Python SDK.
+DPoP-bound token without a proof.
 
 | Reason | Meaning |
 |---|---|
@@ -298,7 +302,7 @@ Configuration errors throw `ValidationError`. The quote signers
 (`LocalQuoteSigner`, `KmsQuoteSigner`) throw `SigningError` (code
 `SIGNING_ERROR`) when they are misconfigured, a PEM cannot be loaded, or the
 KMS Sign call fails or returns no signature. When a PEM fails to load or the
-KMS Sign call fails, the original error is its `cause`. As in the Python SDK, a malformed DER signature from KMS is a plain
+KMS Sign call fails, the original error is its `cause`. A malformed DER signature from KMS is a plain
 `Error`, and an error from the signing library itself is passed through.
 `SigningError` and `ValidationError` extend `AgenticCommerceError`.
 

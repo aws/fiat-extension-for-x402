@@ -8,9 +8,8 @@ import { ValidationError } from '../../src/types';
 import { QuoteTokenPriceSchema } from '../../src/schemas';
 import { createMockServiceSigner } from '../helpers/mock-service-signer';
 
-// Route price parsing must accept and reject exactly what the Python SDK does.
-// The first block copies the cases of the Python SDK's TestParsePrice
-// (tests/unit/agentic_commerce/exact/test_server.py:121-179) as they are.
+// Route price parsing: the accepted formats, whitespace, malformed numbers and
+// very large amounts. parseMoneyToDecimal applies the same rules.
 
 const char = (code: number) => String.fromCharCode(code);
 
@@ -22,7 +21,7 @@ beforeAll(async () => {
   scheme = new ExactAgenticCommerceScheme({ signer });
 });
 
-describe('parsePrice: Python SDK TestParsePrice cases', () => {
+describe('parsePrice: accepted and rejected price formats', () => {
   it.each([
     ['$1.50', '1.50', 'iso4217:USD'],
     ['1.50 USD', '1.50', 'iso4217:USD'],
@@ -122,7 +121,7 @@ describe('parsePrice: "$" prefix, currency suffix and casing', () => {
   );
 });
 
-describe('parsePrice: whitespace (Python str.strip() and re \\s)', () => {
+describe('parsePrice: Unicode whitespace around and inside the price', () => {
   it.each([
     [' 1.50 ', '1.50', 'iso4217:USD'],
     ['\t1.50\n', '1.50', 'iso4217:USD'],
@@ -135,7 +134,7 @@ describe('parsePrice: whitespace (Python str.strip() and re \\s)', () => {
     await expect(parse(price)).resolves.toEqual({ amount, asset, extra: {} });
   });
 
-  // U+FEFF is whitespace to JavaScript's trim() but not to Python.
+  // U+FEFF is whitespace to JavaScript's trim() but not to the price parser.
   it.each([' ', '\t', '$ 1.50', '1 .50', '1. 50', `${char(0xfeff)}1.50`, `1.50${char(0x200b)}`])(
     'rejects %j',
     async (price) => {
@@ -186,7 +185,7 @@ describe('parsePrice: plain-notation output for numbers', () => {
 });
 
 describe('parseMoneyToDecimal applies the same rules', () => {
-  it('trims Python whitespace', () => {
+  it('trims surrounding whitespace', () => {
     expect(parseMoneyToDecimal('  $3  ')).toEqual({ amount: 3, currency: 'USD' });
   });
 

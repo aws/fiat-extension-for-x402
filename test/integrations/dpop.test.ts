@@ -4,11 +4,9 @@
  * DPoP-bound payment tokens on x402 core's own HTTP server, end to end.
  *
  * The exact server scheme checks the DPoP proof in its onBeforeVerify hook,
- * before x402 core calls the facilitator, as the Python SDK's before_verify
- * does (agentic_commerce/exact/server.py:129-172 at commit 62230e6). The
- * request is driven through an HTTPAdapter, as the framework middlewares do,
- * so no socket is opened. The payment token and the valid proof are the
- * Python-minted cross-language fixtures, checked at FIXED_NOW+10; the other
+ * before x402 core calls the facilitator. The request is driven through an HTTPAdapter, as the framework middlewares do,
+ * so no socket is opened. The payment token and the valid proof are the fixed
+ * test vectors, checked at FIXED_NOW+10; the other
  * proofs are signed here with the fixture buyer key.
  */
 
@@ -45,14 +43,14 @@ import {
   SELLER_PUBLIC_JWK,
   SELLER_URL,
   SERVICE_JWKS,
-} from '../helpers/cross-language-fixtures';
+} from '../helpers/fixed-vectors';
 import { createSeller, jwksFetch, requestUrl } from '../helpers/fake-payment-service';
 
 const SERVICE_JWKS_BASE_URL = 'https://jwks.payments.test';
 const SERVICE_JWKS_URL = `${SERVICE_JWKS_BASE_URL}/.well-known/jwks.json`;
 const FACILITATOR_URL = 'https://facilitator.example.com';
 
-// The route the fixture quote was signed for (FIXTURES.md section 2).
+// The route the fixture quote was signed for.
 const ROUTES = {
   'GET /weather': {
     accepts: {

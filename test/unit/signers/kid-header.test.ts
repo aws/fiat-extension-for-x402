@@ -1,9 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * The local signers send the public JWK's `kid` as the JWS `kid` header, as the
- * Python SDK's LocalQuoteSigner does (signers/local.py:123 at commit 62230e6),
- * and send no `kid` header when the JWK has none.
+ * The local signers send the public JWK's `kid` as the JWS `kid` header, as
+ * LocalQuoteSigner does, and send no `kid` header when the JWK has none.
  */
 
 import { describe, expect, it } from 'vitest';

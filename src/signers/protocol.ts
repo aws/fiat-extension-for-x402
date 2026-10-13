@@ -10,9 +10,9 @@
 
 import { KeyObject } from 'node:crypto';
 import * as jose from 'jose';
-import { pyRepr } from '../agentic-commerce/python';
+import { quotedLiteral } from '../agentic-commerce/json-value';
 import { ALLOWED_ALGORITHMS } from '../security';
-import { stripPythonWhitespace } from '../utils';
+import { stripWhitespace } from '../utils';
 import { QuoteTokenPayload, PaymentTokenPayload, SigningError, ValidationError } from '../types';
 
 /**
@@ -30,22 +30,21 @@ export const EC_CURVE_ALGORITHMS: Record<string, string> = {
 };
 
 /**
- * JWK members that only private keys carry (RFC 7518 section 6), as the
- * Python SDK's `PRIVATE_JWK_MEMBERS` (signers/local.py:26).
+ * JWK members that only private keys carry (RFC 7518 section 6).
  *
  * @internal
  */
 export const PRIVATE_JWK_MEMBERS: readonly string[] = ['d', 'p', 'q', 'dp', 'dq', 'qi', 'oth', 'k'];
 
 /**
- * The private members of a JWK, sorted and written as Python writes
- * `sorted(set)`, for example `['d', 'p']`; an empty string when there are none.
+ * The private members of a JWK, sorted and written as a quoted list, for
+ * example `['d', 'p']`; an empty string when there are none.
  *
  * @internal
  */
 export function privateJwkMembers(jwk: object): string {
   const leaked = PRIVATE_JWK_MEMBERS.filter((member) => Object.hasOwn(jwk, member)).sort();
-  return leaked.length ? `[${leaked.map((member) => pyRepr(member)).join(', ')}]` : '';
+  return leaked.length ? `[${leaked.map((member) => quotedLiteral(member)).join(', ')}]` : '';
 }
 
 /** Refuse a public JWK that carries private key material. */
@@ -60,14 +59,13 @@ function assertPublicJwk(publicKey: jose.JWK): void {
 }
 
 /**
- * The quote signers' service URL check: it becomes the quote's `iss` claim
- * (Python signers/local.py:52-56 and signers/kms.py:89-93).
+ * The quote signers' service URL check: it becomes the quote's `iss` claim.
  *
  * @internal
  * @throws SigningError if `serviceUrl` is empty or only whitespace
  */
 export function assertServiceUrl(serviceUrl: unknown): void {
-  if (typeof serviceUrl !== 'string' || !stripPythonWhitespace(serviceUrl)) {
+  if (typeof serviceUrl !== 'string' || !stripWhitespace(serviceUrl)) {
     throw new SigningError(
       "serviceUrl is required and must be non-empty. It becomes the quote token's " +
         "'iss' claim, which the service requires."
@@ -166,8 +164,7 @@ function signingAlgorithm(privateKey: jose.KeyLike, publicKey: jose.JWK): string
 
 /**
  * Signs the seller's quote tokens: the one quote-signer interface of this
- * package, with the Python SDK's shape (`QuoteSigner` protocol in
- * signers/protocol.py at 62230e6). `signQuote` is async (PYTHON-DELTA A19).
+ * package. `signQuote` is async, so a signer can call a remote key service.
  *
  * Implement it to keep the key elsewhere, for example in an HSM that signs
  * remotely. {@link KmsQuoteSigner} and {@link LocalQuoteSigner} implement it.
@@ -220,7 +217,6 @@ export interface PaymentTokenSigner {
 /**
  * The JWS header: the alg, and the public JWK's `kid` when it has one, so
  * verifiers can pick the key from a JWKS that holds several (key rotation).
- * Follows the Python SDK's LocalQuoteSigner (signers/local.py:123 at 62230e6).
  */
 function protectedHeader(alg: string, publicKey: jose.JWK): jose.JWTHeaderParameters {
   return typeof publicKey.kid === 'string' && publicKey.kid

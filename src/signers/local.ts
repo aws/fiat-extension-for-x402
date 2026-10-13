@@ -8,16 +8,18 @@
  * export) and publish the public key in a JWKS; see {@link jwksDocument}.
  * Sellers who prefer the private key never to leave AWS use
  * {@link KmsQuoteSigner} instead.
- *
- * Follows the Python SDK's `fiat_extension_x402/signers/local.py` (commit
- * 62230e6). `signQuote` is async (a TS deviation, PYTHON-DELTA A19).
  */
 
 import { KeyObject, createPrivateKey, createPublicKey } from 'node:crypto';
 import * as jose from 'jose';
-import { base64urlDecode, bigIntOf, isPlainObject, pyRepr } from '../agentic-commerce/python';
+import {
+  base64urlDecode,
+  bigIntOf,
+  isPlainObject,
+  quotedLiteral,
+} from '../agentic-commerce/json-value';
 import { SigningError } from '../types';
-import { stripPythonWhitespace } from '../utils';
+import { stripWhitespace } from '../utils';
 import {
   describePrivateKey,
   privateJwkMembers,
@@ -26,16 +28,16 @@ import {
   type QuoteSigner,
 } from './protocol';
 
-// Node.js (OpenSSL) names of curves that cryptography names otherwise.
-const CRYPTOGRAPHY_CURVE_NAMES: Record<string, string> = {
+// Node.js (OpenSSL) curve names that differ from the SEC 2 names used in messages.
+const SEC_CURVE_NAMES: Record<string, string> = {
   prime192v1: 'secp192r1',
   prime256v1: 'secp256r1',
 };
 
-/** A curve as cryptography's `curve.name` writes it, for messages. */
+/** A curve's SEC 2 name (secp256r1 rather than prime256v1), for messages. */
 function curveName(curve: string | undefined): string {
   const name = String(curve);
-  return Object.hasOwn(CRYPTOGRAPHY_CURVE_NAMES, name) ? CRYPTOGRAPHY_CURVE_NAMES[name] : name;
+  return Object.hasOwn(SEC_CURVE_NAMES, name) ? SEC_CURVE_NAMES[name] : name;
 }
 
 /**
@@ -45,7 +47,7 @@ function curveName(curve: string | undefined): string {
  */
 export const MIN_RSA_KEY_BITS = 2048;
 
-/** A JWK member decoded as PyJWT decodes it, or undefined when it does not decode. */
+/** A JWK member decoded as jwksDocument decodes it, or undefined when it does not decode. */
 function decodedMember(value: unknown): Buffer | undefined {
   try {
     return base64urlDecode(value);
@@ -71,8 +73,8 @@ function isPublicKeyOf(jwk: Record<string, unknown>, privateKey: KeyObject): boo
   });
 }
 
-// The PEM tags cryptography's load_pem_private_key looks for (find_in_pem);
-// any other block, such as OPENSSH PRIVATE KEY or CERTIFICATE, is skipped.
+// The PEM tags of the private key formats fromPem reads; any other block, such
+// as OPENSSH PRIVATE KEY or CERTIFICATE, is skipped.
 const PRIVATE_KEY_PEM_TAGS = [
   'PRIVATE KEY',
   'ENCRYPTED PRIVATE KEY',
@@ -82,7 +84,7 @@ const PRIVATE_KEY_PEM_TAGS = [
 ];
 
 /**
- * The first private key PEM block (as `cryptography` loads the first one), and
+ * The first private key PEM block (the one that is loaded), and
  * whether it is encrypted (PKCS #8 ENCRYPTED, or a traditional PEM with
  * Proc-Type: 4,ENCRYPTED). Undefined when there is none. Plain index search:
  * no regex on the input.
@@ -108,19 +110,113 @@ function firstPrivateKeyBlock(pem: string): { block: string; encrypted: boolean 
   }
 }
 
+// id-RSASSA-PSS (1.2.840.113549.1.1.10), the DER contents of the OID
+const RSA_PSS_OID = Buffer.from('2a864886f70d01010a', 'hex');
+
 /**
- * Load a PEM private key the way `cryptography`'s `load_pem_private_key` does:
- * a password is refused for an unencrypted key and required for an encrypted
- * one. A null password is no password, as Python's None.
+ * Strict base64 decoding of a body already stripped of whitespace: only the
+ * base64 alphabet, padding only at the end and exactly as much as the last
+ * quantum needs. Undefined for anything else.
  */
-function loadPemPrivateKey(
-  pem: string | Uint8Array,
-  password?: string | Uint8Array | null
-): KeyObject {
-  const text = typeof pem === 'string' ? pem : Buffer.from(pem).toString('latin1');
+function strictBase64(body: string): Buffer | undefined {
+  let data = 0;
+  let pads = 0;
+  for (const ch of body) {
+    if (ch === '=') {
+      pads++;
+      continue;
+    }
+    const alphabet =
+      (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9');
+    if ((!alphabet && ch !== '+' && ch !== '/') || pads > 0) return undefined;
+    data++;
+  }
+  // Exactly the padding a whole number of quanta needs.
+  if (pads > 2 || (data + pads) % 4 !== 0) return undefined;
+  return Buffer.from(body, 'base64');
+}
+
+/**
+ * The content offset and length of the DER element at `offset` with the given
+ * tag, with a length of up to 4 bytes. Undefined if the tag differs, the
+ * length is longer or the input ends early.
+ */
+function derHeader(
+  der: Buffer,
+  offset: number,
+  tag: number
+): { start: number; length: number } | undefined {
+  if (offset + 1 >= der.length || der[offset] !== tag) return undefined;
+  const first = der[offset + 1];
+  if (first < 0x80) return { start: offset + 2, length: first };
+  const count = first & 0x7f;
+  if (count < 1 || count > 4 || offset + 2 + count > der.length) return undefined;
+  let length = 0;
+  for (let i = 0; i < count; i++) length = length * 256 + der[offset + 2 + i];
+  return { start: offset + 2 + count, length };
+}
+
+/**
+ * Whether a PEM holds an unencrypted PKCS #8 key marked RSA-PSS only: the
+ * first `BEGIN PRIVATE KEY` block anywhere in the text (even after another key
+ * block), base64 decoded strictly, and the algorithm OID of its
+ * PrivateKeyInfo. Only the DER headers up to that OID are read, so a key that
+ * is damaged after them is still refused here; input whose base64 or headers
+ * do not parse is left to the PEM loader to report. The block is found by
+ * index search; whitespace is dropped with a fixed one-character class.
+ */
+function isRsaPssPem(text: string): boolean {
+  const beginMarker = '-----BEGIN PRIVATE KEY-----';
+  const endMarker = '-----END PRIVATE KEY-----';
+  const begin = text.indexOf(beginMarker);
+  if (begin < 0) return false;
+  const end = text.indexOf(endMarker, begin + beginMarker.length);
+  if (end < 0) return false;
+  // ASCII whitespace is dropped. A fixed one-character class.
+  const body = text
+    .slice(begin + beginMarker.length, end)
+    .split(/[ \t\n\r\v\f]/)
+    .join('');
+  const der = strictBase64(body);
+  if (der === undefined) return false;
+  try {
+    const info = derHeader(der, 0, 0x30); // PrivateKeyInfo
+    const version = info && derHeader(der, info.start, 0x02);
+    const algorithm = version && derHeader(der, version.start + version.length, 0x30);
+    const oid = algorithm && derHeader(der, algorithm.start, 0x06);
+    return oid !== undefined && der.subarray(oid.start, oid.start + oid.length).equals(RSA_PSS_OID);
+  } finally {
+    der.fill(0);
+  }
+}
+
+/**
+ * The PEM as text, each byte one character (the PEM is read as bytes). This is
+ * the only conversion, used by both the RSA-PSS check and the loader, and it is
+ * Buffer.from, as the loader always used: bytes from any realm or offset are
+ * read the same way. Buffer.from throws for input that is not bytes (undefined,
+ * a number), which the caller reports as a SigningError.
+ */
+function pemAsText(pem: string | Uint8Array): string {
+  return typeof pem === 'string' ? pem : Buffer.from(pem).toString('latin1');
+}
+
+/** The SigningError for a PEM that cannot be read or loaded, with its cause */
+function pemLoadError(error: unknown): SigningError {
+  const message = error instanceof Error ? error.message : String(error);
+  return new SigningError(`Could not load the PEM private key: ${message}`, undefined, {
+    cause: error,
+  });
+}
+
+/**
+ * Load a PEM private key: a password is refused for an unencrypted key and
+ * required for an encrypted one. A null password is no password.
+ */
+function loadPemPrivateKey(text: string, password?: string | Uint8Array | null): KeyObject {
   const first = firstPrivateKeyBlock(text);
   if (first === undefined) {
-    // cryptography's messages: no PEM section at all, or no private key section
+    // No PEM section at all, or no private key section
     if (!text.includes('-----BEGIN ')) {
       throw new Error(
         'Unable to load PEM file. See ' +
@@ -134,8 +230,7 @@ function loadPemPrivateKey(
     );
   }
   const { block: key, encrypted } = first;
-  // cryptography's messages for a password mismatch. For an encrypted key an
-  // empty password is no password, as in cryptography.
+  // A password mismatch. For an encrypted key an empty password is no password.
   if (encrypted && (password == null || password.length === 0)) {
     throw new Error('Password was not given but private key is encrypted');
   }
@@ -152,7 +247,7 @@ function loadPemPrivateKey(
   } catch (error) {
     // Only a failed decryption is a wrong password. A decrypt that passes the
     // padding check but does not decode (ERR_OSSL_UNSUPPORTED) is a format
-    // error, as cryptography 50 reports it ("Could not deserialize key data").
+    // error, reported with OpenSSL's message.
     if ((error as { code?: unknown }).code === 'ERR_OSSL_BAD_DECRYPT') {
       throw new Error('Incorrect password, could not decrypt key', { cause: error });
     }
@@ -196,8 +291,8 @@ export class LocalQuoteSigner implements QuoteSigner {
    * @param serviceUrl - Service URL used as the `iss` claim
    * @throws SigningError if `serviceUrl` is
    *   empty, `publicJwk` contains private key material, or an RSA key is
-   *   shorter than 2048 bits (the Python SDK's checks); or, checked only by
-   *   this SDK, the key is not an EC (P-256, P-384, P-521) or RSA private key,
+   *   shorter than 2048 bits; or the key is not an EC (P-256, P-384, P-521) or
+   *   RSA private key,
    *   the JWK's `alg` is not the one the key signs with, or the JWK is not the
    *   key's public key
    */
@@ -225,18 +320,18 @@ export class LocalQuoteSigner implements QuoteSigner {
     if (key.alg === undefined) {
       throw new SigningError(`Unsupported EC curve: ${curveName(key.curve)}`);
     }
-    // Not a Python SDK check: Python fails when signing, or signs with an alg
-    // that no verifier accepts (PS256, RS384).
+    // Checked here rather than at sign time, and so that a JWK alg no verifier
+    // accepts (PS256, RS384) is refused.
     const alg: unknown = publicJwk.alg === undefined ? 'ES256' : publicJwk.alg;
     if (alg !== key.alg) {
       throw new SigningError(
-        `publicJwk alg ${pyRepr(alg)} does not match the private key (use ${key.alg})`
+        `publicJwk alg ${quotedLiteral(alg)} does not match the private key (use ${key.alg})`
       );
     }
     if (!isPublicKeyOf(publicJwk, keyObject)) {
       throw new SigningError('publicJwk is not the public key of privateKey');
     }
-    // PyJWT refuses a non-string kid when signing.
+    // The JWS `kid` header must be a string.
     if (publicJwk.kid !== undefined && typeof publicJwk.kid !== 'string') {
       throw new SigningError('publicJwk kid must be a string');
     }
@@ -249,7 +344,7 @@ export class LocalQuoteSigner implements QuoteSigner {
     this.privateKey = keyObject;
     this.jwk = jwk;
     this.serviceUrl = serviceUrl;
-    // PyJWT's header: sorted members, the kid only when the JWK has one.
+    // Header members sorted by name, the kid only when the JWK has one.
     this.header =
       publicJwk.kid === undefined
         ? { alg: key.alg, typ: 'JWT' }
@@ -260,28 +355,43 @@ export class LocalQuoteSigner implements QuoteSigner {
    * Create a signer from a PEM-encoded private key (PKCS #8, SEC 1 or PKCS #1).
    *
    * The public JWK is derived from the key. The algorithm follows the key:
-   * `ES256`/`ES384`/`ES512` for P-256/P-384/P-521 and `RS256` for RSA.
+   * `ES256`/`ES384`/`ES512` for P-256/P-384/P-521 and `RS256` for RSA. RSA
+   * keys marked for RSA-PSS only (for example from `openssl genpkey
+   * -algorithm RSA-PSS`) are rejected, because quote
+   * tokens are signed RS256 (PKCS #1 v1.5), which such a key does not allow.
    *
    * @param pem - The PEM-encoded private key
    * @param options - `kid`, `serviceUrl`, and `password` for an encrypted PEM
    * @returns The signer
    * @throws SigningError if the key cannot be
-   *   loaded, is not EC (P-256, P-384, P-521) or RSA of at least 2048 bits, or
-   *   `kid` is empty
+   *   loaded, is not EC (P-256, P-384, P-521) or RSA of at least 2048 bits, is
+   *   marked RSA-PSS only, or `kid` is empty. An unencrypted RSA-PSS PEM whose
+   *   algorithm can be read (lengths of 1 to 4 bytes) is refused before
+   *   loading. Any other RSA-PSS key (encrypted, or with an indefinite or
+   *   longer length) is refused after loading, with the same message unless
+   *   loading fails first.
    */
   static fromPem(pem: string | Uint8Array, options: FromPemOptions): LocalQuoteSigner {
     const { kid, serviceUrl, password } = options ?? ({} as FromPemOptions);
-    if (typeof kid !== 'string' || !stripPythonWhitespace(kid)) {
+    if (typeof kid !== 'string' || !stripWhitespace(kid)) {
       throw new SigningError('kid is required and must be non-empty.');
     }
+    let text: string;
     let privateKey: KeyObject;
     try {
-      privateKey = loadPemPrivateKey(pem, password);
+      text = pemAsText(pem);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new SigningError(`Could not load the PEM private key: ${message}`, undefined, {
-        cause: error,
-      });
+      throw pemLoadError(error);
+    }
+    // An RSA-PSS-only key is refused before loading, since quotes are signed
+    // RS256 (PKCS #1 v1.5), which it does not allow.
+    if (isRsaPssPem(text)) {
+      throw new SigningError('Only EC and RSA private keys are supported.');
+    }
+    try {
+      privateKey = loadPemPrivateKey(text, password);
+    } catch (error) {
+      throw pemLoadError(error);
     }
 
     // The key type and curve are checked before the public key is exported:
@@ -296,9 +406,9 @@ export class LocalQuoteSigner implements QuoteSigner {
     const exported = createPublicKey(privateKey).export({ format: 'jwk' });
     const publicJwk: jose.JWK =
       key.kty === 'EC'
-        ? // PyJWT's ECAlgorithm.to_jwk member order
+        ? // Member order: kty, crv, x, y
           { kty: 'EC', crv: exported.crv, x: exported.x, y: exported.y }
-        : // PyJWT's RSAAlgorithm.to_jwk member order, with its key_ops
+        : // Member order: kty, key_ops, n, e
           { kty: 'RSA', key_ops: ['verify'], n: exported.n, e: exported.e };
     Object.assign(publicJwk, { alg: key.alg, kid, use: 'sig' });
     return new LocalQuoteSigner(privateKey, publicJwk, serviceUrl);

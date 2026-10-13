@@ -105,44 +105,42 @@ export function generateTransactionId(network: string, agenticCommerceId: string
   return `${network}:${uniqueId}`;
 }
 
-// Price parsing follows the Python SDK's `parse_price`
-// (fiat_extension_x402/agentic_commerce/exact/server.py:86-117 at commit 62230e6),
-// so both SDKs accept and reject the same route prices. Two gaps remain: Python's
-// `\d` also matches non-ASCII digits, which this SDK rejects, and a JavaScript
-// number cannot carry Python's "1.0" or "-0.0" (see toPlainDecimal).
+// Money amounts in route prices: a string such as "$1.50" or "1.50 USD", or a
+// number (AssetAmount objects are handled by the server scheme). Only ASCII
+// digits are accepted.
 
-// Python's `\s` and str.strip() whitespace (str.isspace()). JavaScript's `\s` also
-// matches U+FEFF and misses U+001C to U+001F and U+0085.
-const PY_WHITESPACE_CLASS = String.raw`[\t-\r\x1c-\x20\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]`;
-const PY_WHITESPACE = new RegExp(PY_WHITESPACE_CLASS);
+// The whitespace prices and identifiers may be padded with: the Unicode
+// White_Space characters plus the separators U+001C to U+001F. JavaScript's `\s`
+// also matches U+FEFF and misses U+001C to U+001F and U+0085.
+const WHITESPACE_CLASS = String.raw`[\t-\r\x1c-\x20\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]`;
+const WHITESPACE = new RegExp(WHITESPACE_CLASS);
 
 // "$1.50", "1.50 USD", "1.50": a non-negative decimal with an optional leading
-// "$" and an optional trailing ISO 4217 code (server.py:40). Every quantifier is
+// "$" and an optional trailing ISO 4217 code. Every quantifier is
 // followed by a disjoint character class, so matching is linear in the input length.
 const MONEY_PATTERN = new RegExp(
-  String.raw`^\$?(\d+(?:\.(\d+))?)` + PY_WHITESPACE_CLASS + String.raw`*([A-Z]{3})?$`
+  String.raw`^\$?(\d+(?:\.(\d+))?)` + WHITESPACE_CLASS + String.raw`*([A-Z]{3})?$`
 );
 
-// The payment service rejects prices with more decimal places than this (server.py:45).
+// The payment service rejects prices with more decimal places than this.
 const MAX_PRICE_DECIMAL_PLACES = 8;
 
-/** Python's str.strip(): trims the same whitespace as MONEY_PATTERN, without a regex. */
-export function stripPythonWhitespace(value: string): string {
+/** Trims the same whitespace as MONEY_PATTERN from both ends, without a regex. */
+export function stripWhitespace(value: string): string {
   let start = 0;
   let end = value.length;
-  while (start < end && PY_WHITESPACE.test(value[start])) start++;
-  while (end > start && PY_WHITESPACE.test(value[end - 1])) end--;
+  while (start < end && WHITESPACE.test(value[start])) start++;
+  while (end > start && WHITESPACE.test(value[end - 1])) end--;
   return value.slice(start, end);
 }
 
 /**
  * Write a finite, non-negative number in plain decimal notation, never exponent
- * form: 1e-7 becomes "0.0000001" (Python's `format(value, "f")`, server.py:113-115).
- * A number has no trailing-zero or sign-of-zero information, so 1.0 gives "1" and
- * -0 gives "0", where Python's float gives "1.0" and "-0.0".
+ * form: 1e-7 becomes "0.0000001". A number has no trailing-zero or sign-of-zero
+ * information, so 1.0 gives "1" and -0 gives "0".
  */
 function toPlainDecimal(value: number): { amount: string; decimalPlaces: number } {
-  // String() gives the shortest round-trip digits, the same digits as Python's str(float).
+  // String() gives the shortest digits that round-trip to the same number.
   const [mantissa, exponent = '0'] = String(value).split('e');
   const [integerPart, fractionPart = ''] = mantissa.split('.');
   const digits = integerPart + fractionPart;
@@ -174,15 +172,15 @@ export function parseMoney(money: string | number): { amount: string; currency: 
   let currency = 'USD';
   let decimalPlaces: number;
   if (typeof money === 'number') {
-    // server.py:107-108
+    // A number price must be finite and non-negative.
     if (!Number.isFinite(money) || money < 0) {
       throw new ValidationError(`Price must be a finite, non-negative amount: ${shown()}`);
     }
     ({ amount, decimalPlaces } = toPlainDecimal(money));
   } else {
-    // server.py:101-105. A matched decimal is always finite and non-negative. A
-    // non-string (an array, a bigint) is rejected rather than stringified, as in Python.
-    const match = typeof money === 'string' && MONEY_PATTERN.exec(stripPythonWhitespace(money));
+    // A matched decimal is always finite and non-negative. A non-string (an
+    // array, a bigint) is rejected rather than stringified.
+    const match = typeof money === 'string' && MONEY_PATTERN.exec(stripWhitespace(money));
     if (!match) {
       throw new ValidationError(`Invalid price: ${shown()}`);
     }
@@ -190,7 +188,7 @@ export function parseMoney(money: string | number): { amount: string; currency: 
     decimalPlaces = match[2]?.length ?? 0;
     currency = match[3] ?? currency;
   }
-  // server.py:109-112
+  // At most MAX_PRICE_DECIMAL_PLACES decimal places, whatever the form.
   if (decimalPlaces > MAX_PRICE_DECIMAL_PLACES) {
     throw new ValidationError(
       `Price may have at most ${MAX_PRICE_DECIMAL_PLACES} decimal places: ${shown()}`

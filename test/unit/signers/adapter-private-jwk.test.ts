@@ -2,9 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * toQuoteSigner and toPaymentTokenSigner refuse a public JWK that carries
- * private key members (d, p, q, dp, dq, qi, oth, k), as LocalQuoteSigner does
- * (the Python SDK's PRIVATE_JWK_MEMBERS, signers/local.py:26 at 62230e6), so
- * getPublicKey() can never return private key material.
+ * private key members (d, p, q, dp, dq, qi, oth, k), as LocalQuoteSigner does,
+ * so getPublicKey() can never return private key material.
  */
 
 import { describe, expect, it } from 'vitest';

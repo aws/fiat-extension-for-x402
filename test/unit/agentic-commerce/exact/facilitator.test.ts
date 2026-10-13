@@ -1,8 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * The exact facilitator scheme, against the Python SDK's
- * fiat_extension_x402/agentic_commerce/exact/facilitator.py (commit 62230e6).
+ * The exact facilitator scheme: verify and settle for agentic-commerce payments.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -160,7 +159,7 @@ describe('ExactAgenticCommerceFacilitatorScheme', () => {
       });
     });
 
-    it('does not check DPoP: the server scheme does, before verify (as in Python)', async () => {
+    it('does not check DPoP: the server scheme does, before verify', async () => {
       const accepted = await offer();
       const dpop = await generateDPoPKeyPair('ES256');
       const token = await service.issue(quoteOf(accepted), { dpopJwk: dpop.publicKey });

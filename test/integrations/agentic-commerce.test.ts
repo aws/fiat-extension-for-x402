@@ -6,9 +6,8 @@
  * x402HTTPResourceServer is what @x402/express and the other framework
  * middlewares wrap. It is driven here through an HTTPAdapter, as those
  * middlewares do, so no socket is opened. Payment tokens are minted by a fake
- * payment service whose JWKS is served by a stubbed fetch. The cases follow the
- * Python SDK's tests/integration/test_x402_middleware.py (commit 62230e6), and
- * run against both facilitators this package offers: the exact facilitator
+ * payment service whose JWKS is served by a stubbed fetch. The cases run
+ * against both facilitators this package offers: the exact facilitator
  * scheme on an in-process x402 facilitator, and AgenticCommerceFacilitatorClient.
  */
 
@@ -146,7 +145,7 @@ describe.each<FacilitatorKind>(['in-process facilitator', 'AgenticCommerceFacili
       return (await offer(path, server)).accepts[0];
     }
 
-    /** A paid retry with `accepted` and `token`, as Python's `_pay` sends it */
+    /** A paid retry carrying `accepted` and `token`, as a buyer sends it */
     async function pay(path: string, accepted: PaymentRequirements, token: string) {
       const payload: PaymentPayload = {
         x402Version: 2,

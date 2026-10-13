@@ -3,9 +3,8 @@
 /**
  * Test doubles: a fake payment service, a seller key, and a JWKS-serving fetch.
  *
- * The payment service issues payment tokens in production; tests mint them with
- * a local key the way the Python SDK's tests do (tests/support.py at commit
- * 62230e6), so the seller and facilitator code paths run offline.
+ * The payment service issues payment tokens in production; tests sign them with
+ * a local key, so the seller and facilitator code paths run offline.
  */
 
 import { vi } from 'vitest';

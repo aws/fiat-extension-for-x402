@@ -2,9 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * SigningError, imported from the package entry point, is what the quote
- * signers throw, as in the Python SDK (exceptions.py:31-35 and
- * tests/unit/test_exceptions.py:50-60 at 62230e6): an AgenticCommerceError
- * with code SIGNING_ERROR and optional details. KMS is mocked.
+ * signers throw: an AgenticCommerceError with code SIGNING_ERROR and optional
+ * details. KMS is mocked.
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -44,7 +43,7 @@ function thrown(fn: () => unknown): unknown {
 }
 
 describe('SigningError', () => {
-  it("has Python's code, message and details, and is an AgenticCommerceError", () => {
+  it('has the SIGNING_ERROR code, the message and details, and is an AgenticCommerceError', () => {
     const error = new SigningError('KMS failed', { supported: ['ECDSA_SHA_384'] });
     expect(error).toBeInstanceOf(SigningError);
     expect(error).toBeInstanceOf(AgenticCommerceError);
@@ -96,7 +95,7 @@ describe('SigningError', () => {
     expect(new SigningError('outer', undefined, { cause }).cause).toBe(cause);
   });
 
-  it('is not what jwksDocument throws: that is a ValidationError, as in Python', () => {
+  it('is not what jwksDocument throws: that is a ValidationError', () => {
     const error = thrown(() => jwksDocument());
     expect(error).toBeInstanceOf(ValidationError);
     expect(error).not.toBeInstanceOf(SigningError);

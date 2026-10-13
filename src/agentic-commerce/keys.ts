@@ -3,9 +3,8 @@
 /**
  * Where the verifier finds the seller's quote-signing public key.
  *
- * Follows the Python SDK's `fiat_extension_x402/agentic_commerce/keys.py`
- * (commit 62230e6). The key is always configured by the seller; it is never
- * discovered from the quote token itself.
+ * The key is always configured by the seller; it is never discovered from the
+ * quote token itself.
  */
 
 import { createPublicKey } from 'node:crypto';
@@ -15,8 +14,8 @@ import { ALLOWED_ALGORITHMS } from '../security';
 import { MIN_RSA_KEY_BITS } from '../signers/local';
 import { privateJwkMembers } from '../signers/protocol';
 import { ValidationError } from '../types';
-import { stripPythonWhitespace } from '../utils';
-import { base64urlDecode, bigIntOf, isPlainObject, pyRepr } from './python';
+import { stripWhitespace } from '../utils';
+import { base64urlDecode, bigIntOf, isPlainObject, quotedLiteral } from './json-value';
 
 // JWS algorithm required for each supported EC curve, and its coordinate size.
 const EC_CURVE_ALGORITHMS: Record<string, string> = {
@@ -79,9 +78,6 @@ export type SellerKeyResolver =
  * signed with either still verify. Each key needs a unique `kid`: verifiers
  * select the key by the `kid` in the quote token's header.
  *
- * Follows the Python SDK's `jwks_document` (agentic_commerce/keys.py:63-124
- * at 62230e6), with the same rules and messages.
- *
  * @param publicJwks - Public keys as JWKs, for example
  *   {@link LocalQuoteSigner.publicJwk}
  * @returns `{ keys: [...] }`, ready to serialize as JSON. Each key is a copy.
@@ -103,12 +99,11 @@ export function jwksDocument(...publicJwks: JWK[]): { keys: JWK[] } {
   const keys: JWK[] = [];
   const seen = new Set<string>();
   for (const jwk of publicJwks) {
-    // Not a Python SDK message: Python fails with an AttributeError.
     if (!isPlainObject(jwk)) {
       throw new ValidationError('Every JWK must be an object');
     }
     const kid: unknown = jwk.kid;
-    if (typeof kid !== 'string' || !stripPythonWhitespace(kid)) {
+    if (typeof kid !== 'string' || !stripWhitespace(kid)) {
       throw new ValidationError("Every JWK needs a non-empty string 'kid'");
     }
     if (seen.has(kid)) {
@@ -121,7 +116,7 @@ export function jwksDocument(...publicJwks: JWK[]): { keys: JWK[] } {
   return { keys };
 }
 
-/** Check a JWK is a public signing key that verifiers accept (keys.py:95-124). */
+/** Check a JWK is a public signing key that verifiers accept. */
 function validatePublicJwk(jwk: Record<string, unknown>, kid: string): void {
   const leaked = privateJwkMembers(jwk);
   if (leaked) {
@@ -136,21 +131,21 @@ function validatePublicJwk(jwk: Record<string, unknown>, kid: string): void {
         ? EC_CURVE_ALGORITHMS[crv]
         : undefined;
     if (expectedAlg === undefined) {
-      throw new ValidationError(`JWK ${kid}: unsupported EC curve ${pyRepr(crv)}`);
+      throw new ValidationError(`JWK ${kid}: unsupported EC curve ${quotedLiteral(crv)}`);
     }
   } else if (kty === 'RSA') {
     expectedAlg = 'RS256';
   } else {
-    throw new ValidationError(`JWK ${kid}: kty must be 'EC' or 'RSA', got ${pyRepr(kty)}`);
+    throw new ValidationError(`JWK ${kid}: kty must be 'EC' or 'RSA', got ${quotedLiteral(kty)}`);
   }
   const alg = jwk.alg === undefined ? expectedAlg : jwk.alg;
   if (typeof alg !== 'string' || !ALLOWED_ALGORITHMS.includes(alg) || alg !== expectedAlg) {
     throw new ValidationError(
-      `JWK ${kid}: alg ${pyRepr(alg)} does not match the key (use ${expectedAlg})`
+      `JWK ${kid}: alg ${quotedLiteral(alg)} does not match the key (use ${expectedAlg})`
     );
   }
   if ((jwk.use === undefined ? 'sig' : jwk.use) !== 'sig') {
-    throw new ValidationError(`JWK ${kid}: use must be 'sig', got ${pyRepr(jwk.use)}`);
+    throw new ValidationError(`JWK ${kid}: use must be 'sig', got ${quotedLiteral(jwk.use)}`);
   }
   let rsaBits = 0;
   try {
@@ -169,7 +164,7 @@ function validatePublicJwk(jwk: Record<string, unknown>, kid: string): void {
 
 type JsonWebKeyInput = Extract<Parameters<typeof createPublicKey>[0], { format: 'jwk' }>;
 
-/** base64urlDecode inside PyJWK: a ValueError becomes "Unable to construct key from JWK". */
+/** A JWK member decoded; a decoding error is reported as "Unable to construct key from JWK". */
 function decodeJwkMember(value: unknown): Buffer {
   try {
     return base64urlDecode(value);
@@ -188,7 +183,7 @@ function constructKey(jwk: JsonWebKeyInput['key']): void {
   }
 }
 
-/** PyJWT's `ECAlgorithm.from_jwk` on a public JWK: coordinate sizes, then the point is on the curve. */
+/** Parse a public EC JWK: x and y present, the coordinate sizes of the curve, then the point on the curve. */
 function parseEcKey(jwk: Record<string, unknown>): void {
   if (!Object.hasOwn(jwk, 'x') || !Object.hasOwn(jwk, 'y')) {
     throw new Error('Not an Elliptic curve key');
@@ -214,8 +209,8 @@ function parseEcKey(jwk: Record<string, unknown>): void {
 }
 
 /**
- * PyJWT's `RSAAlgorithm.from_jwk` on a public JWK, with `cryptography`'s
- * checks of the public numbers.
+ * Parse a public RSA JWK: n and e present and decodable, and the public
+ * numbers valid (n >= 3, 3 <= e < n, e odd).
  *
  * @returns The modulus length in bits
  */
@@ -223,7 +218,7 @@ function parseRsaKey(jwk: Record<string, unknown>): number {
   if (!Object.hasOwn(jwk, 'n') || !Object.hasOwn(jwk, 'e')) {
     throw new Error('Not a public or private key');
   }
-  // PyJWT builds RSAPublicNumbers(e, n), so e is decoded first.
+  // e is decoded first, so a JWK with both malformed reports e's error.
   const eBytes = decodeJwkMember(jwk.e);
   const nBytes = decodeJwkMember(jwk.n);
   const e = bigIntOf(eBytes);
