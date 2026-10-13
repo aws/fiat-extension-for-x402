@@ -132,7 +132,7 @@ describe('ExactAgenticCommerceScheme: enhancePaymentRequirements', () => {
     );
     expect(enhanced.payTo).toBe(SENTINEL_PAY_TO);
     expect(enhanced.maxTimeoutSeconds).toBe(120);
-    expect((enhanced.extra as Record<string, unknown>).settlement).toEqual({ mode: 'immediate' });
+    expect(enhanced.extra.settlement).toEqual({ mode: 'immediate' });
   });
 
   it('rejects an empty issuer', async () => {
@@ -154,14 +154,12 @@ describe('ExactAgenticCommerceScheme: enhancePaymentRequirements', () => {
     const second = await scheme.enhancePaymentRequirements(baseRequirements(), supportedKind, []);
 
     const withoutQuote = (r: PaymentRequirements) => {
-      const { quoteToken: _quoteToken, ...extra } = r.extra as Record<string, unknown>;
+      const { quoteToken: _quoteToken, ...extra } = r.extra;
       return { ...r, extra };
     };
     expect(withoutQuote(second)).toEqual(withoutQuote(first));
     expect(JSON.stringify(withoutQuote(second))).toBe(JSON.stringify(withoutQuote(first)));
-    expect((second.extra as Record<string, unknown>).quoteToken).not.toBe(
-      (first.extra as Record<string, unknown>).quoteToken
-    );
+    expect(second.extra.quoteToken).not.toBe(first.extra.quoteToken);
   });
 });
 
@@ -172,8 +170,8 @@ describe('ExactAgenticCommerceScheme with x402 core (contract)', () => {
     caipFamily: 'aws:*',
     getExtra: () => undefined,
     getSigners: () => [],
-    verify: async () => ({ isValid: true }),
-    settle: async () => ({ success: true, transaction: '', network: 'aws:base' }),
+    verify: () => Promise.resolve({ isValid: true }),
+    settle: () => Promise.resolve({ success: true, transaction: '', network: 'aws:base' }),
   };
 
   async function resourceServer() {
@@ -215,9 +213,7 @@ describe('ExactAgenticCommerceScheme with x402 core (contract)', () => {
     const server = await resourceServer();
     const [accepted] = await server.buildPaymentRequirements(route);
     const [reMinted] = await server.buildPaymentRequirements(route);
-    expect((reMinted.extra as Record<string, unknown>).quoteToken).not.toBe(
-      (accepted.extra as Record<string, unknown>).quoteToken
-    );
+    expect(reMinted.extra.quoteToken).not.toBe(accepted.extra.quoteToken);
 
     const payload = { x402Version: 2, accepted, payload: {} } as PaymentPayload;
     expect(server.findMatchingRequirements([reMinted], payload)).toBe(reMinted);

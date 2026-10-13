@@ -184,7 +184,7 @@ describe('Zod Schemas', () => {
         price: { amount: '1.00', currency: 'USD' },
         payTo: 'seller',
         reference: 'TEST',
-      } as any)
+      })
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
 
@@ -199,7 +199,7 @@ describe('Zod Schemas', () => {
 
     it('should throw on valid JWT with missing fields', async () => {
       const { privateKey } = await jose.generateKeyPair('RS256');
-      const token = await new jose.SignJWT({ iss: 'x' } as any)
+      const token = await new jose.SignJWT({ iss: 'x' })
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
       expect(() => parseQuoteToken(token)).toThrow();
@@ -218,7 +218,7 @@ describe('Zod Schemas', () => {
         price: { amount: '0.50', currency: 'USD' },
         payTo: 'seller',
         reference: 'TEST',
-      } as any)
+      })
         .setProtectedHeader({ alg: 'RS256' })
         .sign(privateKey);
 

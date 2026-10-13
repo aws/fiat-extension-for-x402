@@ -11,7 +11,7 @@ import * as root from '../../../../src/index';
 // registerExactAgenticCommerceServer: the networks and scheme it registers.
 
 const signer = {
-  signQuote: async () => 'signed-quote',
+  signQuote: () => Promise.resolve('signed-quote'),
   getPublicKey: () => ({}),
   getServiceUrl: () => 'https://seller.example.com',
 };

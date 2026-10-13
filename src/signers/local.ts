@@ -218,11 +218,7 @@ function loadPemPrivateKey(text: string, password?: string | Uint8Array | null):
   if (first === undefined) {
     // No PEM section at all, or no private key section
     if (!text.includes('-----BEGIN ')) {
-      throw new Error(
-        'Unable to load PEM file. See ' +
-          'https://cryptography.io/en/latest/faq/#why-can-t-i-import-my-pem-file ' +
-          'for more details. MalformedFraming'
-      );
+      throw new Error('Unable to load PEM file: no PEM data found.');
     }
     throw new Error(
       'Valid PEM but no BEGIN/END delimiters for a private key found. ' +

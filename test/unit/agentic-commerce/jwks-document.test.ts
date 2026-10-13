@@ -66,7 +66,7 @@ describe('jwksDocument', () => {
   it('accepts a key without alg or use, and with use sig', () => {
     const jwk = without(ecJwk('current'), 'alg');
     expect(jwksDocument(jwk)).toEqual({ keys: [jwk] });
-    expect(jwksDocument({ ...jwk, use: 'sig' }).keys[0]!.use).toBe('sig');
+    expect(jwksDocument({ ...jwk, use: 'sig' }).keys[0].use).toBe('sig');
   });
 
   it('accepts an RSA key of 2048 bits', () => {
@@ -76,10 +76,10 @@ describe('jwksDocument', () => {
 
   it("accepts a LocalQuoteSigner's public JWK, and the fixture seller JWK", () => {
     const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
-    const signer = LocalQuoteSigner.fromPem(
-      privateKey.export({ type: 'pkcs8', format: 'pem' }) as string,
-      { kid: 'r', serviceUrl: 'https://seller.example.com' }
-    );
+    const signer = LocalQuoteSigner.fromPem(privateKey.export({ type: 'pkcs8', format: 'pem' }), {
+      kid: 'r',
+      serviceUrl: 'https://seller.example.com',
+    });
     expect(jwksDocument(signer.publicJwk).keys).toEqual([signer.publicJwk]);
     expect(jwksDocument(fixtures.SELLER_PUBLIC_JWK as JWK)).toEqual({
       keys: [fixtures.SELLER_PUBLIC_JWK],

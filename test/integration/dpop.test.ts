@@ -20,7 +20,7 @@ import {
   x402HTTPResourceServer,
   x402ResourceServer,
 } from '@x402/core/server';
-import type { Network, PaymentPayload, PaymentRequirements } from '@x402/core/types';
+import type { Network, PaymentPayload } from '@x402/core/types';
 import * as jose from 'jose';
 import { ExactAgenticCommerceScheme as APFacilitator } from '../../src/agentic-commerce/exact/facilitator';
 import { registerExactAgenticCommerceServer } from '../../src/agentic-commerce/exact/register';
@@ -116,7 +116,7 @@ async function proof(
   };
   const header = { alg: 'ES256', typ: 'dpop+jwt', jwk: BUYER_PUBLIC_JWK, ...options.header };
   const key = options.key ?? buyerPrivateKey();
-  return new jose.SignJWT(claims).setProtectedHeader(header as jose.JWTHeaderParameters).sign(key);
+  return new jose.SignJWT(claims).setProtectedHeader(header).sign(key);
 }
 
 describe.each<FacilitatorKind>(['in-process facilitator', 'AgenticCommerceFacilitatorClient'])(
@@ -180,7 +180,7 @@ describe.each<FacilitatorKind>(['in-process facilitator', 'AgenticCommerceFacili
     async function pay(app: x402HTTPResourceServer, request: Request = {}) {
       const payload: PaymentPayload = {
         x402Version: 2,
-        accepted: QUOTE_OUTPUT as unknown as PaymentRequirements,
+        accepted: QUOTE_OUTPUT,
         payload: { paymentToken: PAYMENT_TOKEN },
       };
       const context = adapter({

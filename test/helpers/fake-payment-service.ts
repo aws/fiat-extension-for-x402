@@ -109,7 +109,7 @@ export class FakePaymentService {
       if (value === undefined) delete claims[name];
       else claims[name] = value;
     }
-    return new jose.SignJWT(claims as jose.JWTPayload)
+    return new jose.SignJWT(claims)
       .setProtectedHeader(options.header ?? { alg: 'ES384', kid: this.jwk.kid })
       .sign(options.signingKey ?? this.privateKey);
   }

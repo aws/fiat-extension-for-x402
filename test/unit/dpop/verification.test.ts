@@ -9,12 +9,13 @@ import { DPoPError, DPoPNonceStore } from '../../../src/types';
 class InMemoryNonceStore implements DPoPNonceStore {
   private nonces = new Set<string>();
 
-  async has(jti: string): Promise<boolean> {
-    return this.nonces.has(jti);
+  has(jti: string): Promise<boolean> {
+    return Promise.resolve(this.nonces.has(jti));
   }
 
-  async add(jti: string, expiresAt: number): Promise<void> {
+  add(jti: string, _expiresAt: number): Promise<void> {
     this.nonces.add(jti);
+    return Promise.resolve();
   }
 
   clear() {

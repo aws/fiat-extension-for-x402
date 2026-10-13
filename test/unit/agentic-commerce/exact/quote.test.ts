@@ -43,9 +43,9 @@ function recordingSigner(serviceUrl = SELLER_URL) {
   const signed: Record<string, unknown>[] = [];
   return {
     signed,
-    signQuote: vi.fn(async (payload: unknown) => {
+    signQuote: vi.fn((payload: unknown) => {
       signed.push(payload as Record<string, unknown>);
-      return 'signed-quote';
+      return Promise.resolve('signed-quote');
     }),
     getPublicKey: () => ({}),
     getServiceUrl: () => serviceUrl,
@@ -64,12 +64,12 @@ describe('enhancePaymentRequirements: the fixed quote vector', () => {
     vi.spyOn(webcrypto, 'randomUUID').mockReturnValue(FIXED_JTI);
     const { privateKey } = await jose.generateKeyPair('ES256');
     const signer = toQuoteSigner(privateKey, SELLER_PUBLIC_JWK, SELLER_URL);
-    return enhancePaymentRequirements(structuredClone(QUOTE_INPUT) as never, signer);
+    return enhancePaymentRequirements(structuredClone(QUOTE_INPUT), signer);
   }
 
   it('produces the fixture requirements, except for the quote signature', async () => {
     const enhanced = await enhanceFixture();
-    const { quoteToken, ...extra } = enhanced.extra as Record<string, unknown>;
+    const { quoteToken, ...extra } = enhanced.extra;
     const { quoteToken: _expected, ...expectedExtra } = QUOTE_OUTPUT.extra;
 
     expect({ ...enhanced, extra }).toEqual({ ...QUOTE_OUTPUT, extra: expectedExtra });
@@ -287,7 +287,7 @@ describe('enhancePaymentRequirements: product ID', () => {
     const enhanced = await enhancePaymentRequirements(input, recordingSigner());
 
     expect(extra).toEqual({ settlement: { mode: 'immediate' } });
-    expect((enhanced.extra as Record<string, unknown>).settlement).toEqual({ mode: 'immediate' });
+    expect(enhanced.extra.settlement).toEqual({ mode: 'immediate' });
     expect(input.payTo).toBe('seller-1');
     expect(input.extra).not.toHaveProperty('quoteToken');
   });
@@ -330,7 +330,7 @@ describe('enhancePaymentRequirements: returned requirements', () => {
       requirements({ extra: { quoteToken: 'stale' } }),
       recordingSigner()
     );
-    expect((enhanced.extra as Record<string, unknown>).quoteToken).toBe('signed-quote');
+    expect(enhanced.extra.quoteToken).toBe('signed-quote');
   });
 
   it('keeps scheme, network, asset and amount', async () => {

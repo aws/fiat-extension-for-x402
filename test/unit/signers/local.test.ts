@@ -577,13 +577,11 @@ describe('LocalQuoteSigner.fromPem', () => {
   });
 
   it.each(['', 'hello', 'not a key'])(
-    'reports text with no PEM section (%j) as MalformedFraming',
+    'reports text with no PEM section (%j) as no PEM data found',
     (text) => {
       expectSigningError(
         () => LocalQuoteSigner.fromPem(text, { kid: 'k1', serviceUrl: SELLER_URL }),
-        'Could not load the PEM private key: Unable to load PEM file. See ' +
-          'https://cryptography.io/en/latest/faq/#why-can-t-i-import-my-pem-file for more ' +
-          'details. MalformedFraming'
+        'Could not load the PEM private key: Unable to load PEM file: no PEM data found.'
       );
     }
   );

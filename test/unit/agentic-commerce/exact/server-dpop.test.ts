@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as jose from 'jose';
 import { x402ResourceServer, type HTTPAdapter, type VerifyContext } from '@x402/core/server';
 import type { FacilitatorClient } from '@x402/core/http';
-import type { PaymentPayload, PaymentRequirements } from '@x402/core/types';
+import type { PaymentRequirements } from '@x402/core/types';
 import { ExactAgenticCommerceScheme } from '../../../../src/agentic-commerce/exact/server';
 import type { DPoPNonceStore } from '../../../../src/types';
 import { createDPoPProof, generateDPoPKeyPair, type DPoPKeyPair } from '../../../helpers/dpop';
@@ -18,7 +18,7 @@ import { FakePaymentService, SELLER_URL } from '../../../helpers/fake-payment-se
 const URL = `${SELLER_URL}/weather`;
 
 const signer = {
-  signQuote: async () => 'signed-quote',
+  signQuote: () => Promise.resolve('signed-quote'),
   getPublicKey: () => ({}),
   getServiceUrl: () => SELLER_URL,
 };
@@ -275,32 +275,34 @@ describe('onBeforeVerify on a stock x402ResourceServer', () => {
   };
 
   async function server(dpopNonceStore?: DPoPNonceStore) {
+    const verify = vi.fn(() => Promise.resolve({ isValid: true }));
     const facilitator: FacilitatorClient = {
-      verify: vi.fn(async () => ({ isValid: true })),
+      verify,
       settle: vi.fn(),
-      getSupported: async () => ({
-        kinds: [{ x402Version: 2, scheme: 'exact', network: 'aws:base' }],
-        extensions: [],
-        signers: {},
-      }),
+      getSupported: () =>
+        Promise.resolve({
+          kinds: [{ x402Version: 2, scheme: 'exact', network: 'aws:base' }],
+          extensions: [],
+          signers: {},
+        }),
     };
     const resourceServer = new x402ResourceServer(facilitator).register(
       'aws:base',
       scheme({ dpopNonceStore })
     );
     await resourceServer.initialize();
-    return { resourceServer, facilitator };
+    return { resourceServer, verify };
   }
 
   it('aborts before the facilitator is called', async () => {
-    const { resourceServer, facilitator } = await server();
+    const { resourceServer, verify } = await server();
     const payload = {
       x402Version: 2,
       accepted: requirements,
       payload: { paymentToken: buyer.token },
     };
     const result = await resourceServer.verifyPayment(
-      payload as PaymentPayload,
+      payload,
       requirements,
       {},
       {
@@ -308,12 +310,12 @@ describe('onBeforeVerify on a stock x402ResourceServer', () => {
       }
     );
     expect(result).toMatchObject({ isValid: false, invalidReason: 'dpop_required' });
-    expect(facilitator.verify).not.toHaveBeenCalled();
+    expect(verify).not.toHaveBeenCalled();
   });
 
   it('checks a valid proof, then calls the facilitator', async () => {
     const seen: string[] = [];
-    const { resourceServer, facilitator } = await server({
+    const { resourceServer, verify } = await server({
       has: () => false,
       add: (jti) => void seen.push(jti),
     });
@@ -323,7 +325,7 @@ describe('onBeforeVerify on a stock x402ResourceServer', () => {
       payload: { paymentToken: buyer.token },
     };
     const result = await resourceServer.verifyPayment(
-      payload as PaymentPayload,
+      payload,
       requirements,
       {},
       {
@@ -336,7 +338,7 @@ describe('onBeforeVerify on a stock x402ResourceServer', () => {
     );
     expect(result).toMatchObject({ isValid: true });
     expect(seen).toHaveLength(1);
-    expect(facilitator.verify).toHaveBeenCalledOnce();
+    expect(verify).toHaveBeenCalledOnce();
   });
 });
 
