@@ -73,14 +73,14 @@
     }
   },
   "dependencies": {
-    "@aws-sdk/client-kms": "^3.1143.0",
+    "@aws-sdk/client-kms": "^3.1146.0",
     "@aws-sdk/types": "^3.973.8",
     "jose": "^5.2.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
-    "@aws-sdk/client-secrets-manager": "^3.1143.0",
+    "@aws-sdk/client-secrets-manager": "^3.1146.0",
     "@eslint/js": "9.39.5",
     "@types/express": "^4.17.21",
     "@types/node": "20.19.43",
