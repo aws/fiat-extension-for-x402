@@ -7,15 +7,10 @@ class AgenticCommerceFacilitatorClient
 interface AgenticCommerceFacilitatorClientConfig
 type AgenticCommerceInvalidReason
 interface AgenticCommercePayloadV2
-const AgenticCommercePayloadV2Schema
 interface AgenticCommercePaymentExtra
-const AgenticCommercePaymentExtraSchema
 interface AgenticCommerceSettlement
-const AgenticCommerceSettlementSchema
 interface AgenticCommerceSupport
-const AgenticCommerceSupportSchema
 interface AgenticCommerceTerms
-const AgenticCommerceTermsSchema
 class AgenticCommerceVerifier
 interface AgenticCommerceVerifierConfig
 const DEFAULT_NETWORK
@@ -28,6 +23,7 @@ interface ExactAgenticCommerceFacilitatorSchemeConfig
 class ExactAgenticCommerceServerScheme
 interface ExactAgenticCommerceServerSchemeConfig
 class ExpiryError
+interface FromPemOptions
 class InProcessFacilitatorClient
 type JwksRequestHeaders
 interface JwksSellerKeyResolver
@@ -42,9 +38,7 @@ const PAYMENT_TOKEN_ISSUER
 interface PaymentTokenPayload
 interface QuoteSigner
 interface QuoteTokenPayload
-const QuoteTokenPayloadSchema
 interface QuoteTokenPrice
-const QuoteTokenPriceSchema
 interface RegisterExactAgenticCommerceServerOptions
 const SCHEME_EXACT
 const SENTINEL_PAY_TO
@@ -62,10 +56,7 @@ function decodeQuoteToken
 function extractDPoPThumbprint
 function jwksDocument
 function parseMoneyToDecimal
-function parsePaymentPayload
-function parseQuoteToken
 function registerExactAgenticCommerceServer
-function safeParseQuoteToken
 function secureCompare
 function validateUrl
 function verifyDPoPProof

@@ -47,9 +47,10 @@
     "check:package": "npm run build && npm run attw && npm run publint",
     "typecheck": "tsc --noEmit",
     "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
-    "lint": "eslint src test --max-warnings 21",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
+    "typecheck:examples": "tsc --noEmit -p tsconfig.examples.json",
+    "lint": "eslint src test examples --max-warnings 21",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"examples/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"examples/**/*.ts\"",
     "deps:list": "npx license-checker --production --csv | awk -F',' 'NR>1 {gsub(/\"/,\"\"); print $1\"-\"$2}' > deps.txt",
     "deps:licenses": "npx generate-license-file --input package.json --output licenses.txt"
   },
@@ -78,8 +79,7 @@
   "dependencies": {
     "@aws-sdk/client-kms": "^3.1146.0",
     "@aws-sdk/types": "^3.973.8",
-    "jose": "^5.2.0",
-    "zod": "^3.22.4"
+    "jose": "^5.2.0"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",

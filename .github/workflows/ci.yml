@@ -51,10 +51,12 @@ jobs:
       # --ignore-scripts: no dependency lifecycle script runs in CI. Only esbuild
       # and fsevents declare one, and every step passes without them.
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      # Fails when a src/ or test/ file differs from `npm run format` output.
+      # Fails when a src/, test/ or examples/ file differs from `npm run format` output.
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run typecheck:test
+      # The examples import the package by name; tsconfig.examples.json maps it to src/.
+      - run: npm run typecheck:examples
       - run: npm run lint
       - id: coverage
         run: npm run test:coverage
@@ -120,6 +122,7 @@ jobs:
           npm ls @x402/core
           npm run typecheck
           npm run typecheck:test
+          npm run typecheck:examples
           npm test
       # The newest 2.x, so a new core release is tested before a seller installs it.
       - name: Install the latest @x402/core 2.x
@@ -129,4 +132,5 @@ jobs:
           npm ls @x402/core
           npm run typecheck
           npm run typecheck:test
+          npm run typecheck:examples
           npm test

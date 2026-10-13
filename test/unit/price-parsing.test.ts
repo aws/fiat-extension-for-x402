@@ -5,7 +5,6 @@ import type { AssetAmount } from '@x402/core/types';
 import { ExactAgenticCommerceScheme } from '../../src/agentic-commerce/exact/server';
 import { parseMoneyToDecimal } from '../../src/utils';
 import { ValidationError } from '../../src/types';
-import { QuoteTokenPriceSchema } from '../../src/schemas';
 import { createMockServiceSigner } from '../helpers/mock-service-signer';
 
 // Route price parsing: the accepted formats, whitespace, malformed numbers and
@@ -240,27 +239,5 @@ describe('price parsing runs in linear time (CodeQL js/polynomial-redos)', () =>
       await expect(parse(input)).rejects.toThrow('Invalid price');
     });
     expect(elapsed).toBeLessThan(BUDGET_MS);
-  }, 120_000);
-});
-
-describe('QuoteTokenPriceSchema amount runs in linear time (CodeQL js/polynomial-redos)', () => {
-  it('accepts the same decimal strings as before', () => {
-    for (const amount of ['0', '1', '1.', '1.50', '0.00000001', '123456789012345678901234567890']) {
-      expect(QuoteTokenPriceSchema.safeParse({ amount, currency: 'USD' }).success).toBe(true);
-    }
-    for (const amount of ['', '.5', '1..5', '1.5.', '-1', '1e5', ' 1', 'abc']) {
-      expect(QuoteTokenPriceSchema.safeParse({ amount, currency: 'USD' }).success).toBe(false);
-    }
-  });
-
-  it('rejects a 50,000-digit amount with a trailing non-digit within 50 ms', () => {
-    const amount = '1'.repeat(50_000) + '!';
-    let best = Infinity;
-    for (let i = 0; i < 3 && best >= 50; i++) {
-      const start = performance.now();
-      expect(QuoteTokenPriceSchema.safeParse({ amount, currency: 'USD' }).success).toBe(false);
-      best = Math.min(best, performance.now() - start);
-    }
-    expect(best).toBeLessThan(50);
   }, 120_000);
 });

@@ -1,0 +1,30 @@
+sequenceDiagram
+    participant Buyer
+    participant Seller as Seller (x402 resource server)
+    participant Facilitator as Facilitator (exact scheme)
+    participant Service as Payment service
+
+    Note over Buyer,Service: AWS Marketplace Agentic Commerce payment on x402 (exact scheme)
+
+    Buyer->>Seller: 1. GET /resource
+    Seller->>Seller: 2. Sign a quote token with the seller key
+    Seller-->>Buyer: 3. 402 Payment Required<br/>accepts[0].extra.quoteToken, payTo = sentinel
+
+    Buyer->>Service: 4. Obtain a payment token for the quote
+    Service->>Service: 5. Authorize and capture the payment
+    Service-->>Buyer: 6. Payment token (signed)<br/>quote_token, payment_id, cnf.jkt if DPoP-bound
+
+    Buyer->>Seller: 7. GET /resource<br/>PAYMENT-SIGNATURE { paymentToken, paymentId }, DPoP proof
+    Seller->>Seller: 8. onBeforeVerify: check the DPoP proof of a bound token
+    Seller->>Facilitator: 9. verify(payload, requirements)
+    Facilitator->>Service: 10. Fetch the payment service JWKS
+    Facilitator->>Facilitator: 11. Payment token signature, issuer, expiry<br/>Same quote the buyer accepted<br/>Quote signature with the configured seller key<br/>Audience, quote expiry, price, currency, product
+
+    alt Payment valid
+        Facilitator-->>Seller: 12. isValid: true
+        Seller->>Facilitator: 13. settle: no-op, returns payment_id
+        Seller-->>Buyer: 14. 200 OK + resource, PAYMENT-RESPONSE
+    else Payment invalid
+        Facilitator-->>Seller: 12. isValid: false, invalidReason
+        Seller-->>Buyer: 13. 402 Payment Required
+    end

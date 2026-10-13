@@ -35,7 +35,8 @@ built on the stock `@x402/core` server and facilitator.
   (`baseUrl`, `sellerKeyResolver`, `getAuthHeaders`, `networkFilter`, `paymentTokenJwksUrl`).
 - **Bring your own key.** `LocalQuoteSigner` signs quotes with an EC (P-256, P-384, P-521) or
   RSA (2048 bits or more) private key; `LocalQuoteSigner.fromPem` loads PKCS #8, SEC 1 or
-  PKCS #1 PEM, encrypted or not. `KmsQuoteSigner` signs with an AWS KMS key. `jwksDocument`
+  PKCS #1 PEM, encrypted or not, with `FromPemOptions` (`kid`, `serviceUrl`, `password`).
+  `KmsQuoteSigner` signs with an AWS KMS key. `jwksDocument`
   builds the JWKS document a seller publishes for its quote-signing keys.
 - **`SigningError`** for signer failures.
 - The `./agentic-commerce/exact` sub-path, which exports the two `exact` schemes, the register
@@ -98,14 +99,22 @@ built on the stock `@x402/core` server and facilitator.
 - **Breaking:** the transaction ID helpers `generateTransactionId`, `parseTransactionId`,
   `formatTransactionId`, `isValidTransactionId` and `extractNetworkFromTransactionId`, and
   `extractQuoteFromPayment`. Payments are identified by the payment token's `payment_id`.
-- **Breaking:** the `transactionId` field of `AgenticCommercePayloadV2` (and of its schema; use
-  `paymentId`), and the `payment_context` field of `PaymentTokenPayload` with its
-  `PaymentContext` type (payment tokens carry their fields at the top level).
+- **Breaking:** the `transactionId` field of `AgenticCommercePayloadV2` (use `paymentId`), and
+  the `payment_context` field of `PaymentTokenPayload` with its `PaymentContext` type (payment
+  tokens carry their fields at the top level).
 - **Breaking:** the constants `SETTLEMENT_METHODS`, `SETTLEMENT_CYCLES`,
   `DEFAULT_QUOTE_VALIDITY_SECONDS`, `DEFAULT_PAYMENT_VALIDITY_SECONDS`, `AGENT_PAY_AUDIENCE`,
   `AGENT_PAY_JWKS_BASE_URL`, `WELL_KNOWN_JWKS_PATH` and `WELL_KNOWN_X402_SUPPORTED_PATH`. The
   values the package needs are internal; the `SettlementMethod` and `SettlementCycle` types
   remain.
+- **Breaking:** the zod schemas (`QuoteTokenPayloadSchema`, `QuoteTokenPriceSchema`,
+  `AgenticCommerceSettlementSchema`, `AgenticCommerceSupportSchema`, `AgenticCommerceTermsSchema`,
+  `AgenticCommercePaymentExtraSchema` and `AgenticCommercePayloadV2Schema`) and the helpers
+  `parseQuoteToken`, `safeParseQuoteToken` and `parsePaymentPayload`. The verifier and the
+  `exact` schemes do their own checks. The TypeScript types (`QuoteTokenPayload`, `QuoteTokenPrice`,
+  `AgenticCommerceSettlement`, `AgenticCommerceSupport`, `AgenticCommerceTerms`,
+  `AgenticCommercePaymentExtra` and `AgenticCommercePayloadV2`) remain.
+- **Breaking:** `zod` is no longer a dependency.
 
 ### Security
 

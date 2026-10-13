@@ -1,84 +1,63 @@
-# Agent Pay x402 Extension Examples
+# Examples
 
-Working examples demonstrating the Agent Pay x402 extension with authentication and DPoP support.
+Small sellers you can copy. Each runs the `exact` server scheme on x402's stock resource server with
+an in-process facilitator. Keys come from AWS KMS or from a PEM the environment points to; none is
+hard-coded.
 
-## Quick Start
+| Example                           | What it shows                                                                                       |
+| --------------------------------- | --------------------------------------------------------------------------------------------------- |
+| [express-seller](express-seller/) | Express with `paymentMiddleware` from `@x402/express`, a key you hold, and `/.well-known/jwks.json` |
+| [lambda-seller](lambda-seller/)   | An AWS Lambda handler for an API Gateway HTTP API, on `x402HTTPResourceServer`, with a KMS key      |
 
-Run the three components in separate terminals:
+## express-seller
+
+`app.ts` builds the app (`createSellerApp`); `server.ts` reads the environment and listens;
+`nonce-store.ts` is the in-memory DPoP nonce store. In this repository the examples import the
+package by name, which resolves to the built `dist/`, so build it first. In your own project,
+install the package instead.
 
 ```bash
-# Terminal 1: Start Agent Pay server (port 3001)
-npm run example:Agent Pay
-
-# Terminal 2: Start test service (port 3002)
-npm run example:service
-
-# Terminal 3: Run test client
-npm run example:client
+npm ci && npm run build
+openssl ecparam -name secp384r1 -genkey -noout | openssl pkcs8 -topk8 -nocrypt -out quote-key.pem
+export SELLER_KEY_FILE=quote-key.pem SELLER_KEY_ID=quote-key-2026-10
+export SELLER_SERVICE_URL=https://api.example.com SELLER_PRODUCT_ID=prod-example123
+npx tsx examples/express-seller/server.ts
 ```
 
-## What Gets Demonstrated
+- `GET /.well-known/jwks.json` serves `jwksDocument(signer.publicJwk)`. Register
+  `https://<seller>/.well-known/jwks.json` as the listing's JWKS URL. A `{ type: 'jwks' }` resolver
+  takes the base, `https://<seller>`.
+- `GET /weather` costs $0.01. Without a payment it answers `402` with a signed quote.
 
-- **Two-Phase API**: `createAgentPayResourceServer` / `createAgentPayClient` with `registerNetwork()` for adding networks individually
-- **Multi-Facilitator Routing**: Agent Pay handles registered networks, default x402 facilitator handles the rest
-- **Method Chaining**: `server.registerNetwork('aws:base').registerNetwork('eip155:8453')`
-- **Authentication**: API Key, OAuth2, and AWS SigV4 authentication to Agent Pay
-- **DPoP**: Token binding with ephemeral client keys to prevent theft
-- **Payment Flow**: Complete 402 Payment Required → authorize → pay → access flow
-- **Auto Capture**: Automatic payment settlement on verification
-- **Cross-Network FAB**: Agent Pay handling both `aws:base` and `eip155:8453` (EVM Base) via the same Agent Pay
+The facilitator here runs in the seller's process and uses the signer's own public key. A
+facilitator running elsewhere uses `{ type: 'jwks', jwksUrl: SELLER_SERVICE_URL }` instead.
 
-## Files
+`server.ts` passes an in-memory DPoP nonce store, which covers one process only and holds at most
+100,000 unexpired ids (when full it refuses new proofs rather than forget an id early); with several
+instances, use a store they share. Behind a load balancer or proxy that terminates TLS, set
+`TRUST_PROXY` (Express's `trust proxy`, for example `1`) and have the proxy forward the original
+`Host`, so DPoP `htu` checks see the public https URL.
 
-- `mock-agent-pay-server.ts` - Agent Pay provider with authentication (port 3001)
-- `test-service.ts` - Protected API using `createAgentPayResourceServer` (port 3002)
-- `test-client.ts` - Client using `createAgentPayClient` with auth and DPoP
-- `multi-facilitator.ts` - Standalone example showing Agent Pay + default facilitator routing
-- `shared-logger.ts` - Unified logging for all examples
+## lambda-seller
 
-## Logs
+`handler.ts` exports `handler` for an API Gateway HTTP API (payload format 2.0) route
+`GET /weather`. Set `SELLER_KMS_KEY_ARN` (an `ECC_NIST_P384` `SIGN_VERIFY` key),
+`SELLER_SERVICE_URL` and `SELLER_PRODUCT_ID`; the function's role needs `kms:Sign` and
+`kms:GetPublicKey` on the key. Bundle it with your usual tool (for example esbuild) with this
+package and `@x402/core` as dependencies.
 
-All examples write detailed flow logs to:
+The handler builds the request URL from `requestContext.domainName` and `rawPath`, the host and path
+the buyer called (a custom domain and a named stage included), so DPoP `htu` checks see the public
+URL; it matches routes with the stage removed. An API mapping key on a custom domain (such as `/v1`)
+is also in `rawPath`: strip it too, or the route does not match. Behind CloudFront or another proxy,
+build the URL from the public host instead. Any method other than `GET` gets `405`, the paid
+response is `Cache-Control: private, no-store`, and a KMS or facilitator failure is logged and
+answered with `502`. Its DPoP nonce store lives in one execution environment; back it with a shared
+store (for example a DynamoDB table with a conditional write) to cover every concurrent environment.
 
-```
-logs/payment-flow.log
-```
+## Checks
 
-The log file is created automatically and includes:
-- Timestamped entries for each step
-- Request/response details
-- Key generation and signing operations
-- Authentication attempts
-- Payment verification results
-
-View logs in real-time:
-```bash
-tail -f logs/payment-flow.log
-```
-
-## Configuration
-
-### Agent Pay Authentication
-
-Authentication is enabled by default. To disable:
-```bash
-AGENT_PAY_AUTH_ENABLED=false npm run example:Agent Pay
-```
-
-Accepted credentials (configured in `mock-agent-pay-server.ts`):
-- API Key: `test-api-key-123`, `demo-key-456`
-- OAuth2 Token: `test-bearer-token`
-- AWS SigV4: Any request with `AWS4-HMAC-SHA256` header (simplified validation)
-
-### Ports
-
-Change ports by editing the respective files:
-- Agent Pay: `mock-agent-pay-server.ts` → `const PORT = 3001`
-- Service: `test-service.ts` → `const PORT = 3002`
-
-## Requirements
-
-- Node.js 20.19+
-- Both `@x402/core` and `@aws/fiat-extension-for-x402` packages (examples use local source)
-- All dependencies installed (`npm install`)
-- Ports 3001 and 3002 available
+The examples are typechecked in CI (`npm run typecheck:examples`), and
+`test/examples/express-seller.test.ts` runs the Express app in-process: it fetches the JWKS, checks
+the 402 challenge, and checks that an unpaid `HEAD` is refused. `test/examples/nonce-store.test.ts`
+checks the nonce store against `verifyDPoPProof`. They are not part of the published package.

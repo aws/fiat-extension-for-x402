@@ -17,10 +17,26 @@ updates:
       # In one PR, because @x402/express depends on its own @x402/core minor.
       x402:
         patterns: ["@x402/*"]
+      # Major updates in one PR (minor and patch ones are in minor-and-patch),
+      # because @vitest/coverage-v8 requires the same vitest version.
+      vitest:
+        update-types: [major]
+        patterns: ["vitest", "@vitest/*"]
+      # Major updates in one PR, so a new eslint major and its @eslint/js
+      # rules arrive together.
+      eslint:
+        update-types: [major]
+        patterns: ["eslint", "@eslint/js"]
       # The same for security updates, which groups do not cover by default.
       x402-security:
         applies-to: security-updates
         patterns: ["@x402/*"]
+      vitest-security:
+        applies-to: security-updates
+        patterns: ["vitest", "@vitest/*"]
+      eslint-security:
+        applies-to: security-updates
+        patterns: ["eslint", "@eslint/js"]
 
   - package-ecosystem: github-actions
     directory: /

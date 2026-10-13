@@ -52,4 +52,16 @@ export default defineConfig(
       ],
     },
   },
+  {
+    // The examples get the recommended type-checked rules, none downgraded,
+    // typed with tsconfig.examples.json.
+    files: ['examples/**/*.ts'],
+    extends: [eslint.configs.recommended, tseslint.configs.recommendedTypeChecked],
+    languageOptions: {
+      parserOptions: {
+        project: './tsconfig.examples.json',
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  }
 );
