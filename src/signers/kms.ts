@@ -161,27 +161,6 @@ export class KmsQuoteSigner implements QuoteSigner {
   }
 }
 
-/**
- * Create a QuoteSigner backed by AWS KMS.
- *
- * @deprecated Use `new KmsQuoteSigner(config)`.
- * @param config - KMS signer configuration
- * @returns A {@link KmsQuoteSigner} whose methods are bound, with the former
- *   factory's `getPublicKey()`, which returns `{}`
- */
-export function createKmsQuoteSigner(
-  config: KmsQuoteSignerConfig
-): KmsQuoteSigner & { getPublicKey(): Record<string, never> } {
-  // Bound own methods, so the object can be destructured or spread as the
-  // factory's former object literal could, and its getPublicKey().
-  const signer = new KmsQuoteSigner(config);
-  return Object.assign(signer, {
-    signQuote: signer.signQuote.bind(signer),
-    getServiceUrl: signer.getServiceUrl.bind(signer),
-    getPublicKey: (): Record<string, never> => ({}),
-  });
-}
-
 /** Read a DER length at `offset`: short form, or minimal long form. */
 function readDerLength(der: Uint8Array, offset: number): { length: number; next: number } {
   const first = der[offset];

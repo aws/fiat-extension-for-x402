@@ -428,7 +428,7 @@ async function verifyWithKey(token: string, key: KeyObject): Promise<Record<stri
   }
   let payload: Uint8Array;
   try {
-    ({ payload } = await compactVerify(token, key, { algorithms: ALLOWED_ALGORITHMS }));
+    ({ payload } = await compactVerify(token, key, { algorithms: [...ALLOWED_ALGORITHMS] }));
   } catch (error) {
     const signatureFailed =
       (error as { code?: unknown }).code === 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED';

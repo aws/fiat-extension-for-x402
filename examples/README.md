@@ -78,7 +78,7 @@ Change ports by editing the respective files:
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 20.19+
 - Both `@x402/core` and `@aws/fiat-extension-for-x402` packages (examples use local source)
 - All dependencies installed (`npm install`)
 - Ports 3001 and 3002 available

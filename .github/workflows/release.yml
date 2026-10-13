@@ -83,9 +83,8 @@ jobs:
       - name: Check that installs resolve only from the public npm registry
         run: node .github/scripts/check-npm-registry.mjs
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: npm run build
-      - run: npm run attw
-      - run: npm run publint
+      # Builds once, then runs attw and publint on that build.
+      - run: npm run check:package
       - name: Pack the package
         run: |
           mkdir dist-pack

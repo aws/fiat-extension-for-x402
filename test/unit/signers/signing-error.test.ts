@@ -26,7 +26,6 @@ import {
   LocalQuoteSigner,
   SigningError,
   ValidationError,
-  createKmsQuoteSigner,
   jwksDocument,
 } from '../../../src/index';
 
@@ -70,13 +69,13 @@ describe('SigningError', () => {
     }
   });
 
-  it('is thrown by KmsQuoteSigner and createKmsQuoteSigner, on construction and signing', async () => {
+  it('is thrown by KmsQuoteSigner, on construction and signing', async () => {
     const unsupported = thrown(() => new KmsQuoteSigner({ ...KMS, algorithm: 'RSA' as never }));
     expect(unsupported).toBeInstanceOf(SigningError);
     expect((unsupported as SigningError).details).toEqual({
       supported: ['ECDSA_SHA_256', 'ECDSA_SHA_384', 'ECDSA_SHA_512'],
     });
-    expect(thrown(() => createKmsQuoteSigner({ ...KMS, serviceUrl: '' }))).toBeInstanceOf(
+    expect(thrown(() => new KmsQuoteSigner({ ...KMS, serviceUrl: '' }))).toBeInstanceOf(
       SigningError
     );
 

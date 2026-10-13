@@ -13,7 +13,7 @@ import { describe, it, expect } from 'vitest';
 import * as jose from 'jose';
 import { FakePaymentService } from '../../helpers/fake-payment-service';
 import { ExactAgenticCommerceScheme as AgenticCommerceServerSchemeImpl } from '../../../src/agentic-commerce/exact/server';
-import { toQuoteSigner } from '../../../src/signers/protocol';
+import { toQuoteSigner } from '../../helpers/jwt-signers';
 import { settleExactPayment } from '../../../src/agentic-commerce/exact/facilitator';
 import { DEFAULT_NETWORK, SCHEME_EXACT } from '../../../src/constants';
 import type { PaymentRequirements } from '@x402/core/types';

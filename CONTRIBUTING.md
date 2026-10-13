@@ -31,6 +31,10 @@ To send us a pull request, please:
 1. Fork the repository.
 2. Modify the source; please focus on the specific change you are contributing. If you also reformat all the code, it will be hard for us to focus on your change.
 3. Ensure local tests pass, and run `npm run format` so that the `npm run format:check` step in CI passes. One past commit reformatted the whole tree; run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once so `git blame` skips it, as GitHub's blame view already does.
+   If you change the package itself, `npm run check:package` builds it and runs the `attw` and `publint` checks that CI runs.
+   `test/api/public-api.test.ts` freezes the names and kinds the package exports: adding, removing or renaming an
+   export fails it until you update the snapshot with `npx vitest run test/api -u`. Removing or renaming an export is a
+   breaking change. Signatures are not in the snapshot, so review them in the diff.
 4. Commit to your fork using clear commit messages.
 5. Send us a pull request, answering any default questions in the pull request interface.
 6. Pay attention to any automated CI failures reported in the pull request, and stay involved in the conversation.
@@ -51,7 +55,7 @@ Releases are published to [npm](https://www.npmjs.com/package/@aws/fiat-extensio
 token is stored in the repository.
 
 1. Open a pull request that sets the new `version` in `package.json` (and `package-lock.json`, with
-   `npm version <version> --no-git-tag-version`) and adds a changelog entry. Use a
+   `npm version <version> --no-git-tag-version`) and adds an entry to [`CHANGELOG.md`](CHANGELOG.md) with the release date. Use a
    [semantic version](https://semver.org): `1.1.0` for a final release, `1.1.0-rc.1` for a pre-release.
 2. After it merges, create a GitHub release from `main` with the tag `v<version>` (for example `v1.1.0` or
    `v1.1.0-rc.1`). Tick **Set as a pre-release** if, and only if, the version is a pre-release.

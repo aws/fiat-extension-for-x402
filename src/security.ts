@@ -11,8 +11,14 @@ import { timingSafeEqual } from 'node:crypto';
 /**
  * Allowed JWT signing algorithms.
  * Only these algorithms are accepted for payment and quote token verification.
+ * Frozen, because every verifier in the process reads it.
  */
-export const ALLOWED_ALGORITHMS: string[] = ['RS256', 'ES256', 'ES384', 'ES512'];
+export const ALLOWED_ALGORITHMS: readonly string[] = Object.freeze([
+  'RS256',
+  'ES256',
+  'ES384',
+  'ES512',
+]);
 
 /**
  * Constant-time string comparison.

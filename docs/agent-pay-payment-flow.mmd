@@ -12,9 +12,9 @@ sequenceDiagram
     Client->>Client: 4. Extract quoteToken from 402 response
     Client->>AP: 5. POST /transactions<br/>{ quoteToken, network, amount, currency, agentPayId }
     AP->>AP: 6. Verify quote token signature<br/>Authorize transaction
-    AP-->>Client: 7. { paymentToken (signed JWT), transactionId }
+    AP-->>Client: 7. { paymentToken (signed JWT), paymentId }
 
-    Client->>Service: 8. GET /resource<br/>Authorization: x402 { paymentToken, transactionId }
+    Client->>Service: 8. GET /resource<br/>Authorization: x402 { paymentToken, paymentId }
 
     Service->>AP: 9. Fetch JWKS from /.well-known/jwks.json
     AP-->>Service: 10. { public keys }
@@ -24,7 +24,7 @@ sequenceDiagram
         Service-->>Client: 12. 200 OK — resource delivered
 
         opt Capture (optional — manual mode)
-            Service->>AP: 13. POST /capture<br/>{ transactionId, amount, currency }
+            Service->>AP: 13. POST /capture<br/>{ paymentId, amount, currency }
             AP-->>Service: 14. { success, captureId }
         end
     else Payment Invalid

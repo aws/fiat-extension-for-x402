@@ -158,15 +158,6 @@ describe('Zod Schemas', () => {
       expect(result.paymentId).toBe('awsmp-123');
     });
 
-    it('should accept with transactionId', () => {
-      const result = AgenticCommercePayloadV2Schema.parse({
-        paymentToken: 'eyJ...',
-        paymentId: 'awsmp-123',
-        transactionId: 'awsmp-123',
-      });
-      expect(result.transactionId).toBe('awsmp-123');
-    });
-
     it('should reject missing paymentToken', () => {
       expect(() => AgenticCommercePayloadV2Schema.parse({ paymentId: 'x' })).toThrow();
     });

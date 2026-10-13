@@ -35,3 +35,6 @@ yarn-error.log*
 # Temporary files
 *.tmp
 .cache/
+
+# Created by the release workflow's pack step
+dist-pack/

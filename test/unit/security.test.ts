@@ -22,6 +22,12 @@ describe('Security Utilities', () => {
       expect(ALLOWED_ALGORITHMS).not.toContain('HS384');
       expect(ALLOWED_ALGORITHMS).not.toContain('HS512');
     });
+
+    it('cannot be widened at runtime', () => {
+      expect(Object.isFrozen(ALLOWED_ALGORITHMS)).toBe(true);
+      expect(() => (ALLOWED_ALGORITHMS as string[]).push('HS256')).toThrow(TypeError);
+      expect(ALLOWED_ALGORITHMS).toEqual(['RS256', 'ES256', 'ES384', 'ES512']);
+    });
   });
 
   describe('secureCompare', () => {

@@ -3,7 +3,7 @@
 **Package:** `@aws/fiat-extension-for-x402`
 **Version:** 0.1.0
 **Peer dependency:** `@x402/core >=2.23.0 <3` (the `exact` scheme needs core's `dynamicExtraFields` and `paymentFlows`)
-**Runtime:** Node.js ≥ 18.0.0
+**Runtime:** Node.js ≥ 20.19
 
 ---
 
@@ -148,10 +148,10 @@ This eliminates the need for a separate facilitator service. The `AgenticCommerc
 | **Authentication** | `src/auth/` | Pluggable auth for Agent Pay API calls: API Key, AWS SigV4, OAuth2, Custom. Factory pattern via `createAuthenticator()`. |
 | **DPoP** | `src/dpop/` | RFC 9449 Demonstrating Proof-of-Possession: proof verification and JWK thumbprints, used by the `exact` server scheme's `onBeforeVerify` hook. |
 | **Discovery** | `src/discovery.ts` | Network registry (`registerNetwork`) and OIDC-based Agent Pay endpoint discovery. |
-| **Signers** | `src/signers/` | `QuoteSigner` (`signQuote` and `getServiceUrl`) and its implementations: `KmsQuoteSigner` (`kms.ts`, the key stays in AWS KMS) and `LocalQuoteSigner` (`local.ts`, a key you manage, `fromPem` and `publicJwk`). `protocol.ts` also has the `toQuoteSigner()` and `toPaymentTokenSigner()` adapters for `jose` key pairs. |
+| **Signers** | `src/signers/` | `QuoteSigner` (`signQuote` and `getServiceUrl`) and its implementations: `KmsQuoteSigner` (`kms.ts`, the key stays in AWS KMS) and `LocalQuoteSigner` (`local.ts`, a key you manage, `fromPem` and `publicJwk`). |
 | **Types** | `src/types.ts` | All Agent Pay-specific types: `QuoteTokenPayload`, `PaymentTokenPayload`, `AgenticCommercePayloadV2`, settlement types, DPoP types, error classes. |
 | **Constants** | `src/constants.ts` | `SCHEME_EXACT`, `AGENTIC_COMMERCE_CAIP_FAMILY`, `SENTINEL_PAY_TO`, default validity windows. |
-| **Utilities** | `src/utils.ts` | JWT decode/verify helpers, transaction ID parsing, money parsing, service JWKS caching. |
+| **Utilities** | `src/utils.ts` | JWT decode/verify helpers and money parsing. |
 
 ---
 
@@ -182,13 +182,13 @@ Client                          Service                         Agent Pay Provid
   │     { quoteToken, agentPayId }   │                                │
   │────────────────────────────────────────────────────────────────►│
   │                                │                                │
-  │  4. { transactionId,           │                                │
+  │  4. { paymentId,               │                                │
   │       paymentToken: "<JWT>" }  │  ◄── signed by Agent Pay          │
   │◄────────────────────────────────────────────────────────────────│
   │                                │                                │
   │  5. GET /resource              │                                │
   │     X-PAYMENT: { paymentToken, │                                │
-  │                  transactionId }                                │
+  │                  paymentId }                                    │
   │──────────────────────────────►│                                │
   │                                │  6. Verify payment token       │
   │                                │     (check Agent Pay JWKS)        │
@@ -237,10 +237,8 @@ The payment token is a JWT signed by the Agent Pay provider's private key:
   "aud": "https://api.example.com",
   "iat": 1709654410,
   "exp": 1709658010,
-  "payment_context": {
-    "transaction_id": "aws:base:a1b2c3d4e5f6g7h8",
-    "quote_token": "<original quote token JWT>"
-  },
+  "payment_id": "awsmp-<payment id>",
+  "quote_token": "<original quote token JWT>",
   "cnf": {
     "jkt": "sha256-thumbprint-of-dpop-key"
   }
@@ -265,11 +263,10 @@ Both sentinels are applied in `enhancePaymentRequirements` (server scheme). The 
 The facilitator's `verify()` performs these checks in order:
 
 1. **Payment token signature** — Fetch the Agent Pay's JWKS (`/.well-known/jwks.json`), verify the JWT signature. This proves Agent Pay authorized the payment.
-2. **Quote token extraction** — Extract `payment_context.quote_token` from the verified payment token.
+2. **Quote token extraction** — Read the top-level `quote_token` from the verified payment token.
 3. **Quote token match** — Confirm the extracted quote token string matches `requirements.extra.quoteToken` (the one the service originally issued).
-4. **Quote token signature** (best-effort) — Fetch the service's JWKS and verify the quote token's signature. If the JWKS endpoint is unreachable, this step is skipped — the string match in step 3 is still valid because Agent Pay already verified the quote when it authorized the transaction.
-5. **Transaction ID match** — Confirm `apPayload.transactionId` matches `payment_context.transaction_id`.
-6. **Expiry check** — Confirm the payment token hasn't expired.
+4. **Quote token signature** — Verify the quote token's signature with the seller key from the configured `SellerKeyResolver` (a KMS key, a JWKS URL or a static public key). The key is never taken from the quote. Any failure, including an unreachable JWKS, rejects the payment with `invalid_quote`.
+5. **Expiry check** — Confirm the payment token hasn't expired.
 
 ### 3.6 Settlement Logic
 
@@ -354,10 +351,7 @@ All Agent Pay errors extend `AgenticCommerceError`, which extends `Error`:
 | Cache | TTL | Purpose |
 |-------|-----|---------|
 | Agent Pay JWKS | 1 hour | Avoid fetching public keys on every verification |
-| Service JWKS | 1 hour | Avoid fetching service keys on every quote token verification |
 | OIDC Discovery | 24 hours | Agent Pay endpoint metadata changes rarely |
-
-All caches can be cleared programmatically (`clearServiceJWKSCache()`, `clearJWKSCache()`, `clearDiscoveryCache()`).
 
 ### 4.3 Build Outputs
 
@@ -371,7 +365,7 @@ Sub-path exports are available for tree-shaking: `@aws/fiat-extension-for-x402/a
 
 ### 4.4 Known Limitations
 
-1. **OIDC Discovery** — Full OIDC discovery (`/.well-known/openid-configuration`) is a stub. However, `fetchServiceJWKS` (direct JWKS fetching from `/.well-known/jwks.json`) is fully implemented with 1-hour caching.
+1. **OIDC Discovery** — Full OIDC discovery (`/.well-known/openid-configuration`) is a stub.
 2. **Zod Schemas** — Types are fully defined but Zod runtime validation schemas are not fully wired up yet.
 
 ### 4.5 Test Suite
@@ -391,8 +385,8 @@ src/
 ├── types.ts                    # All Agent Pay type definitions and error classes
 ├── constants.ts                # Scheme identifiers, defaults, sentinel values
 ├── config.ts                   # Configuration interfaces (signing keys, Agent Pay, schemes)
-├── signers/protocol.ts         # JWT signer adapters (service + Agent Pay)
-├── utils.ts                    # JWT helpers, transaction IDs, money parsing, JWKS cache
+├── signers/protocol.ts         # The QuoteSigner interface and shared key checks
+├── utils.ts                    # JWT helpers and money parsing
 ├── discovery.ts                # Network registry and OIDC Agent Pay discovery
 ├── agent-pay-client.ts            # HTTP client for Agent Pay API calls
 ├── agentic-commerce/facilitator-client.ts # x402 FacilitatorClient adapter for Agent Pay providers

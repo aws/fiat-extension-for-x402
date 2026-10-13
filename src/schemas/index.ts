@@ -90,7 +90,6 @@ export const AgenticCommercePaymentExtraSchema = z.object({
 export const AgenticCommercePayloadV2Schema = z.object({
   paymentToken: z.string().min(1),
   paymentId: z.string().min(1),
-  transactionId: z.string().optional(),
 });
 
 // ============================================================================

@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * KmsQuoteSigner (and the deprecated createKmsQuoteSigner): kid derivation,
+ * KmsQuoteSigner: kid derivation,
  * algorithms, signing through KMS, and how KMS errors are reported.
  *
  * KMS is mocked; no test calls AWS.
@@ -30,9 +30,9 @@ vi.mock('@aws-sdk/client-kms', () => ({
   },
 }));
 
-import { KmsQuoteSigner, createKmsQuoteSigner, derToRaw } from '../../../src/signers/kms';
+import { KmsQuoteSigner, derToRaw } from '../../../src/signers/kms';
 import type { QuoteSigner } from '../../../src/signers/protocol';
-import { SigningError, type QuoteTokenPayload } from '../../../src/types';
+import { SigningError } from '../../../src/types';
 
 /** The shape of a KMS command passed to the mocked client */
 interface KmsCommand {
@@ -93,7 +93,6 @@ describe.each([
     'KmsQuoteSigner',
     (config: ConstructorParameters<typeof KmsQuoteSigner>[0]) => new KmsQuoteSigner(config),
   ],
-  ['createKmsQuoteSigner', createKmsQuoteSigner],
 ] as const)('%s', (_name, create) => {
   for (const algorithm of ALGORITHMS) {
     it(`signs a JWT that verifies with the ${CURVES[algorithm].namedCurve} public key (${algorithm})`, async () => {
@@ -232,45 +231,13 @@ describe.each([
   });
 });
 
-describe('createKmsQuoteSigner (deprecated)', () => {
-  it("keeps the former factory's getPublicKey(), returning {}; the class has none", () => {
-    expect(
-      createKmsQuoteSigner({ keyArn, region: 'us-east-1', serviceUrl }).getPublicKey()
-    ).toEqual({});
-    expect('getPublicKey' in new KmsQuoteSigner({ keyArn, region: 'us-east-1', serviceUrl })).toBe(
-      false
-    );
-  });
-
+describe('KmsQuoteSigner algorithm', () => {
   it('reports a null algorithm as None', () => {
     expectSigningError(
       () =>
         new KmsQuoteSigner({ keyArn, region: 'us-east-1', serviceUrl, algorithm: null as never }),
       'Unsupported algorithm: None'
     );
-  });
-
-  it('returns bound methods, so it can be destructured and spread as before', async () => {
-    sendMock.mockResolvedValue({ Signature: der([1], [2]) });
-    // Typed as plain function properties: the point is that they work unbound.
-    const bound: { signQuote: (payload: object) => Promise<string>; getServiceUrl: () => string } =
-      createKmsQuoteSigner({ keyArn, region: 'us-east-1', serviceUrl });
-    const { signQuote, getServiceUrl } = bound;
-    expect(getServiceUrl()).toBe(serviceUrl);
-    await expect(signQuote({})).resolves.toMatch(/^eyJ/);
-    const signer: QuoteSigner = createKmsQuoteSigner({ keyArn, region: 'us-east-1', serviceUrl });
-    const spread: QuoteSigner = { ...signer };
-    const payload: QuoteTokenPayload = {
-      iss: serviceUrl,
-      aud: 'aws:marketplace',
-      iat: 0,
-      exp: 300,
-      jti: 'quote-1',
-      price: { amount: '0.10', currency: 'USD' },
-      payTo: 'seller-1',
-      reference: 'RESOURCE',
-    };
-    await expect(spread.signQuote(payload)).resolves.toMatch(/^eyJ/);
   });
 });
 

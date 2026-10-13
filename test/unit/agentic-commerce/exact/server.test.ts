@@ -11,7 +11,7 @@ import type {
 } from '@x402/core/types';
 import { ExactAgenticCommerceScheme } from '../../../../src/agentic-commerce/exact/server';
 import { InProcessFacilitatorClient } from '../../../../src/facilitator-client';
-import { toQuoteSigner } from '../../../../src/signers/protocol';
+import { toQuoteSigner } from '../../../helpers/jwt-signers';
 import { QUOTE_TOKEN_AUDIENCE, SCHEME_EXACT, SENTINEL_PAY_TO } from '../../../../src/constants';
 import { ValidationError } from '../../../../src/types';
 

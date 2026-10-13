@@ -11,7 +11,7 @@ import { vi } from 'vitest';
 import * as jose from 'jose';
 import { PAYMENT_TOKEN_ISSUER } from '../../src/constants';
 import type { QuoteSigner } from '../../src/signers/protocol';
-import { toQuoteSigner } from '../../src/signers';
+import { toQuoteSigner } from './jwt-signers';
 
 export const SERVICE_JWKS_BASE_URL = 'https://jwks.payments.test';
 export const SERVICE_JWKS_URL = `${SERVICE_JWKS_BASE_URL}/.well-known/jwks.json`;

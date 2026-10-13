@@ -5,7 +5,6 @@ import type {
   AgenticCommercePaymentExtra,
   QuoteTokenPrice,
   QuoteTokenPayload,
-  PaymentContext,
   PaymentTokenPayload,
   SettlementMethod,
   SettlementCycle,
@@ -152,17 +151,6 @@ describe('Payment Types', () => {
     });
   });
 
-  describe('PaymentContext', () => {
-    it('should accept payment context with transaction_id and quote_token', () => {
-      const context: PaymentContext = {
-        transaction_id: 'fab:aws:txn_888999',
-        quote_token: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
-      };
-      expect(context.transaction_id).toBe('fab:aws:txn_888999');
-      expect(context.quote_token).toBe('eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...');
-    });
-  });
-
   describe('PaymentTokenPayload', () => {
     it('should accept minimal payment token payload', () => {
       const payload: PaymentTokenPayload = {
@@ -171,14 +159,11 @@ describe('Payment Types', () => {
         aud: 'https://api.weather.com',
         iat: 1735689600,
         exp: 1735689900,
-        payment_context: {
-          transaction_id: 'fab:aws:txn_888999',
-          quote_token: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
-        },
+        quote_token: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
       };
       expect(payload.iss).toBe('https://pay.example.com');
       expect(payload.sub).toBe('client_uuid_555');
-      expect(payload.payment_context).toBeDefined();
+      expect(payload.quote_token).toBeDefined();
       expect(payload.cnf).toBeUndefined();
     });
 
@@ -189,10 +174,7 @@ describe('Payment Types', () => {
         aud: 'https://api.weather.com',
         iat: 1735689600,
         exp: 1735689900,
-        payment_context: {
-          transaction_id: 'fab:aws:txn_888999',
-          quote_token: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
-        },
+        quote_token: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
         cnf: {
           jkt: 'NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs',
         },
