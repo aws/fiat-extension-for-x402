@@ -138,21 +138,58 @@ describe('enhancePaymentRequirements: quote claims', () => {
     expect(signer.signed[0].jti).not.toBe(signer.signed[1].jti);
   });
 
-  it('keeps the amount verbatim and strips every iso4217: prefix from the currency', async () => {
+  it('keeps the amount verbatim and strips the iso4217: prefix from the currency', async () => {
     const signer = recordingSigner();
     await enhancePaymentRequirements(
       requirements({ asset: 'iso4217:EUR', amount: '02.50' }),
       signer
     );
-    await enhancePaymentRequirements(requirements({ asset: 'iso4217:iso4217:GBP' }), signer);
     expect(signer.signed[0].price).toEqual({ amount: '02.50', currency: 'EUR' });
-    expect(signer.signed[1].price).toEqual({ amount: '0.10', currency: 'GBP' });
   });
 
-  it('gives an empty currency when the asset is missing', async () => {
+  // The same rules as parsePrice, for a caller that skips it.
+  it.each([
+    { amount: '0.123456789', asset: 'iso4217:USD' },
+    { amount: '1e5', asset: 'iso4217:USD' },
+    { amount: 5, asset: 'iso4217:USD' },
+    { amount: '0.10', asset: 'USD' },
+    { amount: '0.10', asset: 'iso4217:iso4217:GBP' },
+    { amount: '0.10', asset: undefined },
+  ])('signs no quote for the amount and asset %j', async (price) => {
     const signer = recordingSigner();
-    await enhancePaymentRequirements(requirements({ asset: undefined }), signer);
-    expect(signer.signed[0].price).toEqual({ amount: '0.10', currency: '' });
+    const message =
+      price.amount === '0.123456789'
+        ? `Price may have at most 8 decimal places: ${JSON.stringify(price)}`
+        : `Invalid price: ${JSON.stringify(price)}`;
+    await expect(enhancePaymentRequirements(requirements(price), signer)).rejects.toThrow(
+      new ValidationError(message)
+    );
+    expect(signer.signed).toHaveLength(0);
+  });
+
+  it('rejects a bigint amount with a ValidationError', async () => {
+    const signer = recordingSigner();
+    await expect(
+      enhancePaymentRequirements(requirements({ amount: BigInt(1) }), signer)
+    ).rejects.toThrow(new ValidationError('Invalid price: (not serializable)'));
+    expect(signer.signed).toHaveLength(0);
+  });
+
+  it('signs and returns the amount and asset it checked', async () => {
+    const signer = recordingSigner();
+    const reads = { amount: 0, asset: 0 };
+    const req = requirements();
+    Object.defineProperty(req, 'amount', {
+      enumerable: true,
+      get: () => (reads.amount++ === 0 ? '0.10' : '0.123456789'),
+    });
+    Object.defineProperty(req, 'asset', {
+      enumerable: true,
+      get: () => (reads.asset++ === 0 ? 'iso4217:USD' : 'USD'),
+    });
+    const enhanced = await enhancePaymentRequirements(req, signer);
+    expect(signer.signed[0].price).toEqual({ amount: '0.10', currency: 'USD' });
+    expect(enhanced).toMatchObject({ amount: '0.10', asset: 'iso4217:USD' });
   });
 
   it('takes the reference from extra', async () => {

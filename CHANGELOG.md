@@ -73,6 +73,13 @@ built on the stock `@x402/core` server and facilitator.
   allows 5 seconds of clock skew on the maximum age.
 - **Breaking:** `ALLOWED_ALGORITHMS` is a frozen `readonly string[]`, so no code in the process
   can widen the algorithms every verifier accepts.
+- **Breaking:** the server scheme checks an `{ amount, asset }` route price as it checks a string
+  or number price. Its `amount` must be a plain decimal string with at most 8 decimal places, and
+  its `asset` must be `iso4217:` and an upper-case three-letter code. Anything else is a
+  `ValidationError` instead of a signed quote: for example the amount `0.123456789`, `1e5` or
+  `$1.50`, or the asset `USD`. `ExactAgenticCommerceServerScheme.enhancePaymentRequirements`
+  applies the same rule to the requirements it signs, so it also rejects a missing asset (once
+  signed as an empty currency) and `iso4217:iso4217:GBP` (once signed as `GBP`).
 - The facilitator client no longer sends a fixed access header with JWKS requests.
 
 ### Removed

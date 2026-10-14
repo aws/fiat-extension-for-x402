@@ -66,9 +66,10 @@ What the seller must do:
 ## Transport and input
 
 - Serve the seller, its JWKS and every facilitator over HTTPS.
-- String and number route prices are parsed with linear-time patterns and at most 8 decimal places;
-  anything else is a `ValidationError` on the first 402. An `{ amount, asset }` price is used as
-  given, so write its `amount` as a plain decimal string.
+- Route prices are parsed with linear-time patterns and at most 8 decimal places, whether a string,
+  a number or an `{ amount, asset }` object, whose `amount` must be a plain decimal string and whose
+  `asset` must be `iso4217:` and an upper-case three-letter code. Anything else is a
+  `ValidationError` on the first 402.
 - The package does not log tokens, keys or credentials. Error messages name fields, key ids and HTTP
   statuses, never key material: a JWK that cannot be imported (from a seller or service JWKS, a
   `static` resolver or a DPoP proof) is reported as `JWK <kid>: invalid key material`, or
