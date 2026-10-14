@@ -7,8 +7,10 @@
  * fixtures: do not regenerate them.
  *
  * The seller and buyer private keys are derived from labels at test time (see
- * sellerPrivateKey and buyerPrivateKey); they are not secrets. The payment
- * token's service key is not included: only its public JWKS.
+ * sellerPrivateKey and buyerPrivateKey); they are not secrets. The same
+ * vectors, with the service key's label, are the shared wire fixtures in
+ * test/fixtures/cross-lang, and test/unit/cross-lang.test.ts checks that the
+ * two copies match.
  */
 
 import { createHash, createPrivateKey, type KeyObject } from 'crypto';

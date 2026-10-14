@@ -1,0 +1,2 @@
+# The shared wire fixtures are compared byte for byte: never convert their line endings.
+test/fixtures/cross-lang/** -text

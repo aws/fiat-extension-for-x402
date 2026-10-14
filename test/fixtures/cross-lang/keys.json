@@ -1,0 +1,60 @@
+{
+  "description": "TEST KEYS ONLY. Every key here is a deterministic test key derived from a public label by the rule in keys.json; none is a secret, and none may be used outside tests.",
+  "formatVersion": 1,
+  "derivation": {
+    "rule": "The private scalar d of each key is SHA-512 over the UTF-8 bytes of its label, read as a big-endian unsigned integer, reduced mod n, where n is the order of the key's curve. The public key is d times the curve generator.",
+    "curveOrders": {
+      "P-256": "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551",
+      "P-384": "ffffffffffffffffffffffffffffffffffffffffffffffffc7634d81f4372ddf581a0db248b0a77aecec196accc52973"
+    }
+  },
+  "keys": {
+    "seller": {
+      "use": "Signs quote tokens (the seller quote signer).",
+      "curve": "P-256",
+      "label": "fiat-x402-fixture-seller-v1",
+      "kid": "fixture-seller-1",
+      "serviceUrl": "https://seller.example.com",
+      "publicJwk": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "mp_RPHXbeJ21oBjtde5uuNzTZOtPoNYuyH-rvx3aUHo",
+        "y": "DO2fjqXVHzhr3KiNITqpVq0IJztKnH5xoNUqN63Lpcc",
+        "alg": "ES256",
+        "kid": "fixture-seller-1",
+        "use": "sig"
+      }
+    },
+    "service": {
+      "use": "Signs payment tokens (the payment service). Its JWKS is served at {base URL}/.well-known/jwks.json.",
+      "curve": "P-384",
+      "label": "fiat-x402-fixture-service-v1",
+      "kid": "fixture-service-1",
+      "jwks": {
+        "keys": [
+          {
+            "kty": "EC",
+            "crv": "P-384",
+            "x": "WWj23aoYPYoVbEYYIg7ZVb9VzXSD2mRnut-_Dn0uk0JJfRJRXlj6B-4t5YFuZgZd",
+            "y": "giaq5nHOyDsWeRFL3FhCiwCATWfj8c-UDvrZm1pM1W9HBAwjW6SuNyx2PE3nuCl3",
+            "kid": "fixture-service-1",
+            "alg": "ES384",
+            "use": "sig"
+          }
+        ]
+      }
+    },
+    "buyer": {
+      "use": "Signs DPoP proofs (the buyer); payment tokens are bound to it by cnf.jkt.",
+      "curve": "P-256",
+      "label": "fiat-x402-fixture-buyer-v1",
+      "publicJwk": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "h9RYB7K40yUyXrZJ6SKDFSTeM_7cNh2OYnacpNO53ik",
+        "y": "zKbWdpdwVqcF9t_oMtR2cfrW7vGi_xY-eIh81RXVsfg"
+      },
+      "jwkThumbprint": "t9nTvJ-pJOSNJofeLgOTzOrH9Yw0_8RJIgyHOO-gGCg"
+    }
+  }
+}
