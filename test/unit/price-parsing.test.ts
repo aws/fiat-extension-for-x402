@@ -172,6 +172,120 @@ describe('parsePrice: very large amounts', () => {
   });
 });
 
+describe('parsePrice: { amount, asset } prices', () => {
+  const usd = (amount: string) => ({ amount, asset: 'iso4217:USD' });
+
+  it.each(['0', '1.50', '01.50', '0.00000001', '99.99999990', '123456789012345678901234567890'])(
+    'passes the amount %j through as the same object',
+    async (amount) => {
+      const price = usd(amount);
+      await expect(parse(price)).resolves.toBe(price);
+    }
+  );
+
+  it.each(['iso4217:EUR', 'iso4217:JPY'])('accepts the asset %j', async (asset) => {
+    const price = { amount: '1', asset, extra: { k: 'v' } };
+    await expect(parse(price)).resolves.toBe(price);
+  });
+
+  it.each(['0.123456789', '1.000000000', '0.000000001'])(
+    'rejects the amount %j, which has more than 8 decimals',
+    async (amount) => {
+      const price = usd(amount);
+      await expect(parse(price)).rejects.toThrow(
+        new ValidationError(`Price may have at most 8 decimal places: ${JSON.stringify(price)}`)
+      );
+    }
+  );
+
+  it.each([
+    '1e5',
+    '1E5',
+    '1.5e-3',
+    '-1',
+    '-0',
+    '+1',
+    '',
+    ' ',
+    ' 1.50',
+    '1.50 ',
+    '1.',
+    '.5',
+    '1,50',
+    '1_000',
+    '0x10',
+    'NaN',
+    'Infinity',
+    '$1.50',
+    '1.50 USD',
+    '\u0661',
+  ])('rejects the amount %j, which is not a plain decimal', async (amount) => {
+    const price = usd(amount);
+    await expect(parse(price)).rejects.toThrow(
+      new ValidationError(`Invalid price: ${JSON.stringify(price)}`)
+    );
+  });
+
+  it.each([
+    '',
+    'USD',
+    'iso4217:usd',
+    'iso4217:US',
+    'iso4217:USDD',
+    'iso4217:iso4217:USD',
+    ' iso4217:USD',
+    'ISO4217:USD',
+    '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+  ])('rejects the asset %j, which is not iso4217: and a three-letter code', async (asset) => {
+    const price = { amount: '1.50', asset };
+    await expect(parse(price)).rejects.toThrow(
+      new ValidationError(`Invalid price: ${JSON.stringify(price)}`)
+    );
+  });
+});
+
+describe('parsePrice: { amount, asset } prices that are not strings or not serializable', () => {
+  it.each([
+    { amount: 1.5, asset: 'iso4217:USD' },
+    { amount: '1', asset: null },
+  ])('rejects %j', async (price) => {
+    await expect(parse(price)).rejects.toThrow(
+      new ValidationError(`Invalid price: ${JSON.stringify(price)}`)
+    );
+  });
+
+  it('rejects a price whose extra holds a bigint with a ValidationError', async () => {
+    const price = { amount: '1e5', asset: 'iso4217:USD', extra: { id: BigInt(1) } };
+    await expect(parse(price)).rejects.toThrow(
+      new ValidationError('Invalid price: {"amount":"1e5","asset":"iso4217:USD"}')
+    );
+  });
+
+  it('rejects a cyclic price with a ValidationError', async () => {
+    const price: Record<string, unknown> = { amount: '0.123456789', asset: 'iso4217:USD' };
+    price.extra = { price };
+    await expect(parse(price)).rejects.toThrow(
+      new ValidationError(
+        'Price may have at most 8 decimal places: {"amount":"0.123456789","asset":"iso4217:USD"}'
+      )
+    );
+  });
+
+  it('shows a non-string field of an unserializable price as not serializable', async () => {
+    const price = { amount: BigInt(1), asset: 'iso4217:USD' };
+    await expect(parse(price)).rejects.toThrow(
+      new ValidationError('Invalid price: (not serializable)')
+    );
+  });
+
+  it('rejects a valid amount with a bad asset when extra is present', async () => {
+    const price = { amount: '1.50', asset: 'usd', extra: { k: 'v' } };
+    await expect(parse(price)).rejects.toThrow(
+      new ValidationError('Invalid price: {"amount":"1.50","asset":"usd"}')
+    );
+  });
+});
+
 describe('parsePrice: plain-notation output for numbers', () => {
   it.each([
     [1e-8, '0.00000001'],

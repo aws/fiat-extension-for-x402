@@ -15,7 +15,7 @@ import {
   SENTINEL_PAY_TO,
 } from '../../constants';
 import { ValidationError, type QuoteTokenPayload } from '../../types';
-import { stripWhitespace } from '../../utils';
+import { checkAssetAmount, stripWhitespace } from '../../utils';
 import { isPlainObject, isTruthy } from '../json-value';
 
 // Optional route details copied from `extra` into the quote when present.
@@ -37,7 +37,8 @@ const OPTIONAL_QUOTE_CLAIMS = ['description', 'dimensions', 'support', 'terms'] 
  * @param requirements - Base x402 payment requirements
  * @param signer - Signer for the quote token. Its service URL becomes `iss`.
  * @returns The enhanced payment requirements
- * @throws ValidationError if the signer's service URL or `payTo` is empty, or
+ * @throws ValidationError if the signer's service URL or `payTo` is empty, the
+ *   amount or asset is not one `parsePrice` returns, or
  *   `extra.settlement.product_id` disagrees with `payTo`
  */
 export async function enhancePaymentRequirements(
@@ -53,6 +54,10 @@ export async function enhancePaymentRequirements(
         "token's 'iss' claim, which the service requires."
     );
   }
+
+  // The price is checked again where it is signed, for a caller that skips
+  // parsePrice. The checked values are the ones signed and returned.
+  const { amount, asset } = checkAssetAmount(requirements.amount, requirements.asset);
 
   // `payTo` is the seller's AWS Marketplace product ID.
   const productId = stripWhitespace(String(requirements.payTo || ''));
@@ -90,9 +95,8 @@ export async function enhancePaymentRequirements(
     exp,
     jti: webcrypto.randomUUID(),
     price: {
-      amount: requirements.amount,
-      // Every occurrence of the prefix is removed.
-      currency: (requirements.asset ?? '').split('iso4217:').join(''),
+      amount,
+      currency: asset.slice('iso4217:'.length),
     },
     payTo: productId,
     reference: isTruthy(extra.reference) ? extra.reference : 'RESOURCE',
@@ -109,6 +113,8 @@ export async function enhancePaymentRequirements(
   extra.quoteToken = await signer.signQuote(claims as unknown as QuoteTokenPayload);
   return {
     ...requirements,
+    amount,
+    asset,
     payTo: SENTINEL_PAY_TO,
     maxTimeoutSeconds: exp - iat,
     extra,

@@ -209,6 +209,30 @@ describe('ExactAgenticCommerceScheme with x402 core (contract)', () => {
     expect(server.getPaymentFlow({} as PaymentPayload, accept)).toBe('authorization');
   });
 
+  it('buildPaymentRequirements signs an { amount, asset } route price as given', async () => {
+    const server = await resourceServer();
+    const price = { amount: '0.12345678', asset: 'iso4217:EUR' };
+    const [accept] = await server.buildPaymentRequirements({ ...route, price });
+    expect(accept).toMatchObject(price);
+    const { payload } = await jose.jwtVerify(accept.extra.quoteToken as string, publicKey, {
+      audience: QUOTE_TOKEN_AUDIENCE,
+    });
+    expect(payload.price).toEqual({ amount: '0.12345678', currency: 'EUR' });
+  });
+
+  it.each([
+    { amount: '0.123456789', asset: 'iso4217:USD' },
+    { amount: '1e5', asset: 'iso4217:USD' },
+    { amount: '1.50', asset: 'USD' },
+  ])('buildPaymentRequirements signs no quote for the route price %j', async (price) => {
+    const server = await resourceServer();
+    const signQuote = vi.spyOn(scheme['signer'], 'signQuote');
+    await expect(server.buildPaymentRequirements({ ...route, price })).rejects.toThrow(
+      ValidationError
+    );
+    expect(signQuote).not.toHaveBeenCalled();
+  });
+
   it('findMatchingRequirements matches a quote from an earlier 402 against re-minted requirements', async () => {
     const server = await resourceServer();
     const [accepted] = await server.buildPaymentRequirements(route);

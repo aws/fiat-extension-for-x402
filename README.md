@@ -235,7 +235,8 @@ const weather: RouteConfig = {
     scheme: 'exact',
     network: 'aws:base',
     payTo: 'prod-example123', // AWS Marketplace product ID
-    price: '$0.01', // or '0.01 USD' or 0.01 (at most 8 decimal places), or { amount, asset }
+    // or '0.01 USD', 0.01 or { amount: '0.01', asset: 'iso4217:USD' }; at most 8 decimal places
+    price: '$0.01',
     maxTimeoutSeconds: 300, // the quote's lifetime (default 300)
     extra: {
       description: 'Current weather',

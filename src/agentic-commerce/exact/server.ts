@@ -32,7 +32,7 @@ import {
 } from '../../constants';
 import { extractDPoPThumbprint, verifyDPoPProof } from '../../dpop';
 import { type DPoPNonceStore, ValidationError } from '../../types';
-import { parseMoney } from '../../utils';
+import { checkAssetAmount, parseMoney } from '../../utils';
 import { isPlainObject } from '../json-value';
 import { paymentTokenOf } from './facilitator';
 import { enhancePaymentRequirements } from './quote';
@@ -120,15 +120,15 @@ export class ExactAgenticCommerceScheme implements SchemeNetworkServer {
    * @param price - "$1.50", "1.50 USD", 1.50, or an AssetAmount
    * @param network - Target network (pricing does not depend on it)
    * @returns The amount and asset
-   * @throws ValidationError if the price cannot be parsed
+   * @throws ValidationError if the price cannot be parsed, or its amount has
+   *   more than 8 decimal places
    */
   async parsePrice(price: Price, network: Network): Promise<AssetAmount> {
     if (typeof price === 'object' && price !== null) {
-      // An object price must be an AssetAmount: string amount and asset.
+      // An object price must be an AssetAmount: a decimal amount with at most
+      // 8 decimal places, as for a string price, and an ISO 4217 asset.
       const { amount, asset } = price as Partial<AssetAmount>;
-      if (typeof amount !== 'string' || typeof asset !== 'string') {
-        throw new ValidationError(`Invalid price: ${JSON.stringify(price)}`);
-      }
+      checkAssetAmount(amount, asset);
       return price;
     }
     const { amount, currency } = parseMoney(price);
@@ -143,6 +143,9 @@ export class ExactAgenticCommerceScheme implements SchemeNetworkServer {
    * @param extensionKeys - Extension keys supported by the facilitator (unused)
    * @returns Requirements with the quote token, the sentinel `payTo` and the
    *   quote's validity as `maxTimeoutSeconds`
+   * @throws ValidationError if the amount or asset is not one `parsePrice`
+   *   returns, the signer's service URL or `payTo` is empty, or
+   *   `extra.settlement.product_id` disagrees with `payTo`
    */
   async enhancePaymentRequirements(
     paymentRequirements: PaymentRequirements,
