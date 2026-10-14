@@ -41,7 +41,12 @@ export type {
 } from './agentic-commerce/facilitator-client';
 
 // Signers
-export { KmsQuoteSigner, LocalQuoteSigner, type KmsQuoteSignerConfig } from './signers';
+export {
+  KmsQuoteSigner,
+  LocalQuoteSigner,
+  type KmsQuoteSignerConfig,
+  type FromPemOptions,
+} from './signers';
 export type { QuoteSigner } from './signers';
 
 // Types
@@ -91,20 +96,6 @@ export {
 
 // Security utilities
 export { ALLOWED_ALGORITHMS, secureCompare, validateUrl } from './security';
-
-// Zod Schemas (runtime validation)
-export {
-  QuoteTokenPayloadSchema,
-  QuoteTokenPriceSchema,
-  AgenticCommerceSettlementSchema,
-  AgenticCommerceSupportSchema,
-  AgenticCommerceTermsSchema,
-  AgenticCommercePaymentExtraSchema,
-  AgenticCommercePayloadV2Schema,
-  parseQuoteToken,
-  safeParseQuoteToken,
-  parsePaymentPayload,
-} from './schemas';
 
 // DPoP (Demonstrating Proof-of-Possession)
 export { computeJWKThumbprint, verifyDPoPProof, extractDPoPThumbprint } from './dpop';

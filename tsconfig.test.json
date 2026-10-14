@@ -3,7 +3,11 @@
   "compilerOptions": {
     "noEmit": true,
     "rootDir": ".",
-    "types": ["node", "vitest/globals"]
+    "types": ["node", "vitest/globals"],
+    "paths": {
+      "@aws/fiat-extension-for-x402": ["./src/index.ts"],
+      "@aws/fiat-extension-for-x402/agentic-commerce/exact": ["./src/agentic-commerce/exact/index.ts"]
+    }
   },
   "include": ["src/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist"]

@@ -252,7 +252,7 @@ function loadPemPrivateKey(text: string, password?: string | Uint8Array | null):
 }
 
 /** Options of {@link LocalQuoteSigner.fromPem} */
-interface FromPemOptions {
+export interface FromPemOptions {
   /** Key ID published in the JWKS and sent as the JWS `kid` */
   kid: string;
   /** Service URL used as the `iss` claim */

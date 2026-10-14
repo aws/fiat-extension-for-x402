@@ -1,409 +1,259 @@
-# Agent Pay x402 Extension — SDK Guide
+# Fiat Extension for x402: SDK Guide
 
-**Package:** `@aws/fiat-extension-for-x402`
-**Version:** 0.1.0
-**Peer dependency:** `@x402/core >=2.23.0 <3` (the `exact` scheme needs core's `dynamicExtraFields` and `paymentFlows`)
-**Runtime:** Node.js ≥ 20.19
+**Package:** `@aws/fiat-extension-for-x402` 1.0.0 **Peer dependency:** `@x402/core >=2.23.0 <3` (the
+`exact` scheme needs core's `dynamicExtraFields` and `paymentFlows`) **Runtime:** Node.js 20.19 or
+later
 
----
+This guide describes how the package fits into x402, the tokens it signs and verifies, and every
+check it makes. The [README](../README.md) covers setup.
 
-## Table of Contents
+## Contents
 
-1. [How the x402 SDK Works](#1-how-the-x402-sdk-works)
-2. [What Agent Pay Introduces](#2-what-agent-pay-introduces)
-3. [Extension Specification and Behaviour](#3-extension-specification-and-behaviour)
-4. [Additional Notes](#4-additional-notes)
+1. [How x402 is organised](#1-how-x402-is-organised)
+2. [What this package adds](#2-what-this-package-adds)
+3. [The payment flow](#3-the-payment-flow)
+4. [Tokens](#4-tokens)
+5. [Checks](#5-checks)
+6. [Reference](#6-reference)
 
----
+## 1. How x402 is organised
 
-## 1. How the x402 SDK Works
+`@x402/core` implements HTTP 402 Payment Required for machine-to-machine payments. It has three
+roles, each a core class with a scheme interface that extensions implement:
 
-The `@x402/core` package implements the HTTP 402 Payment Required protocol for machine-to-machine payments. It defines a pluggable architecture with three roles, each backed by a base class and a scheme interface that extensions implement.
+| Role            | Core class                                               | Scheme interface           | Purpose                                                                     |
+| --------------- | -------------------------------------------------------- | -------------------------- | --------------------------------------------------------------------------- |
+| Resource server | `x402ResourceServer`                                     | `SchemeNetworkServer`      | Protects routes: builds the 402 requirements, verifies and settles payments |
+| Client (buyer)  | `x402Client`                                             | `SchemeNetworkClient`      | Reads a 402 and pays                                                        |
+| Facilitator     | `x402Facilitator`, reached through a `FacilitatorClient` | `SchemeNetworkFacilitator` | Verifies and settles payments for the resource server                       |
 
-### 1.1 The Three Roles
+Each core class keeps a registry of `(network, scheme)` pairs, filled with
+`register(network, scheme)`. A payment is handled by the scheme registered for its requirements'
+network. This package implements the resource-server and facilitator schemes; it has no client
+scheme.
 
-| Role | Core class | Scheme interface | Purpose |
-|------|-----------|-----------------|---------|
-| **Resource Server** | `x402ResourceServer` | `SchemeNetworkServer` | Protects API endpoints behind payment requirements. Generates 402 responses, verifies incoming payments, and settles them. |
-| **Client** | `x402Client` | `SchemeNetworkClient` | Consumes protected APIs. Parses 402 responses, obtains payment credentials, and retries the request with proof of payment. |
-| **Facilitator** | `HTTPFacilitatorClient` (implements `FacilitatorClient`) | `SchemeNetworkFacilitator` | Intermediary that verifies and settles payments on behalf of the resource server. In the default x402 setup this is a remote service at `https://x402.org/facilitator`. |
+`x402ResourceServer` takes one or more `FacilitatorClient`s. On `initialize()` it asks each for its
+supported kinds and routes every `(scheme, network)` pair to the first facilitator that claims it.
 
-### 1.2 Scheme Registration
+## 2. What this package adds
 
-Each core class maintains a registry of `(network → scheme)` pairs. You call `.register(network, scheme)` to teach the core class how to handle a specific payment network:
+AWS Marketplace Agentic Commerce settles x402 payments in fiat. No transaction is on chain: two
+signed JWTs are the proof of payment.
 
-```typescript
-// Pseudocode — this is what happens under the hood
-server.register('eip155:8453', evmServerScheme);   // Base chain (EVM)
-server.register('solana:mainnet', solanaScheme);    // Solana
-server.register('aws:base', agentPayServerScheme);        // Agent Pay (this extension)
-```
+| Token         | Signed by           | Says                                                                     |
+| ------------- | ------------------- | ------------------------------------------------------------------------ |
+| Quote token   | The seller          | "This route costs 0.01 USD for product X, until time T."                 |
+| Payment token | The payment service | "Buyer B has paid for this quote." It carries the quote and a payment ID |
 
-When a payment comes in, the core class looks up the network from the `PaymentRequirements` and delegates to the matching scheme.
+| Export                                                             | Role                                                                                                                                          |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ExactAgenticCommerceServerScheme`                                 | `SchemeNetworkServer` for scheme `exact`, asset transfer method `payment-token`. Parses fiat prices, signs a quote into each 402, checks DPoP |
+| `registerExactAgenticCommerceServer`                               | Registers one server scheme on each network (default `aws:base`)                                                                              |
+| `ExactAgenticCommerceFacilitatorScheme`                            | `SchemeNetworkFacilitator` for scheme `exact` on `aws:*`. Verifies with an `AgenticCommerceVerifier`; settle is a no-op                       |
+| `AgenticCommerceVerifier`                                          | The check behind every payment (section 5)                                                                                                    |
+| `InProcessFacilitatorClient`                                       | A `FacilitatorClient` over an `x402Facilitator` in the same process                                                                           |
+| `AgenticCommerceFacilitatorClient`                                 | A `FacilitatorClient` that reads supported kinds from an Agentic Commerce provider and verifies locally                                       |
+| `KmsQuoteSigner`, `LocalQuoteSigner`, `QuoteSigner`                | Quote signing with a KMS key, a key you hold, or your own implementation                                                                      |
+| `jwksDocument`                                                     | Builds the JWKS a seller serves at `/.well-known/jwks.json`                                                                                   |
+| `SellerKeyResolver`                                                | Where the verifier finds the seller's key: KMS, a JWKS URL, or a static JWK                                                                   |
+| `verifyDPoPProof`, `extractDPoPThumbprint`, `computeJWKThumbprint` | The DPoP checks the server scheme uses, for a scheme of your own                                                                              |
 
-### 1.3 Key Core Types
+The `./agentic-commerce/exact` sub-path exports the two schemes, the register helper and their
+option types.
 
-```typescript
-// What the server sends in a 402 response
-interface PaymentRequirements {
-  scheme: string;           // e.g. "exact", "aws:base"
-  network: string;          // e.g. "eip155:8453", "aws:base"
-  payTo: string;            // recipient address/ID
-  amount: string;           // e.g. "0.15"
-  asset: string;            // e.g. "iso4217:USD", "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
-  maxTimeoutSeconds: number; // validity window
-  extra: Record<string, unknown>; // scheme-specific data
-}
+## 3. The payment flow
 
-// What the client sends back as proof of payment
-interface PaymentPayload {
-  x402Version: number;
-  payload: Record<string, unknown>; // scheme-specific
-}
-
-// Facilitator responses
-interface VerifyResponse { isValid: boolean; payer?: string; invalidReason?: string; }
-interface SettleResponse { success: boolean; transaction: string; network: string; }
-```
-
-### 1.4 Scheme Interfaces
-
-Each scheme interface has a small surface area:
-
-```typescript
-// Server scheme — generates 402 responses
-interface SchemeNetworkServer {
-  scheme: string;
-  parsePrice(price: Price, network: Network): Promise<AssetAmount>;
-  enhancePaymentRequirements(
-    requirements: PaymentRequirements,
-    supportedKind: { ... },
-    extensionKeys: string[]
-  ): Promise<PaymentRequirements>;
-}
-
-// Client scheme — creates payment payloads
-interface SchemeNetworkClient {
-  scheme: string;
-  createPaymentPayload(
-    x402Version: number,
-    requirements: PaymentRequirements
-  ): Promise<PaymentPayloadResult>;
-}
-
-// Facilitator scheme — verifies and settles
-interface SchemeNetworkFacilitator {
-  scheme: string;
-  caipFamily: string;
-  verify(payload: PaymentPayload, requirements: PaymentRequirements): Promise<VerifyResponse>;
-  settle(payload: PaymentPayload, requirements: PaymentRequirements): Promise<SettleResponse>;
-  getSigners(network: string): string[];
-  getExtra(network: Network): Record<string, unknown> | undefined;
-}
-```
-
-### 1.5 Facilitator Routing
-
-`x402ResourceServer` accepts an array of `FacilitatorClient` instances. During `initialize()`, it queries each facilitator's `getSupported()` endpoint and builds a routing table: for each `(scheme, network)` pair, it knows which facilitator to call. The first facilitator that claims a network wins.
-
-This is how Agent Pay coexists with the default x402 facilitator — Agent Pay claims `fab:*` networks, and the default facilitator handles everything else (EVM, Solana, etc.).
-
----
-
-## 2. What Agent Pay Introduces
-
-Agent Pay extends x402 to support **fiat currency payments** through trusted Agent Pay providers. Instead of on-chain transactions, Agent Pay uses JWT-signed tokens as proof of payment.
-
-### 2.1 Core Concept: Two Signed Tokens
-
-The entire Agent Pay security model rests on two JWTs:
-
-| Token | Signed by | Purpose |
-|-------|-----------|---------|
-| **Quote Token** | Service (API provider) | "I will sell you this resource for $0.15 USD. This offer expires in 5 minutes." |
-| **Payment Token** | Agent Pay provider | "I have authorized $0.15 USD from buyer X to seller Y. Here is the transaction ID." |
-
-The quote token is embedded in the 402 response (`extra.quoteToken`). The client forwards it to Agent Pay, which returns a payment token. The service verifies both signatures to confirm the payment.
-
-### 2.2 The Agent Pay's Dual Role
-
-In the default x402 model, the facilitator is a separate third-party service. In Agent Pay, the **Agent Pay provider IS the facilitator**. It:
-
-- Authorizes transactions (client-facing: `POST /transactions`)
-- Signs payment tokens (JWT with the Agent Pay's private key)
-- Verifies payment tokens (facilitator-facing: JWKS at `/.well-known/jwks.json`)
-- Settles payments (facilitator-facing: `POST /capture`)
-
-This eliminates the need for a separate facilitator service. The `AgenticCommerceFacilitatorClient` adapter translates x402's `FacilitatorClient` interface into Agent Pay API calls.
-
-### 2.3 What We Built
-
-| Module | File(s) | Purpose |
-|--------|---------|---------|
-| **ExactAgenticCommerceServerScheme** | `src/agentic-commerce/exact/server.ts`, `quote.ts` | Implements `SchemeNetworkServer` for the `exact` scheme. Generates quote tokens, signs them with the service's key, and embeds them in the 402 response. `registerExactAgenticCommerceServer` (`exact/register.ts`) registers it on an `x402ResourceServer`. |
-| **AgentPayClientScheme** | `src/agent-pay/client/scheme.ts` | Implements `SchemeNetworkClient`. Extracts the quote token from the 402 response, sends it to Agent Pay for authorization, and wraps the payment token into a `PaymentPayload`. |
-| **ExactAgenticCommerceFacilitatorScheme** | `src/agentic-commerce/exact/facilitator.ts` | Implements `SchemeNetworkFacilitator` for the `exact` scheme. Verifies through `AgenticCommerceVerifier` (`src/agentic-commerce/verifier.ts`) with the seller-configured `SellerKeyResolver` (`keys.ts`); settle is a no-op returning the token's `payment_id`. |
-| **AgenticCommerceFacilitatorClient** | `src/agentic-commerce/facilitator-client.ts` | Implements `FacilitatorClient` (the x402 facilitator interface) with the same verification as the facilitator scheme; requires a `sellerKeyResolver`. |
-| **DefaultAgentPayClient** | `src/agent-pay-client.ts` | HTTP client for Agent Pay API calls (`/transactions`, `/capture`, `/.well-known/jwks.json`). Used by both the client scheme and the facilitator scheme. This is a reference implementation — it will be replaced by the official AWS SDK Agent Pay client in production. The scheme constructors accept either a `AgenticCommerceConfig` (which creates a `DefaultAgentPayClient`) or a custom object implementing `AgentPayClientForClient` / `AgenticCommerceClientForFacilitator`, so swapping in the AWS SDK client requires no changes to the scheme layer. |
-| **Authentication** | `src/auth/` | Pluggable auth for Agent Pay API calls: API Key, AWS SigV4, OAuth2, Custom. Factory pattern via `createAuthenticator()`. |
-| **DPoP** | `src/dpop/` | RFC 9449 Demonstrating Proof-of-Possession: proof verification and JWK thumbprints, used by the `exact` server scheme's `onBeforeVerify` hook. |
-| **Discovery** | `src/discovery.ts` | Network registry (`registerNetwork`) and OIDC-based Agent Pay endpoint discovery. |
-| **Signers** | `src/signers/` | `QuoteSigner` (`signQuote` and `getServiceUrl`) and its implementations: `KmsQuoteSigner` (`kms.ts`, the key stays in AWS KMS) and `LocalQuoteSigner` (`local.ts`, a key you manage, `fromPem` and `publicJwk`). |
-| **Types** | `src/types.ts` | All Agent Pay-specific types: `QuoteTokenPayload`, `PaymentTokenPayload`, `AgenticCommercePayloadV2`, settlement types, DPoP types, error classes. |
-| **Constants** | `src/constants.ts` | `SCHEME_EXACT`, `AGENTIC_COMMERCE_CAIP_FAMILY`, `SENTINEL_PAY_TO`, default validity windows. |
-| **Utilities** | `src/utils.ts` | JWT decode/verify helpers and money parsing. |
-
----
-
-## 3. Extension Specification and Behaviour
-
-### 3.1 Payment Flow (Step by Step)
+[payment-flow.mmd](payment-flow.mmd) has the same sequence as a Mermaid diagram.
 
 ```
-Client                          Service                         Agent Pay Provider
-  │                                │                                │
-  │  1. GET /resource              │                                │
-  │──────────────────────────────►│                                │
-  │                                │                                │
-  │  2. 402 Payment Required       │                                │
-  │     { accepts: [{              │                                │
-  │         scheme: "aws:base",         │                                │
-  │         network: "aws:base",    │                                │
-  │         amount: "0.15",        │                                │
-  │         asset: "iso4217:USD",  │                                │
-  │         extra: {               │                                │
-  │           quoteToken: "<JWT>"  │  ◄── signed by service         │
-  │         }                      │                                │
-  │       }]                       │                                │
-  │     }                          │                                │
-  │◄──────────────────────────────│                                │
-  │                                │                                │
-  │  3. POST /transactions         │                                │
-  │     { quoteToken, agentPayId }   │                                │
-  │────────────────────────────────────────────────────────────────►│
-  │                                │                                │
-  │  4. { paymentId,               │                                │
-  │       paymentToken: "<JWT>" }  │  ◄── signed by Agent Pay          │
-  │◄────────────────────────────────────────────────────────────────│
-  │                                │                                │
-  │  5. GET /resource              │                                │
-  │     X-PAYMENT: { paymentToken, │                                │
-  │                  paymentId }                                    │
-  │──────────────────────────────►│                                │
-  │                                │  6. Verify payment token       │
-  │                                │     (check Agent Pay JWKS)        │
-  │                                │  7. Verify quote token         │
-  │                                │     (check service JWKS)       │
-  │                                │  8. POST /capture              │
-  │                                │─────────────────────────────►│
-  │                                │  9. { success: true }          │
-  │                                │◄─────────────────────────────│
-  │                                │                                │
-  │  10. 200 OK + resource         │                                │
-  │◄──────────────────────────────│                                │
+Buyer                       Seller (resource server)          Payment service
+  |                                  |                                |
+  |-- GET /weather ----------------->|                                |
+  |                                  | sign quote (seller key)        |
+  |<-- 402, PAYMENT-REQUIRED --------|                                |
+  |    accepts[0].extra.quoteToken   |                                |
+  |                                  |                                |
+  |-- obtain a payment token for the quote ------------------------->|
+  |<-- payment token (signed, carries the quote and payment_id) -----|
+  |                                  |                                |
+  |-- GET /weather, PAYMENT-SIGNATURE, DPoP (if bound) ------------->|
+  |                                  | DPoP check (server scheme)     |
+  |                                  | verify (facilitator):          |
+  |                                  |   payment service JWKS ------->|
+  |                                  |   seller key (configured)      |
+  |                                  | settle: no-op, payment_id      |
+  |<-- 200 + resource, PAYMENT-RESPONSE                               |
 ```
 
-### 3.2 Quote Token Structure
+1. An unpaid request reaches x402's middleware. The server scheme parses the route price into a
+   decimal amount and an ISO 4217 asset (`$0.01` becomes `0.01` and `iso4217:USD`), signs a quote
+   token, and puts it in `extra.quoteToken`. The outer `payTo` becomes `SENTINEL_PAY_TO` and
+   `maxTimeoutSeconds` the quote's lifetime.
+2. The buyer obtains a payment token for the quote from the payment service, which captures the
+   payment and embeds the quote in the token (`quote_token`).
+3. The buyer retries with the payment payload `{ paymentToken, paymentId }`. x402 rebuilds the
+   requirements for the route, which signs a new quote; `quoteToken` is a dynamic extra field, so
+   the buyer's accepted requirements still match.
+4. Before calling the facilitator, x402 runs the server scheme's `onBeforeVerify` hook, which checks
+   the DPoP proof of a DPoP-bound token (section 5.2).
+5. The facilitator verifies the payment (section 5.1) against the quote the buyer accepted.
+6. The route runs. `settle` returns success with the token's `payment_id` as the transaction and
+   `sub` as the payer. It calls nothing: the payment was captured in step 2.
 
-The quote token is a JWT signed by the service's private key (RS256 or ES256):
+## 4. Tokens
+
+### 4.1 Quote token
+
+Signed by the seller's `QuoteSigner`, with `alg` ES256, ES384, ES512 or RS256 (from the key) and the
+key's `kid` in the header:
 
 ```json
 {
   "iss": "https://api.example.com",
-  "aud": "aws:base",
-  "iat": 1709654400,
-  "exp": 1709654700,
+  "aud": "aws:marketplace",
+  "iat": 1760000000,
+  "exp": 1760000300,
   "jti": "550e8400-e29b-41d4-a716-446655440000",
-  "price": { "amount": "0.15", "currency": "USD" },
-  "payTo": "seller-agent-pay-id",
-  "capture": "manual",
-  "reference": "premium-api-access",
-  "settlement": { "method": "INST" },
-  "support": { "uri": "https://support.example.com", "method": "human" },
-  "terms": [{ "description": "API Terms of Service", "uri": "https://example.com/tos" }]
+  "price": { "amount": "0.01", "currency": "USD" },
+  "payTo": "prod-example123",
+  "reference": "weather-v1",
+  "settlement": { "product_id": "prod-example123" },
+  "description": "Current weather",
+  "dimensions": { "calls": 1 }
 }
 ```
 
-Default validity: 300 seconds (5 minutes). The `price`, `payTo`, `capture`, and `reference` fields are always present. `settlement`, `support`, and `terms` are optional.
+- `iss` is the signer's service URL. `jti` is a random UUID.
+- `exp` is `iat` plus the route's `maxTimeoutSeconds`, or 300 seconds.
+- `payTo` and `settlement.product_id` are the route's `payTo`, the AWS Marketplace product ID.
+  `extra.settlement`, when the route sets one, is copied in, and a `product_id` in it must equal
+  `payTo`.
+- `reference` comes from `extra.reference` (default `RESOURCE`). `description`, `dimensions`,
+  `support` and `terms` are copied from `extra` when set.
 
-### 3.3 Payment Token Structure
+### 4.2 Payment token
 
-The payment token is a JWT signed by the Agent Pay provider's private key:
+Signed by the payment service and verified against its JWKS:
 
 ```json
 {
-  "iss": "https://pay.aws.amazon.com",
+  "iss": "awsmp-agentpay.amazonaws.com",
   "sub": "buyer-identity",
   "aud": "https://api.example.com",
-  "iat": 1709654410,
-  "exp": 1709658010,
+  "iat": 1760000010,
+  "exp": 1760000310,
+  "jti": "awsmp-<payment id>",
   "payment_id": "awsmp-<payment id>",
-  "quote_token": "<original quote token JWT>",
-  "cnf": {
-    "jkt": "sha256-thumbprint-of-dpop-key"
-  }
+  "quote_token": "<the quote token>",
+  "cnf": { "jkt": "<SHA-256 thumbprint of the buyer's DPoP key>" }
 }
 ```
 
-The `cnf.jkt` field is only present when DPoP is used. Default validity: 3600 seconds (1 hour).
+`iss` is `PAYMENT_TOKEN_ISSUER`; `aud` is the quote's `iss`; `cnf` is present only for a DPoP-bound
+token.
 
-### 3.4 Sentinel Values
+### 4.3 The 402 requirements
 
-The `@x402/core` `PaymentRequirements` type requires `payTo` and `maxTimeoutSeconds` as mandatory fields. In Agent Pay, these are semantically redundant because the signed quote token is the authoritative source. Rather than forking the core types, Agent Pay uses sentinel values:
+| Field               | Value                                                                                   |
+| ------------------- | --------------------------------------------------------------------------------------- |
+| `scheme`            | `exact`                                                                                 |
+| `network`           | `aws:base` (or another registered `aws:*` network)                                      |
+| `amount`, `asset`   | The decimal price and `iso4217:<currency>`                                              |
+| `payTo`             | `SENTINEL_PAY_TO`, `urn:x402:agentic-commerce:see-quote`; the quote carries the product |
+| `maxTimeoutSeconds` | The quote's `exp - iat`                                                                 |
+| `extra.quoteToken`  | The quote token                                                                         |
 
-| Field | Sentinel value | Rationale |
-|-------|---------------|-----------|
-| `payTo` | `"urn:x402:agentic-commerce:see-quote"` | Not a real address. Signals that the quote token's `payTo` is authoritative. The outer field is unsigned and could be tampered with. |
-| `maxTimeoutSeconds` | `exp - iat` from quote token (default: 300) | Numerically valid for any middleware that inspects it, but derived from the quote rather than independently configured. |
+## 5. Checks
 
-Both sentinels are applied in `enhancePaymentRequirements` (server scheme). The client scheme and facilitator scheme already use the quote token directly and ignore these outer fields.
+### 5.1 Payment verification
 
-### 3.5 Verification Logic
+`AgenticCommerceVerifier.verify(paymentToken, requirements)` never throws for an invalid payment; it
+returns `{ isValid: false, invalidReason, invalidMessage }`. In order:
 
-The facilitator's `verify()` performs these checks in order:
+| #   | Check                                                                                           | Reason on failure |
+| --- | ----------------------------------------------------------------------------------------------- | ----------------- |
+| 1   | The requirements carry `extra.quoteToken`                                                       | `invalid_quote`   |
+| 2   | The payment token's signature verifies against the payment service JWKS (`paymentTokenJwksUrl`) | `invalid_payment` |
+| 3   | Its `iss` is `paymentTokenIssuer` (default `PAYMENT_TOKEN_ISSUER`)                              | `invalid_payment` |
+| 4   | Its `exp` is an integer and not in the past                                                     | `payment_expired` |
+| 5   | It has a top-level `quote_token`, equal (constant-time) to `extra.quoteToken`                   | `invalid_quote`   |
+| 6   | The quote's signature verifies with the configured `sellerKeyResolver`                          | `invalid_quote`   |
+| 7   | The payment token's `aud` is the quote's `iss`                                                  | `invalid_payment` |
+| 8   | The quote's `exp` is an integer and not in the past                                             | `quote_expired`   |
+| 9   | The quote's price amount and currency equal the requirements'                                   | `invalid_payment` |
+| 10  | With a product ID in the requirements, the quote's `payTo` and `settlement.product_id` equal it | `invalid_payment` |
 
-1. **Payment token signature** — Fetch the Agent Pay's JWKS (`/.well-known/jwks.json`), verify the JWT signature. This proves Agent Pay authorized the payment.
-2. **Quote token extraction** — Read the top-level `quote_token` from the verified payment token.
-3. **Quote token match** — Confirm the extracted quote token string matches `requirements.extra.quoteToken` (the one the service originally issued).
-4. **Quote token signature** — Verify the quote token's signature with the seller key from the configured `SellerKeyResolver` (a KMS key, a JWKS URL or a static public key). The key is never taken from the quote. Any failure, including an unreachable JWKS, rejects the payment with `invalid_quote`.
-5. **Expiry check** — Confirm the payment token hasn't expired.
+The facilitator scheme and `AgenticCommerceFacilitatorClient` pass the route's product ID, read from
+the quote the server signed for this request, so a quote for another product is refused. A payload
+without `paymentToken` is `invalid_payment`. Signatures are limited to `ALLOWED_ALGORITHMS`. Any
+error fetching a key, including a timeout (10 seconds), a redirect (not followed) or a non-200
+status, fails the check it belongs to.
 
-### 3.6 Settlement Logic
+### 5.2 DPoP
 
-The facilitator's `settle()` calls the Agent Pay's `POST /capture` endpoint with the transaction ID, amount, and currency. Agent Pay transfers the held funds to the service's account.
+The `exact` server scheme checks a payment token bound to a key (`cnf.jkt`) in its `onBeforeVerify`
+hook:
 
-Settlement uses `requirements.amount` and `requirements.asset` (which are real values, not sentinels). It does not use `requirements.payTo` or `requirements.maxTimeoutSeconds`.
+1. A `DPoP` header is present, else `dpop_required`.
+2. The thumbprint of its header JWK equals `cnf.jkt`. Then its `typ` is `dpop+jwt` (any case), its
+   `alg` is ES256, ES384, ES512, RS256 or PS256, its signature verifies, and it has `jti`, `htm`,
+   `htu` and an integer `iat`.
+3. `iat` is at most 5 seconds ahead, and at most `dpopMaxAgeSeconds` (default 60) plus 5 seconds
+   old.
+4. `htm` equals the request method upper-cased, and `htu` the request URL without its query and
+   fragment, exactly.
+5. `ath` is the hash of the payment token; with a `dpopNonceStore`, the `jti` has not been seen. It
+   is then added with the expiry `iat + floor(dpopMaxAgeSeconds + 5) + 1` (Unix seconds, exclusive),
+   the second after the proof stops being fresh.
 
-### 3.7 Authentication
+Any other failure is `dpop_invalid`, and the facilitator is not called. A token without `cnf.jkt`
+needs no proof. A token that cannot be decoded is left to the facilitator, which rejects it.
 
-Agent Pay API calls support four authentication methods, configured via the `auth` field on `AgenticCommerceConfig`:
+## 6. Reference
 
-```typescript
-// API Key
-{ type: 'apiKey', apiKey: 'sk-...', headerName: 'X-API-Key' }
+### 6.1 Errors
 
-// AWS SigV4
-{ type: 'awsSigV4', region: 'us-east-1', credentials: { accessKeyId, secretAccessKey } }
+All error classes extend `AgenticCommerceError` (with `code` and optional `details`):
 
-// OAuth2
-{ type: 'oauth2', accessToken: '...', refreshToken: '...', tokenEndpoint: '...' }
+| Class             | Code               | When                                                                                               |
+| ----------------- | ------------------ | -------------------------------------------------------------------------------------------------- |
+| `ValidationError` | `VALIDATION_ERROR` | Misconfiguration of a scheme, the verifier, a client or `jwksDocument`; an unparseable route price |
+| `SigningError`    | `SIGNING_ERROR`    | Quote signer misconfiguration, a PEM that cannot be loaded, a failed KMS `Sign` (`cause` set)      |
+| `SignatureError`  | `SIGNATURE_ERROR`  | `verifyQuoteToken` / `verifyPaymentToken` reject a token (`tokenType`)                             |
+| `ExpiryError`     | `EXPIRY_ERROR`     | `verifyQuoteToken` / `verifyPaymentToken` get a correctly signed, expired token                    |
+| `MismatchError`   | `MISMATCH_ERROR`   | Not thrown by the package; for your own checks (`expected`, `actual`)                              |
+| `DPoPError`       | `DPOP_ERROR`       | `verifyDPoPProof` / `extractDPoPThumbprint` reject a proof                                         |
 
-// Custom
-{ type: 'custom', authenticate: async (request) => ({ ...request, headers: { ...request.headers, 'Authorization': '...' } }) }
-```
+The schemes and the verifier report invalid payments as results, not errors.
 
-The `createAuthenticator()` factory returns an `Authenticator` instance that is applied to every outgoing Agent Pay request.
+### 6.2 Caching
 
-### 3.8 DPoP (Demonstrating Proof-of-Possession)
+| What                         | Cached                                                                |
+| ---------------------------- | --------------------------------------------------------------------- |
+| Seller JWKS (`type: 'jwks'`) | One hour, per verifier                                                |
+| Seller KMS public key        | One hour, per verifier                                                |
+| Payment service JWKS         | Not cached: fetched on every verification, so revocation is immediate |
 
-DPoP binds a payment token to the buyer's key (`cnf.jkt`). The `exact` server
-scheme checks the proof in its `onBeforeVerify` hook, before x402 core calls the
-facilitator:
+### 6.3 Constants
 
-1. A `DPoP` (or `dpop`) header is present, else `dpop_required`.
-2. Its key thumbprint equals `cnf.jkt`; `typ` is `dpop+jwt` (any case); `alg` is
-   ES256, ES384, ES512, RS256 or PS256; the signature verifies.
-3. `iat` is at most 5 seconds ahead and at most `dpopMaxAgeSeconds` (60) plus 5
-   seconds old.
-4. `htm` equals the request method upper-cased, and `htu` the request URL without
-   its query and fragment, exactly.
-5. `ath` is the hash of the payment token; with a `dpopNonceStore`, `jti` has not
-   been seen. It is then added with the expiry `iat + floor(dpopMaxAgeSeconds + 5) + 1`
-   (Unix seconds, exclusive), the second after the proof stops being fresh.
+| Constant                       | Value                                 |
+| ------------------------------ | ------------------------------------- |
+| `SCHEME_EXACT`                 | `exact`                               |
+| `DEFAULT_NETWORK`              | `aws:base`                            |
+| `AGENTIC_COMMERCE_CAIP_FAMILY` | `aws:*`                               |
+| `SENTINEL_PAY_TO`              | `urn:x402:agentic-commerce:see-quote` |
+| `PAYMENT_TOKEN_ISSUER`         | `awsmp-agentpay.amazonaws.com`        |
+| `ALLOWED_ALGORITHMS`           | `RS256`, `ES256`, `ES384`, `ES512`    |
 
-Any other failure is `dpop_invalid`. `verifyDPoPProof` and `extractDPoPThumbprint`
-run these checks on their own.
+### 6.4 Lower-level helpers
 
-### 3.9 Agent Pay Provider Endpoints
+`decodeQuoteToken`, `verifyQuoteToken` and `verifyPaymentToken` decode or verify a single token.
+They do not make the checks of section 5.1, so do not use them to accept a payment.
+`parseMoneyToDecimal`, `secureCompare` and `validateUrl` are general price-parsing, comparison and
+URL utilities; the documented setup does not need them.
 
-Any Agent Pay provider can integrate with Agent Pay by exposing these standardized endpoints:
+### 6.5 Build outputs
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/transactions` | POST | Authorize a payment. Accepts quote token, returns transaction ID + payment token. |
-| `/capture` | POST | Settle a payment. Accepts transaction ID, amount, currency. |
-| `/.well-known/jwks.json` | GET | Public keys for payment token signature verification. |
-| `/.well-known/x402-supported` | GET | Supported payment kinds (schemes/networks). |
-| `/.well-known/openid-configuration` | GET | OIDC discovery document (optional, for endpoint discovery). |
-
-### 3.10 Network Registration and Facilitator Routing
-
-This package no longer ships a builder or network presets. Register `ExactAgenticCommerceServerScheme` per network with the stock x402 `x402ResourceServer.register(network, scheme)` (or `registerExactAgenticCommerceServer`), and pass it the facilitator clients you want explicitly: given none, the stock server uses x402's default facilitator. Pass the same networks as the `networkFilter` set to `AgenticCommerceFacilitatorClient`; without it, Agent Pay claims every network its provider reports, and the first facilitator to claim a network wins.
-
----
-
-## 4. Additional Notes
-
-### 4.1 Error Hierarchy
-
-All Agent Pay errors extend `AgenticCommerceError`, which extends `Error`:
-
-| Error class | Code | When thrown |
-|-------------|------|------------|
-| `ValidationError` | `VALIDATION_ERROR` | Schema/format validation failures, missing required fields |
-| `SigningError` | `SIGNING_ERROR` | Quote signing failures and quote signer misconfiguration (`LocalQuoteSigner`, `KmsQuoteSigner`); optional `details` |
-| `SignatureError` | `SIGNATURE_ERROR` | JWT signature verification failures (includes `tokenType: 'quote' \| 'payment'`) |
-| `ExpiryError` | `EXPIRY_ERROR` | Token `exp` is in the past (includes `expiry` and `currentTime` timestamps) |
-| `MismatchError` | `MISMATCH_ERROR` | Expected vs actual data mismatch during verification (includes `expected` and `actual`) |
-| `DPoPError` | `DPOP_ERROR` | DPoP proof verification failures |
-
-### 4.2 Caching Strategy
-
-| Cache | TTL | Purpose |
-|-------|-----|---------|
-| Agent Pay JWKS | 1 hour | Avoid fetching public keys on every verification |
-| OIDC Discovery | 24 hours | Agent Pay endpoint metadata changes rarely |
-
-### 4.3 Build Outputs
-
-The package is built with `tsup`. The root entry produces:
-
-- `dist/index.js` — ESM
-- `dist/index.cjs` — CommonJS
-- `dist/index.d.ts` / `dist/index.d.cts` — TypeScript declarations (ESM / CommonJS)
-
-Sub-path exports are available for tree-shaking: `@aws/fiat-extension-for-x402/agent-pay/client`, `@aws/fiat-extension-for-x402/agentic-commerce/exact`.
-
-### 4.4 Known Limitations
-
-1. **OIDC Discovery** — Full OIDC discovery (`/.well-known/openid-configuration`) is a stub.
-2. **Zod Schemas** — Types are fully defined but Zod runtime validation schemas are not fully wired up yet.
-
-### 4.5 Test Suite
-
-380 tests passing across 34 test files. Run with:
-
-```bash
-npm test              # single run
-npm run test:coverage # with coverage report
-```
-
-### 4.6 Project Structure
-
-```
-src/
-├── index.ts                    # Package entry point and exports
-├── types.ts                    # All Agent Pay type definitions and error classes
-├── constants.ts                # Scheme identifiers, defaults, sentinel values
-├── config.ts                   # Configuration interfaces (signing keys, Agent Pay, schemes)
-├── signers/protocol.ts         # The QuoteSigner interface and shared key checks
-├── utils.ts                    # JWT helpers and money parsing
-├── discovery.ts                # Network registry and OIDC Agent Pay discovery
-├── agent-pay-client.ts            # HTTP client for Agent Pay API calls
-├── agentic-commerce/facilitator-client.ts # x402 FacilitatorClient adapter for Agent Pay providers
-├── facilitator-client.ts       # In-process facilitator (for testing/demos)
-├── agentic-commerce/
-│   ├── client/scheme.ts        # SchemeNetworkClient implementation
-│   ├── exact/                  # exact scheme: server.ts, quote.ts, register.ts, facilitator.ts
-│   ├── verifier.ts             # AgenticCommerceVerifier: the payment gate
-│   └── keys.ts                 # SellerKeyResolver (KMS, JWKS or static key) and jwksDocument
-├── auth/
-│   ├── types.ts                # Auth config interfaces
-│   ├── factory.ts              # createAuthenticator()
-│   ├── api-key.ts              # API Key authenticator
-│   ├── aws-sigv4.ts            # AWS SigV4 authenticator
-│   ├── oauth2.ts               # OAuth2 authenticator
-│   └── custom.ts               # Custom authenticator
-└── dpop/
-    └── verification.ts         # verifyDPoPProof, extractDPoPThumbprint, computeJWKThumbprint
-```
+Each entry point (`.` and `./agentic-commerce/exact`) ships an ESM build (`.js`), a CommonJS build
+(`.cjs`) and their type declarations (`.d.ts`, `.d.cts`). The package declares
+`"sideEffects": false`.

@@ -5,5 +5,5 @@
  */
 
 export { KmsQuoteSigner, type KmsQuoteSignerConfig } from './kms';
-export { LocalQuoteSigner } from './local';
+export { LocalQuoteSigner, type FromPemOptions } from './local';
 export type { QuoteSigner } from './protocol';
