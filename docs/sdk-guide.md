@@ -308,7 +308,8 @@ facilitator:
 4. `htm` equals the request method upper-cased, and `htu` the request URL without
    its query and fragment, exactly.
 5. `ath` is the hash of the payment token; with a `dpopNonceStore`, `jti` has not
-   been seen.
+   been seen. It is then added with the expiry `iat + floor(dpopMaxAgeSeconds + 5) + 1`
+   (Unix seconds, exclusive), the second after the proof stops being fresh.
 
 Any other failure is `dpop_invalid`. `verifyDPoPProof` and `extractDPoPThumbprint`
 run these checks on their own.
