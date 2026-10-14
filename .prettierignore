@@ -1,0 +1,2 @@
+# The shared wire fixtures are compared byte for byte across SDKs: never reformat them.
+test/fixtures/cross-lang/

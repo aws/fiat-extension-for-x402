@@ -1,0 +1,88 @@
+{
+  "description": "TEST KEYS ONLY. Every key here is a deterministic test key derived from a public label by the rule in keys.json; none is a secret, and none may be used outside tests. A payment token for the quote in quote.json, signed with the service key and bound to the buyer key.",
+  "formatVersion": 1,
+  "token": "eyJhbGciOiJFUzM4NCIsImtpZCI6ImZpeHR1cmUtc2VydmljZS0xIiwidHlwIjoiSldUIn0.eyJpc3MiOiJhd3NtcC1hZ2VudHBheS5hbWF6b25hd3MuY29tIiwiYXVkIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS5jb20iLCJzdWIiOiIxMjM0NTY3ODkwMTIiLCJwYXltZW50X2lkIjoiYXdzbXAtZml4dHVyZS0wMDAxIiwianRpIjoiYXdzbXAtZml4dHVyZS0wMDAxIiwicXVvdGVfdG9rZW4iOiJleUpoYkdjaU9pSkZVekkxTmlJc0ltdHBaQ0k2SW1acGVIUjFjbVV0YzJWc2JHVnlMVEVpTENKMGVYQWlPaUpLVjFRaWZRLmV5SnBjM01pT2lKb2RIUndjem92TDNObGJHeGxjaTVsZUdGdGNHeGxMbU52YlNJc0ltRjFaQ0k2SW1GM2N6cHRZWEpyWlhSd2JHRmpaU0lzSW1saGRDSTZNVGM1TURBd01EQXdNQ3dpWlhod0lqb3hOemt3TURBd016QXdMQ0pxZEdraU9pSXdNREF3TURBd01DMHdNREF3TFRRd01EQXRPREF3TUMwd01EQXdNREF3TURBd01ERWlMQ0p3Y21salpTSTZleUpoYlc5MWJuUWlPaUl3TGpFd0lpd2lZM1Z5Y21WdVkza2lPaUpWVTBRaWZTd2ljR0Y1Vkc4aU9pSndjbTlrTFdacGVIUjFjbVV4TWpNaUxDSnlaV1psY21WdVkyVWlPaUpTUlZOUFZWSkRSU0lzSW5ObGRIUnNaVzFsYm5RaU9uc2liVzlrWlNJNkltbHRiV1ZrYVdGMFpTSXNJbkJ5YjJSMVkzUmZhV1FpT2lKd2NtOWtMV1pwZUhSMWNtVXhNak1pZlN3aVpHVnpZM0pwY0hScGIyNGlPaUpYWldGMGFHVnlJbjAuazI5OHdWeWxrUWcwcUpncnJEdzl0dnhjR3B4YlBfTG5LUm9mekowZEZyVTJsRlh2dm1ENE9IUUdBOWc3di11ZmZwb3F6TjlGUHpBSlUtXzZSZmNlUEEiLCJpYXQiOjE3OTAwMDAwMDAsImV4cCI6MTc5MDAwMDMwMCwiY25mIjp7ImprdCI6InQ5blR2Si1wSk9TTkpvZmVMZ09Uek9ySDlZdzBfOFJKSWd5SE9PLWdHQ2cifX0.7grSp_Q7be5VmDc5DloBEjT6MQ6775qNpKwCStwRRiP_OgRZjcjmhAWLlKMj6J7U5s1_kmnCzmxxNaCgvn2yvk7G_D1vSJ_JScPVnpDdb7R_prDOm-OYuVNBynqz0AWd",
+  "header": {
+    "alg": "ES384",
+    "kid": "fixture-service-1",
+    "typ": "JWT"
+  },
+  "claims": {
+    "iss": "awsmp-agentpay.amazonaws.com",
+    "aud": "https://seller.example.com",
+    "sub": "123456789012",
+    "payment_id": "awsmp-fixture-0001",
+    "jti": "awsmp-fixture-0001",
+    "quote_token": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImZpeHR1cmUtc2VsbGVyLTEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlbGxlci5leGFtcGxlLmNvbSIsImF1ZCI6ImF3czptYXJrZXRwbGFjZSIsImlhdCI6MTc5MDAwMDAwMCwiZXhwIjoxNzkwMDAwMzAwLCJqdGkiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJwcmljZSI6eyJhbW91bnQiOiIwLjEwIiwiY3VycmVuY3kiOiJVU0QifSwicGF5VG8iOiJwcm9kLWZpeHR1cmUxMjMiLCJyZWZlcmVuY2UiOiJSRVNPVVJDRSIsInNldHRsZW1lbnQiOnsibW9kZSI6ImltbWVkaWF0ZSIsInByb2R1Y3RfaWQiOiJwcm9kLWZpeHR1cmUxMjMifSwiZGVzY3JpcHRpb24iOiJXZWF0aGVyIn0.k298wVylkQg0qJgrrDw9tvxcGpxbP_LnKRofzJ0dFrU2lFXvvmD4OHQGA9g7v-uffpoqzN9FPzAJU-_6RfcePA",
+    "iat": 1790000000,
+    "exp": 1790000300,
+    "cnf": {
+      "jkt": "t9nTvJ-pJOSNJofeLgOTzOrH9Yw0_8RJIgyHOO-gGCg"
+    }
+  },
+  "verify": {
+    "now": 1790000010,
+    "paymentTokenIssuer": "awsmp-agentpay.amazonaws.com",
+    "requirements": {
+      "amount": "0.10",
+      "asset": "iso4217:USD",
+      "extra": {
+        "quoteToken": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImZpeHR1cmUtc2VsbGVyLTEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlbGxlci5leGFtcGxlLmNvbSIsImF1ZCI6ImF3czptYXJrZXRwbGFjZSIsImlhdCI6MTc5MDAwMDAwMCwiZXhwIjoxNzkwMDAwMzAwLCJqdGkiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJwcmljZSI6eyJhbW91bnQiOiIwLjEwIiwiY3VycmVuY3kiOiJVU0QifSwicGF5VG8iOiJwcm9kLWZpeHR1cmUxMjMiLCJyZWZlcmVuY2UiOiJSRVNPVVJDRSIsInNldHRsZW1lbnQiOnsibW9kZSI6ImltbWVkaWF0ZSIsInByb2R1Y3RfaWQiOiJwcm9kLWZpeHR1cmUxMjMifSwiZGVzY3JpcHRpb24iOiJXZWF0aGVyIn0.k298wVylkQg0qJgrrDw9tvxcGpxbP_LnKRofzJ0dFrU2lFXvvmD4OHQGA9g7v-uffpoqzN9FPzAJU-_6RfcePA"
+      }
+    },
+    "expected": {
+      "isValid": true,
+      "payer": "123456789012",
+      "paymentId": "awsmp-fixture-0001"
+    }
+  },
+  "facilitator": {
+    "now": 1790000010,
+    "paymentPayload": {
+      "x402Version": 2,
+      "accepted": {
+        "scheme": "exact",
+        "network": "aws:base",
+        "asset": "iso4217:USD",
+        "amount": "0.10",
+        "payTo": "urn:x402:agentic-commerce:see-quote",
+        "maxTimeoutSeconds": 300,
+        "extra": {
+          "description": "Weather",
+          "settlement": {
+            "mode": "immediate"
+          },
+          "quoteToken": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImZpeHR1cmUtc2VsbGVyLTEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlbGxlci5leGFtcGxlLmNvbSIsImF1ZCI6ImF3czptYXJrZXRwbGFjZSIsImlhdCI6MTc5MDAwMDAwMCwiZXhwIjoxNzkwMDAwMzAwLCJqdGkiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJwcmljZSI6eyJhbW91bnQiOiIwLjEwIiwiY3VycmVuY3kiOiJVU0QifSwicGF5VG8iOiJwcm9kLWZpeHR1cmUxMjMiLCJyZWZlcmVuY2UiOiJSRVNPVVJDRSIsInNldHRsZW1lbnQiOnsibW9kZSI6ImltbWVkaWF0ZSIsInByb2R1Y3RfaWQiOiJwcm9kLWZpeHR1cmUxMjMifSwiZGVzY3JpcHRpb24iOiJXZWF0aGVyIn0.k298wVylkQg0qJgrrDw9tvxcGpxbP_LnKRofzJ0dFrU2lFXvvmD4OHQGA9g7v-uffpoqzN9FPzAJU-_6RfcePA"
+        }
+      },
+      "payload": {
+        "paymentToken": "eyJhbGciOiJFUzM4NCIsImtpZCI6ImZpeHR1cmUtc2VydmljZS0xIiwidHlwIjoiSldUIn0.eyJpc3MiOiJhd3NtcC1hZ2VudHBheS5hbWF6b25hd3MuY29tIiwiYXVkIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS5jb20iLCJzdWIiOiIxMjM0NTY3ODkwMTIiLCJwYXltZW50X2lkIjoiYXdzbXAtZml4dHVyZS0wMDAxIiwianRpIjoiYXdzbXAtZml4dHVyZS0wMDAxIiwicXVvdGVfdG9rZW4iOiJleUpoYkdjaU9pSkZVekkxTmlJc0ltdHBaQ0k2SW1acGVIUjFjbVV0YzJWc2JHVnlMVEVpTENKMGVYQWlPaUpLVjFRaWZRLmV5SnBjM01pT2lKb2RIUndjem92TDNObGJHeGxjaTVsZUdGdGNHeGxMbU52YlNJc0ltRjFaQ0k2SW1GM2N6cHRZWEpyWlhSd2JHRmpaU0lzSW1saGRDSTZNVGM1TURBd01EQXdNQ3dpWlhod0lqb3hOemt3TURBd016QXdMQ0pxZEdraU9pSXdNREF3TURBd01DMHdNREF3TFRRd01EQXRPREF3TUMwd01EQXdNREF3TURBd01ERWlMQ0p3Y21salpTSTZleUpoYlc5MWJuUWlPaUl3TGpFd0lpd2lZM1Z5Y21WdVkza2lPaUpWVTBRaWZTd2ljR0Y1Vkc4aU9pSndjbTlrTFdacGVIUjFjbVV4TWpNaUxDSnlaV1psY21WdVkyVWlPaUpTUlZOUFZWSkRSU0lzSW5ObGRIUnNaVzFsYm5RaU9uc2liVzlrWlNJNkltbHRiV1ZrYVdGMFpTSXNJbkJ5YjJSMVkzUmZhV1FpT2lKd2NtOWtMV1pwZUhSMWNtVXhNak1pZlN3aVpHVnpZM0pwY0hScGIyNGlPaUpYWldGMGFHVnlJbjAuazI5OHdWeWxrUWcwcUpncnJEdzl0dnhjR3B4YlBfTG5LUm9mekowZEZyVTJsRlh2dm1ENE9IUUdBOWc3di11ZmZwb3F6TjlGUHpBSlUtXzZSZmNlUEEiLCJpYXQiOjE3OTAwMDAwMDAsImV4cCI6MTc5MDAwMDMwMCwiY25mIjp7ImprdCI6InQ5blR2Si1wSk9TTkpvZmVMZ09Uek9ySDlZdzBfOFJKSWd5SE9PLWdHQ2cifX0.7grSp_Q7be5VmDc5DloBEjT6MQ6775qNpKwCStwRRiP_OgRZjcjmhAWLlKMj6J7U5s1_kmnCzmxxNaCgvn2yvk7G_D1vSJ_JScPVnpDdb7R_prDOm-OYuVNBynqz0AWd"
+      }
+    },
+    "requirements": {
+      "scheme": "exact",
+      "network": "aws:base",
+      "asset": "iso4217:USD",
+      "amount": "0.10",
+      "payTo": "urn:x402:agentic-commerce:see-quote",
+      "maxTimeoutSeconds": 300,
+      "extra": {
+        "description": "Weather",
+        "settlement": {
+          "mode": "immediate"
+        },
+        "quoteToken": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImZpeHR1cmUtc2VsbGVyLTEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlbGxlci5leGFtcGxlLmNvbSIsImF1ZCI6ImF3czptYXJrZXRwbGFjZSIsImlhdCI6MTc5MDAwMDAwMCwiZXhwIjoxNzkwMDAwMzAwLCJqdGkiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJwcmljZSI6eyJhbW91bnQiOiIwLjEwIiwiY3VycmVuY3kiOiJVU0QifSwicGF5VG8iOiJwcm9kLWZpeHR1cmUxMjMiLCJyZWZlcmVuY2UiOiJSRVNPVVJDRSIsInNldHRsZW1lbnQiOnsibW9kZSI6ImltbWVkaWF0ZSIsInByb2R1Y3RfaWQiOiJwcm9kLWZpeHR1cmUxMjMifSwiZGVzY3JpcHRpb24iOiJXZWF0aGVyIn0.k298wVylkQg0qJgrrDw9tvxcGpxbP_LnKRofzJ0dFrU2lFXvvmD4OHQGA9g7v-uffpoqzN9FPzAJU-_6RfcePA"
+      }
+    },
+    "expectedVerify": {
+      "isValid": true,
+      "payer": "123456789012"
+    },
+    "expectedSettle": {
+      "success": true,
+      "payer": "123456789012",
+      "transaction": "awsmp-fixture-0001",
+      "network": "aws:base"
+    }
+  }
+}

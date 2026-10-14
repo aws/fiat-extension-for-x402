@@ -35,6 +35,9 @@ To send us a pull request, please:
    `test/api/public-api.test.ts` freezes the names and kinds the package exports: adding, removing or renaming an
    export fails it until you update the snapshot with `npx vitest run test/api -u`. Removing or renaming an export is a
    breaking change. Signatures are not in the snapshot, so review them in the diff.
+   `test/fixtures/cross-lang/` holds the shared wire fixtures that every SDK implementation of the scheme runs
+   (`test/unit/cross-lang.test.ts` runs them here). They are the wire contract: never regenerate their fixed tokens,
+   and make any change to them in every SDK at once. Their README describes the layout.
 4. Commit to your fork using clear commit messages.
 5. Send us a pull request, answering any default questions in the pull request interface.
 6. Pay attention to any automated CI failures reported in the pull request, and stay involved in the conversation.

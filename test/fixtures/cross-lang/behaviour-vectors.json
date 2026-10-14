@@ -1,0 +1,453 @@
+{
+  "description": "TEST KEYS ONLY. Every key here is a deterministic test key derived from a public label by the rule in keys.json; none is a secret, and none may be used outside tests. Expected outcomes of each SDK's verifier, DPoP proof verification, route price parsing and KMS kid derivation. The README in this directory defines how each case is applied.",
+  "formatVersion": 1,
+  "verifier": {
+    "base": "payment-token.json verify",
+    "cases": [
+      {
+        "name": "exp equals now",
+        "paymentTokenClaims": {
+          "exp": 1790000010
+        },
+        "expected": {
+          "isValid": true,
+          "payer": "123456789012",
+          "paymentId": "awsmp-fixture-0001"
+        }
+      },
+      {
+        "name": "exp one second before now",
+        "paymentTokenClaims": {
+          "exp": 1790000009
+        },
+        "expected": {
+          "isValid": false,
+          "invalidReason": "payment_expired",
+          "invalidMessage": "Payment token expired"
+        }
+      },
+      {
+        "name": "exp is not an integer",
+        "paymentTokenClaims": {
+          "exp": 1790000300.5
+        },
+        "expected": {
+          "isValid": false,
+          "invalidReason": "payment_expired",
+          "invalidMessage": "Payment token expired"
+        }
+      },
+      {
+        "name": "exp missing",
+        "paymentTokenClaims": {
+          "exp": null
+        },
+        "expected": {
+          "isValid": false,
+          "invalidReason": "payment_expired",
+          "invalidMessage": "Payment token expired"
+        }
+      },
+      {
+        "name": "aud is a list",
+        "paymentTokenClaims": {
+          "aud": [
+            "https://seller.example.com"
+          ]
+        },
+        "expected": {
+          "isValid": false,
+          "invalidReason": "invalid_payment",
+          "invalidMessage": "Payment token audience is not the quote issuer"
+        }
+      },
+      {
+        "name": "aud missing",
+        "paymentTokenClaims": {
+          "aud": null
+        },
+        "expected": {
+          "isValid": false,
+          "invalidReason": "invalid_payment",
+          "invalidMessage": "Payment token audience is not the quote issuer"
+        }
+      },
+      {
+        "name": "amount 0.1 against a quote for 0.10",
+        "requirements": {
+          "amount": "0.1"
+        },
+        "expected": {
+          "isValid": false,
+          "invalidReason": "invalid_payment",
+          "invalidMessage": "Amount or currency mismatch"
+        }
+      },
+      {
+        "name": "no kid in the header (the service key is still found)",
+        "paymentTokenHeader": {
+          "kid": null
+        },
+        "expected": {
+          "isValid": true,
+          "payer": "123456789012",
+          "paymentId": "awsmp-fixture-0001"
+        }
+      },
+      {
+        "name": "wrong iss",
+        "paymentTokenClaims": {
+          "iss": "https://attacker.example.com"
+        },
+        "expected": {
+          "isValid": false,
+          "invalidReason": "invalid_payment",
+          "invalidMessage": "Payment token issuer is not the payment service"
+        }
+      },
+      {
+        "name": "iat one hour in the future",
+        "paymentTokenClaims": {
+          "iat": 1790003610
+        },
+        "expected": {
+          "isValid": false,
+          "invalidReason": "invalid_payment",
+          "invalidMessage": "Payment token signature invalid: The token is not yet valid (iat)"
+        }
+      },
+      {
+        "name": "nbf one hour in the future",
+        "paymentTokenClaims": {
+          "nbf": 1790003610
+        },
+        "expected": {
+          "isValid": false,
+          "invalidReason": "invalid_payment",
+          "invalidMessage": "Payment token signature invalid: The token is not yet valid (nbf)"
+        }
+      },
+      {
+        "name": "iat is a string that is not an integer",
+        "paymentTokenClaims": {
+          "iat": "yesterday"
+        },
+        "expected": {
+          "isValid": false,
+          "invalidReason": "invalid_payment",
+          "invalidMessage": "Payment token signature invalid: Issued At claim (iat) must be an integer."
+        }
+      },
+      {
+        "name": "iat is a string of decimal digits (lenient: read as an integer)",
+        "paymentTokenClaims": {
+          "iat": "1790000000"
+        },
+        "expected": {
+          "isValid": true,
+          "payer": "123456789012",
+          "paymentId": "awsmp-fixture-0001"
+        }
+      },
+      {
+        "name": "no payment_id (settle transaction is empty)",
+        "paymentTokenClaims": {
+          "payment_id": null
+        },
+        "expected": {
+          "isValid": true,
+          "payer": "123456789012",
+          "settle": {
+            "success": true,
+            "payer": "123456789012",
+            "transaction": "",
+            "network": "aws:base"
+          }
+        }
+      },
+      {
+        "name": "quote aud is wrong (lenient: the quote aud is not checked)",
+        "quoteClaims": {
+          "aud": "https://attacker.example.com"
+        },
+        "expected": {
+          "isValid": true,
+          "payer": "123456789012",
+          "paymentId": "awsmp-fixture-0001"
+        }
+      },
+      {
+        "name": "quote nbf one hour in the future",
+        "quoteClaims": {
+          "nbf": 1790003610
+        },
+        "expected": {
+          "isValid": false,
+          "invalidReason": "invalid_quote",
+          "invalidMessage": "Quote token signature invalid: The token is not yet valid (nbf)"
+        }
+      }
+    ]
+  },
+  "dpop": {
+    "base": "dpop-proof.json verify",
+    "cases": [
+      {
+        "name": "expected htu has a trailing slash",
+        "options": {
+          "htu": "https://seller.example.com/weather/"
+        },
+        "expected": {
+          "error": "DPoP proof htu mismatch: expected 'https://seller.example.com/weather/', got 'https://seller.example.com/weather'"
+        }
+      },
+      {
+        "name": "expected htu has an uppercase host",
+        "options": {
+          "htu": "https://SELLER.example.com/weather"
+        },
+        "expected": {
+          "error": "DPoP proof htu mismatch: expected 'https://SELLER.example.com/weather', got 'https://seller.example.com/weather'"
+        }
+      },
+      {
+        "name": "expected htu has the default port",
+        "options": {
+          "htu": "https://seller.example.com:443/weather"
+        },
+        "expected": {
+          "error": "DPoP proof htu mismatch: expected 'https://seller.example.com:443/weather', got 'https://seller.example.com/weather'"
+        }
+      },
+      {
+        "name": "htm claim is lowercase",
+        "proofClaims": {
+          "htm": "get"
+        },
+        "expected": {
+          "error": "DPoP proof htm mismatch: expected 'GET', got 'get'"
+        }
+      },
+      {
+        "name": "proof is 66 seconds old",
+        "now": 1790000066,
+        "expected": {
+          "error": "DPoP proof expired"
+        }
+      },
+      {
+        "name": "proof is 65 seconds old",
+        "now": 1790000065,
+        "expected": {
+          "claims": {
+            "jti": "dpop-fixture-0001",
+            "htm": "GET",
+            "htu": "https://seller.example.com/weather",
+            "iat": 1790000000,
+            "ath": "3Ot2l6R3W8rB47ia2TJzd3q1OGBBjO2z0aY6qag75zE"
+          }
+        }
+      },
+      {
+        "name": "iat 5 seconds in the future",
+        "proofClaims": {
+          "iat": 1790000015
+        },
+        "expected": {
+          "claims": {
+            "jti": "dpop-fixture-0001",
+            "htm": "GET",
+            "htu": "https://seller.example.com/weather",
+            "iat": 1790000015,
+            "ath": "3Ot2l6R3W8rB47ia2TJzd3q1OGBBjO2z0aY6qag75zE"
+          }
+        }
+      },
+      {
+        "name": "iat 6 seconds in the future",
+        "proofClaims": {
+          "iat": 1790000016
+        },
+        "expected": {
+          "error": "DPoP proof issued in the future"
+        }
+      }
+    ]
+  },
+  "dpopNonceStore": {
+    "base": "dpop-proof.json verify",
+    "cases": [
+      {
+        "name": "default maxAge (60): the proof id is kept until iat + 66",
+        "options": {
+          "maxAge": null
+        },
+        "expected": {
+          "addedJti": "dpop-fixture-0001",
+          "addedExpiresAt": 1790000066,
+          "replayError": "DPoP proof replay detected"
+        }
+      },
+      {
+        "name": "maxAge 10: the proof id is kept until iat + 16",
+        "options": {
+          "maxAge": 10
+        },
+        "expected": {
+          "addedJti": "dpop-fixture-0001",
+          "addedExpiresAt": 1790000016,
+          "replayError": "DPoP proof replay detected"
+        }
+      }
+    ]
+  },
+  "parsePrice": {
+    "cases": [
+      {
+        "price": "$1.50",
+        "expected": {
+          "amount": "1.50",
+          "asset": "iso4217:USD"
+        }
+      },
+      {
+        "price": "1.50 USD",
+        "expected": {
+          "amount": "1.50",
+          "asset": "iso4217:USD"
+        }
+      },
+      {
+        "price": "  $3  ",
+        "expected": {
+          "amount": "3",
+          "asset": "iso4217:USD"
+        }
+      },
+      {
+        "price": "0.5JPY",
+        "expected": {
+          "amount": "0.5",
+          "asset": "iso4217:JPY"
+        }
+      },
+      {
+        "price": "$0.00000001",
+        "expected": {
+          "amount": "0.00000001",
+          "asset": "iso4217:USD"
+        }
+      },
+      {
+        "price": "$01.50",
+        "expected": {
+          "amount": "01.50",
+          "asset": "iso4217:USD"
+        }
+      },
+      {
+        "price": 1e-7,
+        "expected": {
+          "amount": "0.0000001",
+          "asset": "iso4217:USD"
+        }
+      },
+      {
+        "price": 1.5,
+        "expected": {
+          "amount": "1.5",
+          "asset": "iso4217:USD"
+        }
+      },
+      {
+        "price": 2,
+        "expected": {
+          "amount": "2",
+          "asset": "iso4217:USD"
+        }
+      },
+      {
+        "price": 0,
+        "expected": {
+          "amount": "0",
+          "asset": "iso4217:USD"
+        }
+      },
+      {
+        "price": "1.",
+        "expected": {
+          "errorPrefix": "Invalid price: "
+        }
+      },
+      {
+        "price": "1.50 usd",
+        "expected": {
+          "errorPrefix": "Invalid price: "
+        }
+      },
+      {
+        "price": "1e5",
+        "expected": {
+          "errorPrefix": "Invalid price: "
+        }
+      },
+      {
+        "price": "$0.000000001",
+        "expected": {
+          "errorPrefix": "Price may have at most 8 decimal places: "
+        }
+      },
+      {
+        "price": 0.30000000000000004,
+        "expected": {
+          "errorPrefix": "Price may have at most 8 decimal places: "
+        }
+      }
+    ]
+  },
+  "kmsKid": {
+    "cases": [
+      {
+        "keyArn": "arn:aws:kms:us-east-1:111122223333:alias/my-quote-key",
+        "kid": "my-quote-key"
+      },
+      {
+        "keyArn": "arn:aws:kms:us-east-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+        "kid": "key/1234abcd-12ab-34cd-56ef-1234567890ab"
+      },
+      {
+        "keyArn": "1234abcd-12ab",
+        "kid": "1234abcd-12ab"
+      },
+      {
+        "keyArn": "alias/foo",
+        "kid": "foo"
+      }
+    ]
+  },
+  "jwkThumbprint": {
+    "cases": [
+      {
+        "name": "RFC 7638 section 3.1 example key",
+        "jwk": {
+          "kty": "RSA",
+          "n": "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw",
+          "e": "AQAB",
+          "alg": "RS256",
+          "kid": "2011-04-29"
+        },
+        "thumbprint": "NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs"
+      },
+      {
+        "name": "buyer key (keys.json)",
+        "jwk": {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "h9RYB7K40yUyXrZJ6SKDFSTeM_7cNh2OYnacpNO53ik",
+          "y": "zKbWdpdwVqcF9t_oMtR2cfrW7vGi_xY-eIh81RXVsfg"
+        },
+        "thumbprint": "t9nTvJ-pJOSNJofeLgOTzOrH9Yw0_8RJIgyHOO-gGCg"
+      }
+    ]
+  }
+}
