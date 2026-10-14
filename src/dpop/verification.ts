@@ -19,7 +19,7 @@ import { DPoPProofPayload, DPoPVerificationOptions, DPoPError } from '../types';
 const DEFAULT_MAX_AGE = 60;
 
 /** Clock skew tolerance (seconds). */
-const CLOCK_SKEW = 5;
+export const CLOCK_SKEW = 5;
 
 /** DPoP proofs must be signed with an asymmetric key (RFC 9449 section 4.2). */
 const ALLOWED_DPOP_ALGORITHMS: readonly string[] = ['ES256', 'ES384', 'ES512', 'RS256', 'PS256'];

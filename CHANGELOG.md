@@ -134,6 +134,14 @@ built on the stock `@x402/core` server and facilitator.
   `iat + floor(maxAge + 5) + 1`, the second after the proof stops passing the freshness check.
   The expiry used to be `iat + maxAge`, which ignored the 5 seconds of clock skew, so a store
   that forgot ids on time let the same proof be replayed for up to 6 seconds.
+- The `exact` server scheme checks and records a DPoP proof's `jti` in the `DPoPNonceStore` only
+  after the facilitator has accepted the payment token, in a new `onAfterVerify` scheme hook
+  (`schemeHooks` now has `onBeforeVerify` and `onAfterVerify`). The token is read unverified
+  before the facilitator runs, so anyone could bind a forged token to their own key, sign a valid
+  proof for it, and add one store entry per request. A replayed proof is now refused with
+  `dpop_invalid` after one facilitator call; the seller's own `onAfterVerify` hooks run for it
+  first, and its `onVerifiedPaymentCanceled` hooks are called with `after_verify_aborted`. A
+  proof that goes stale while the facilitator runs is refused too.
 - A JWK that cannot be imported is reported as `JWK <kid>: invalid key material` (`JWK: invalid
   key material` when its `kid` is not a string). Some of these errors used to contain the whole
   JWK, and the message reaches the facilitator's `invalidMessage`, so a JWKS published with

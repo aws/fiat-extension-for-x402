@@ -49,6 +49,14 @@ without that key. The `exact` server scheme requires, before the facilitator is 
 proof whose key thumbprint matches, for this request's method and URL, over this payment token,
 issued within `dpopMaxAgeSeconds` (default 60, plus 5 seconds of skew).
 
+The nonce store is used only after the facilitator has accepted the payment token, in the scheme's
+`onAfterVerify` hook: it refuses a proof that went stale while the facilitator ran, or whose `jti`
+was seen, and records the `jti`. A forged token, bound to the sender's own key, therefore never
+adds an id. A replay is refused with `dpop_invalid` after one facilitator call; the seller's own
+`onAfterVerify` hooks run for it first, and its `onVerifiedPaymentCanceled` hooks are called with
+`after_verify_aborted`. The exported `verifyDPoPProof` with a `nonceStore` records the id as soon as
+the proof verifies; call it only for an access token that is already verified.
+
 What the seller must do:
 
 - **Share a nonce store.** Pass a `dpopNonceStore` shared by every instance of the seller, or a

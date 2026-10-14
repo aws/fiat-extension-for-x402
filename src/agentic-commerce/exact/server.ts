@@ -4,8 +4,8 @@
  * Seller side of the `exact` scheme on AWS Marketplace Agentic Commerce networks.
  *
  * Register it on an x402 resource server; x402 core then calls it to price each
- * route, to add a signed quote token to every 402 response, and before each
- * payment is verified (where it checks DPoP proofs):
+ * route, to add a signed quote token to every 402 response, and before and
+ * after each payment is verified (where it checks DPoP proofs):
  *
  * ```typescript
  * const server = new x402ResourceServer(facilitatorClient);
@@ -21,7 +21,13 @@ import type {
   Price,
   SchemeNetworkServer,
 } from '@x402/core/types';
-import type { BeforeVerifyHook, HTTPAdapter, VerifyContext } from '@x402/core/server';
+import type {
+  AfterVerifyHook,
+  BeforeVerifyHook,
+  HTTPAdapter,
+  VerifyContext,
+  VerifyResultContext,
+} from '@x402/core/server';
 import { decodeJwt } from 'jose';
 import type { QuoteSigner } from '../../signers/protocol';
 import {
@@ -31,9 +37,10 @@ import {
   SCHEME_EXACT,
 } from '../../constants';
 import { extractDPoPThumbprint, verifyDPoPProof } from '../../dpop';
+import { CLOCK_SKEW } from '../../dpop/verification';
 import { type DPoPNonceStore, ValidationError } from '../../types';
 import { checkAssetAmount, parseMoney } from '../../utils';
-import { isPlainObject } from '../json-value';
+import { isPlainObject, isTruthy, toInteger } from '../json-value';
 import { paymentTokenOf } from './facilitator';
 import { enhancePaymentRequirements } from './quote';
 
@@ -48,11 +55,20 @@ export interface ExactAgenticCommerceServerSchemeConfig {
   signer: QuoteSigner;
   /**
    * Records DPoP proof `jti` values so a replayed proof is rejected. Use a store
-   * shared by all instances of the seller.
+   * shared by all instances of the seller. An id is checked and recorded only
+   * after the facilitator has accepted the payment token.
    */
   dpopNonceStore?: DPoPNonceStore;
   /** Maximum age of a DPoP proof, in seconds. Defaults to 60. */
   dpopMaxAgeSeconds?: number;
+}
+
+const isObject = (value: unknown): value is object => typeof value === 'object' && value !== null;
+
+/** The HTTP adapter of the request being paid for, if any */
+function adapterOf(context: VerifyContext): HTTPAdapter | undefined {
+  const transport = context.transportContext as { request?: { adapter?: HTTPAdapter } };
+  return transport?.request?.adapter;
 }
 
 /** The result of a `beforeVerify` hook that stops the payment */
@@ -83,12 +99,19 @@ export class ExactAgenticCommerceScheme implements SchemeNetworkServer {
   readonly dynamicExtraFields = [...DYNAMIC_EXTRA_FIELDS];
   /**
    * x402 core runs `onBeforeVerify` before it calls the facilitator: it checks
-   * the DPoP proof of a DPoP-bound payment token.
+   * the DPoP proof of a DPoP-bound payment token. It runs `onAfterVerify` once
+   * the facilitator has answered: for an accepted token, it rejects a replayed
+   * proof and records the proof's `jti` in the nonce store.
    */
-  readonly schemeHooks: { readonly onBeforeVerify: BeforeVerifyHook };
+  readonly schemeHooks: {
+    readonly onBeforeVerify: BeforeVerifyHook;
+    readonly onAfterVerify: AfterVerifyHook;
+  };
   private readonly signer: QuoteSigner;
   private readonly dpopNonceStore?: DPoPNonceStore;
   private readonly dpopMaxAgeSeconds: number;
+  /** Proofs checked by onBeforeVerify, by transport context, until onAfterVerify */
+  private readonly pendingProofs = new WeakMap<object, { jti: string; expiresAt: number }>();
 
   /**
    * @param config - The quote token signer and the DPoP options
@@ -109,6 +132,7 @@ export class ExactAgenticCommerceScheme implements SchemeNetworkServer {
     this.dpopMaxAgeSeconds = maxAge;
     this.schemeHooks = Object.freeze({
       onBeforeVerify: (context: VerifyContext) => this.beforeVerify(context),
+      onAfterVerify: (context: VerifyResultContext) => this.afterVerify(context),
     });
   }
 
@@ -166,12 +190,18 @@ export class ExactAgenticCommerceScheme implements SchemeNetworkServer {
    * A payment token bound to a key (`cnf.jkt`) is accepted only with a `DPoP`
    * header proving possession of that key, for this request's method and URL,
    * over this payment token. The token's signature is verified afterwards by
-   * the facilitator, so a token whose binding was altered fails there.
+   * the facilitator, so a token whose binding was altered fails there. The
+   * token is unverified here, so the nonce store is not touched until
+   * onAfterVerify.
    *
    * x402 core logs and ignores an error thrown by a hook, and then calls the
    * facilitator, so every error here aborts with `dpop_invalid` instead.
    */
   private async beforeVerify(context: VerifyContext): Promise<AbortResult | undefined> {
+    if (isObject(context.transportContext)) {
+      // Drop what an earlier request with the same transport context left.
+      this.pendingProofs.delete(context.transportContext);
+    }
     const paymentToken = paymentTokenOf(context.paymentPayload);
     if (typeof paymentToken !== 'string' || !paymentToken) {
       return undefined;
@@ -187,8 +217,7 @@ export class ExactAgenticCommerceScheme implements SchemeNetworkServer {
     }
 
     try {
-      const transport = context.transportContext as { request?: { adapter?: HTTPAdapter } };
-      const adapter = transport?.request?.adapter;
+      const adapter = adapterOf(context);
       if (adapter == null) {
         return { abort: true, reason: 'dpop_required' };
       }
@@ -205,13 +234,53 @@ export class ExactAgenticCommerceScheme implements SchemeNetworkServer {
         // verifyDPoPProof skips the htm or htu check when nothing is expected.
         return { abort: true, reason: 'dpop_invalid' };
       }
-      await verifyDPoPProof(proof, {
+      const { jti, iat } = await verifyDPoPProof(proof, {
         method,
         url,
         accessToken: paymentToken,
         maxAge: this.dpopMaxAgeSeconds,
-        nonceStore: this.dpopNonceStore,
       });
+      if (this.dpopNonceStore != null) {
+        // The id is checked and recorded in onAfterVerify, once the facilitator
+        // has accepted the token: a forged token never reaches the store.
+        const expiresAt = toInteger(iat)! + Math.floor(this.dpopMaxAgeSeconds + CLOCK_SKEW) + 1;
+        this.pendingProofs.set(context.transportContext as object, { jti, expiresAt });
+      }
+    } catch {
+      return { abort: true, reason: 'dpop_invalid' };
+    }
+    return undefined;
+  }
+
+  /**
+   * Reject a replayed DPoP proof of a payment the facilitator accepted, and
+   * record its id.
+   *
+   * With a synchronous store `has` and `add` run with no await in between, so
+   * of concurrent requests with one proof only one passes.
+   */
+  private async afterVerify(context: VerifyResultContext): Promise<AbortResult | undefined> {
+    const transport = context.transportContext;
+    const pending = isObject(transport) ? this.pendingProofs.get(transport) : undefined;
+    if (pending === undefined) {
+      return undefined;
+    }
+    this.pendingProofs.delete(transport as object);
+    if (!context.result.isValid) {
+      return undefined;
+    }
+    if (Math.floor(Date.now() / 1000) >= pending.expiresAt) {
+      // The proof went stale while the facilitator ran, and the store may
+      // already have forgotten an earlier use of it.
+      return { abort: true, reason: 'dpop_invalid' };
+    }
+    const store = this.dpopNonceStore as DPoPNonceStore;
+    try {
+      const seen = store.has(pending.jti);
+      if (isTruthy(seen instanceof Promise ? await seen : seen)) {
+        return { abort: true, reason: 'dpop_invalid' };
+      }
+      await store.add(pending.jti, pending.expiresAt);
     } catch {
       return { abort: true, reason: 'dpop_invalid' };
     }

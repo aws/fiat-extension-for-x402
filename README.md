@@ -320,7 +320,9 @@ token. It returns the token's `payment_id` as the transaction, and the buyer (`s
 When a payment token is bound to a key (`cnf.jkt`), the request must carry a `DPoP` header
 (RFC 9449) proving possession of that key for this method, URL and payment token. The server scheme
 checks this in its `onBeforeVerify` hook, which x402 runs before it calls the facilitator. To reject
-replayed proofs, pass a `DPoPNonceStore` shared by all instances of the seller:
+replayed proofs, pass a `DPoPNonceStore` shared by all instances of the seller. The store is used
+only after the facilitator has accepted the payment token, in the scheme's `onAfterVerify` hook, so
+a forged token never adds an id; a replayed proof is refused after that facilitator call:
 
 <!-- fragment: server, signer and store as above -->
 

@@ -128,7 +128,8 @@ export class AgenticCommerceFacilitatorClient implements FacilitatorClient {
    * against the service's JWKS, the quote the buyer accepted against the
    * seller's key, and the price, currency and product against `requirements`.
    * The DPoP proof of a DPoP-bound token is checked before this, by the
-   * `exact` server scheme's `onBeforeVerify` hook.
+   * `exact` server scheme's `onBeforeVerify` hook, and its `jti` is recorded
+   * after this, by its `onAfterVerify` hook.
    *
    * @param payload - Payment payload to verify
    * @param requirements - The server's payment requirements for the route
