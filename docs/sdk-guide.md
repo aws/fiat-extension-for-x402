@@ -96,7 +96,8 @@ Buyer                       Seller (resource server)          Payment service
    the buyer's accepted requirements still match.
 4. Before calling the facilitator, x402 runs the server scheme's `onBeforeVerify` hook, which checks
    the DPoP proof of a DPoP-bound token (section 5.2).
-5. The facilitator verifies the payment (section 5.1) against the quote the buyer accepted.
+5. The facilitator verifies the payment (section 5.1) against the quote the buyer accepted. If it
+   accepts, the server scheme's `onAfterVerify` hook refuses a replayed proof and records its `jti`.
 6. The route runs. `settle` returns success with the token's `payment_id` as the transaction and
    `sub` as the payer. It calls nothing: the payment was captured in step 2.
 
@@ -192,7 +193,7 @@ status, fails the check it belongs to.
 ### 5.2 DPoP
 
 The `exact` server scheme checks a payment token bound to a key (`cnf.jkt`) in its `onBeforeVerify`
-hook:
+hook, before the facilitator is called:
 
 1. A `DPoP` header is present, else `dpop_required`.
 2. The thumbprint of its header JWK equals `cnf.jkt`. Then its `typ` is `dpop+jwt` (any case), its
@@ -202,12 +203,24 @@ hook:
    old.
 4. `htm` equals the request method upper-cased, and `htu` the request URL without its query and
    fragment, exactly.
-5. `ath` is the hash of the payment token; with a `dpopNonceStore`, the `jti` has not been seen. It
-   is then added with the expiry `iat + floor(dpopMaxAgeSeconds + 5) + 1` (Unix seconds, exclusive),
-   the second after the proof stops being fresh.
+5. `ath` is the hash of the payment token.
 
 Any other failure is `dpop_invalid`, and the facilitator is not called. A token without `cnf.jkt`
 needs no proof. A token that cannot be decoded is left to the facilitator, which rejects it.
+
+The payment token is not verified yet at that point, so the nonce store is not used there. With a
+`dpopNonceStore`, the scheme's `onAfterVerify` hook, which x402 runs once the facilitator has
+accepted the token, then checks that:
+
+6. The proof is still fresh: the current second is before
+   `iat + floor(dpopMaxAgeSeconds + 5) + 1`, the second after the proof stops being fresh.
+7. The `jti` has not been seen. It is then added with that expiry (Unix seconds, exclusive).
+
+Either failure, or an error from the store, is `dpop_invalid`. x402 then calls the seller's
+`onVerifiedPaymentCanceled` hooks with the reason `after_verify_aborted`; nothing is settled. A
+forged token, which the facilitator rejects, never reaches the store. A replayed proof costs one
+facilitator call before it is refused, and the seller's own `onAfterVerify` hooks, which x402 runs
+before the scheme's, see it as verified.
 
 ## 6. Reference
 

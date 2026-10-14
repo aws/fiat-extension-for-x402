@@ -652,11 +652,17 @@ describe('a seller on the stock @x402/express paymentMiddleware', () => {
       replaySafeSeller.served = 0;
       replaySafeSeller.verified = 0;
       fetchStub.mockClear();
-      await expectRefusedBeforeVerify(
-        await pay(replaySafeSeller, '/weather', accepted, token, { DPoP: proof }),
-        'dpop_invalid',
-        replaySafeSeller
+      // The proof id is checked once the facilitator has accepted the token,
+      // so the replay is verified and then refused, and nothing is served.
+      const replay = await pay(replaySafeSeller, '/weather', accepted, token, { DPoP: proof });
+      expect(replay.status).toBe(402);
+      const required = httpClient.getPaymentRequiredResponse(
+        (name) => replay.headers.get(name),
+        await replay.json()
       );
+      expect(required.error).toBe('dpop_invalid');
+      expect(replaySafeSeller.served).toBe(0);
+      expect(replaySafeSeller.verified).toBe(1);
     });
 
     it('serves a replayed proof when no nonce store is configured', async () => {

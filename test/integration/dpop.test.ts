@@ -21,6 +21,7 @@ import {
   x402ResourceServer,
 } from '@x402/core/server';
 import type { Network, PaymentPayload } from '@x402/core/types';
+import { createHash } from 'node:crypto';
 import * as jose from 'jose';
 import { ExactAgenticCommerceScheme as APFacilitator } from '../../src/agentic-commerce/exact/facilitator';
 import { registerExactAgenticCommerceServer } from '../../src/agentic-commerce/exact/register';
@@ -28,6 +29,7 @@ import { AgenticCommerceFacilitatorClient } from '../../src/agentic-commerce/fac
 import { AgenticCommerceVerifier } from '../../src/agentic-commerce/verifier';
 import { InProcessFacilitatorClient } from '../../src/facilitator-client';
 import { SCHEME_EXACT } from '../../src/constants';
+import { computeJWKThumbprint } from '../../src/dpop';
 import type { DPoPNonceStore } from '../../src/types';
 import {
   BUYER_PUBLIC_JWK,
@@ -178,11 +180,15 @@ describe.each<FacilitatorKind>(['in-process facilitator', 'AgenticCommerceFacili
     });
 
     /** The fixture payment, retried with `dpopHeaders` */
-    async function pay(app: x402HTTPResourceServer, request: Request = {}) {
+    async function pay(
+      app: x402HTTPResourceServer,
+      request: Request = {},
+      paymentToken = PAYMENT_TOKEN
+    ) {
       const payload: PaymentPayload = {
         x402Version: 2,
         accepted: QUOTE_OUTPUT,
-        payload: { paymentToken: PAYMENT_TOKEN },
+        payload: { paymentToken },
       };
       const context = adapter({
         ...request,
@@ -197,8 +203,13 @@ describe.each<FacilitatorKind>(['in-process facilitator', 'AgenticCommerceFacili
       expect(jwksFetches()).toBe(1);
     }
 
-    /** Refused with a 402 and this reason, before the facilitator is called */
-    async function expectRejected(app: x402HTTPResourceServer, request: Request, reason: string) {
+    /** Refused with a 402 and this reason, by default before the facilitator is called */
+    async function expectRejected(
+      app: x402HTTPResourceServer,
+      request: Request,
+      reason: string,
+      { afterFacilitator = false } = {}
+    ) {
       const { result } = await pay(app, request);
       expect(result.type).toBe('payment-error');
       const { response } = result as { response: HTTPResponseInstructions };
@@ -208,7 +219,9 @@ describe.each<FacilitatorKind>(['in-process facilitator', 'AgenticCommerceFacili
         response.body
       );
       expect(required.error).toBe(reason);
-      expect(jwksFetches()).toBe(0);
+      if (!afterFacilitator) {
+        expect(jwksFetches()).toBe(0);
+      }
     }
 
     const withProof = (dpop: string, request: Request = {}): Request => ({
@@ -361,12 +374,48 @@ describe.each<FacilitatorKind>(['in-process facilitator', 'AgenticCommerceFacili
         const noAth = await proof({ claims: { ath: undefined } });
         await expectRejected(await sellerApp(), withProof(noAth), 'dpop_invalid');
       });
+    });
 
+    describe('rejected after the facilitator accepts the token', () => {
+      // The proof id is checked and recorded only for a token the facilitator
+      // accepted, so a forged token cannot add ids to the store.
       it('dpop_invalid: a replayed proof, with a nonce store', async () => {
-        const app = await sellerApp({ dpopNonceStore: new RecordingNonceStore() });
+        const store = new RecordingNonceStore();
+        const app = await sellerApp({ dpopNonceStore: store });
         await expectVerified(app, withProof(DPOP_PROOF));
-        fetchStub.mockClear();
-        await expectRejected(app, withProof(DPOP_PROOF), 'dpop_invalid');
+        await expectRejected(app, withProof(DPOP_PROOF), 'dpop_invalid', {
+          afterFacilitator: true,
+        });
+        expect(store.added).toHaveLength(1);
+      });
+    });
+
+    describe('a forged payment token', () => {
+      it('is rejected by the facilitator and adds nothing to the nonce store', async () => {
+        // The fixture token's claims and header, bound to the attacker's DPoP
+        // key and signed with a key the payment service never published.
+        const attacker = await jose.generateKeyPair('ES256');
+        const attackerJwk = await jose.exportJWK(attacker.publicKey);
+        const header = jose.decodeProtectedHeader(PAYMENT_TOKEN) as jose.JWTHeaderParameters;
+        const untrusted = await jose.generateKeyPair(header.alg);
+        const forged = await new jose.SignJWT({
+          ...jose.decodeJwt(PAYMENT_TOKEN),
+          cnf: { jkt: await computeJWKThumbprint(attackerJwk) },
+        })
+          .setProtectedHeader(header)
+          .sign(untrusted.privateKey);
+        const forgedProof = await proof({
+          claims: {
+            ath: createHash('sha256').update(forged).digest('base64url'),
+          },
+          header: { jwk: attackerJwk },
+          key: attacker.privateKey,
+        });
+        const store = new RecordingNonceStore();
+        const app = await sellerApp({ dpopNonceStore: store });
+        const { result } = await pay(app, withProof(forgedProof), forged);
+        expect(result.type).toBe('payment-error');
+        expect(store.added).toEqual([]);
       });
     });
   }

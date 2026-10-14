@@ -30,6 +30,17 @@ function scheme(options: { dpopNonceStore?: DPoPNonceStore; dpopMaxAgeSeconds?: 
 const beforeVerify = (s: ExactAgenticCommerceScheme, context: unknown) =>
   s.schemeHooks.onBeforeVerify(context as VerifyContext);
 
+const afterVerify = (s: ExactAgenticCommerceScheme, context: unknown, isValid = true) =>
+  s.schemeHooks.onAfterVerify({
+    ...(context as VerifyContext),
+    result: { isValid },
+  });
+
+/** Both hooks, in x402 core's order, for a payment the facilitator accepts */
+async function verified(s: ExactAgenticCommerceScheme, context: unknown) {
+  return (await beforeVerify(s, context)) ?? afterVerify(s, context);
+}
+
 function context(payload: unknown, transportContext?: unknown): unknown {
   return {
     paymentPayload: { x402Version: 2, accepted: {}, payload },
@@ -196,14 +207,49 @@ describe('onBeforeVerify: the proof', () => {
     }
   });
 
-  it('a replay, with a nonce store', async () => {
+  it('a replay, with a nonce store, is refused once the first payment is verified', async () => {
     const seen = new Set<string>();
     const s = scheme({
       dpopNonceStore: { has: (jti) => seen.has(jti), add: (jti) => void seen.add(jti) },
     });
     const proof = await buyer.proof();
-    expect(await beforeVerify(s, buyer.context({ DPoP: proof }))).toBeUndefined();
-    expect(await beforeVerify(s, buyer.context({ DPoP: proof }))).toEqual(invalid);
+    expect(await verified(s, buyer.context({ DPoP: proof }))).toBeUndefined();
+    expect(await verified(s, buyer.context({ DPoP: proof }))).toEqual(invalid);
+  });
+
+  it('onBeforeVerify does not use the nonce store', async () => {
+    const has = vi.fn(() => false);
+    const add = vi.fn();
+    const s = scheme({ dpopNonceStore: { has, add } });
+    expect(await beforeVerify(s, buyer.context({ DPoP: await buyer.proof() }))).toBeUndefined();
+    expect(has).not.toHaveBeenCalled();
+    expect(add).not.toHaveBeenCalled();
+  });
+
+  it('onAfterVerify records nothing for a payment the facilitator rejected', async () => {
+    const add = vi.fn();
+    const s = scheme({ dpopNonceStore: { has: () => false, add } });
+    const ctx = buyer.context({ DPoP: await buyer.proof() });
+    expect(await beforeVerify(s, ctx)).toBeUndefined();
+    expect(await afterVerify(s, ctx, false)).toBeUndefined();
+    expect(add).not.toHaveBeenCalled();
+  });
+
+  it('onAfterVerify does nothing for a request onBeforeVerify did not check', async () => {
+    const add = vi.fn();
+    const s = scheme({ dpopNonceStore: { has: () => false, add } });
+    expect(await afterVerify(s, buyer.context({ DPoP: await buyer.proof() }))).toBeUndefined();
+    expect(await afterVerify(s, context({}))).toBeUndefined();
+    expect(add).not.toHaveBeenCalled();
+  });
+
+  it('records the id until the second after the proof stops being fresh, with an integer iat', async () => {
+    const add = vi.fn();
+    const s = scheme({ dpopNonceStore: { has: () => false, add }, dpopMaxAgeSeconds: 30.5 });
+    const proof = await buyer.proof();
+    const { iat } = jose.decodeJwt(proof);
+    expect(await verified(s, buyer.context({ DPoP: proof }))).toBeUndefined();
+    expect(add).toHaveBeenCalledWith(expect.any(String), (iat as number) + 35 + 1);
   });
 
   it('concurrent requests with one proof: only one passes a synchronous store', async () => {
@@ -212,9 +258,11 @@ describe('onBeforeVerify: the proof', () => {
       dpopNonceStore: { has: (jti) => seen.has(jti), add: (jti) => void seen.add(jti) },
     });
     const proof = await buyer.proof();
-    const results = await Promise.all(
-      [1, 2, 3].map(() => beforeVerify(s, buyer.context({ DPoP: proof })))
-    );
+    const contexts = [1, 2, 3].map(() => buyer.context({ DPoP: proof }));
+    // Every request passes onBeforeVerify before any reaches onAfterVerify.
+    const before = await Promise.all(contexts.map((ctx) => beforeVerify(s, ctx)));
+    expect(before).toEqual([undefined, undefined, undefined]);
+    const results = await Promise.all(contexts.map((ctx) => afterVerify(s, ctx)));
     expect(results.filter((result) => result === undefined)).toHaveLength(1);
     expect(results.filter((result) => result !== undefined)).toEqual([invalid, invalid]);
   });
@@ -222,12 +270,12 @@ describe('onBeforeVerify: the proof', () => {
   it('a replay is allowed without a nonce store', async () => {
     const s = scheme();
     const proof = await buyer.proof();
-    expect(await beforeVerify(s, buyer.context({ DPoP: proof }))).toBeUndefined();
-    expect(await beforeVerify(s, buyer.context({ DPoP: proof }))).toBeUndefined();
+    expect(await verified(s, buyer.context({ DPoP: proof }))).toBeUndefined();
+    expect(await verified(s, buyer.context({ DPoP: proof }))).toBeUndefined();
   });
 });
 
-describe('onBeforeVerify never throws', () => {
+describe('the DPoP hooks never throw', () => {
   // x402 core logs an error thrown by a hook and calls the facilitator anyway
   // (server/index.js:1562-1564), so a thrown error would let an unchecked
   // payment through. Every error must therefore abort.
@@ -235,7 +283,19 @@ describe('onBeforeVerify never throws', () => {
     const s = scheme({
       dpopNonceStore: { has: () => Promise.reject(new Error('down')), add: () => {} },
     });
-    expect(await beforeVerify(s, buyer.context({ DPoP: await buyer.proof() }))).toEqual(invalid);
+    expect(await verified(s, buyer.context({ DPoP: await buyer.proof() }))).toEqual(invalid);
+  });
+
+  it('onAfterVerify aborts with dpop_invalid when the nonce store add fails', async () => {
+    const s = scheme({
+      dpopNonceStore: {
+        has: () => false,
+        add: () => {
+          throw new Error('down');
+        },
+      },
+    });
+    expect(await verified(s, buyer.context({ DPoP: await buyer.proof() }))).toEqual(invalid);
   });
 
   it('aborts with dpop_invalid when the adapter fails', async () => {
@@ -352,10 +412,11 @@ describe('ExactAgenticCommerceScheme DPoP options', () => {
     }
   );
 
-  it('exposes onBeforeVerify in a frozen hooks object', () => {
+  it('exposes onBeforeVerify and onAfterVerify in a frozen hooks object', () => {
     const { schemeHooks } = scheme();
-    expect(Object.keys(schemeHooks)).toEqual(['onBeforeVerify']);
+    expect(Object.keys(schemeHooks)).toEqual(['onBeforeVerify', 'onAfterVerify']);
     expect(typeof schemeHooks.onBeforeVerify).toBe('function');
+    expect(typeof schemeHooks.onAfterVerify).toBe('function');
     expect(Object.isFrozen(schemeHooks)).toBe(true);
   });
 });

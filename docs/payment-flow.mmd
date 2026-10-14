@@ -22,8 +22,9 @@ sequenceDiagram
 
     alt Payment valid
         Facilitator-->>Seller: 12. isValid: true
-        Seller->>Facilitator: 13. settle: no-op, returns payment_id
-        Seller-->>Buyer: 14. 200 OK + resource, PAYMENT-RESPONSE
+        Seller->>Seller: 13. onAfterVerify: refuse a replayed proof (402), record its jti
+        Seller->>Facilitator: 14. settle: no-op, returns payment_id
+        Seller-->>Buyer: 15. 200 OK + resource, PAYMENT-RESPONSE
     else Payment invalid
         Facilitator-->>Seller: 12. isValid: false, invalidReason
         Seller-->>Buyer: 13. 402 Payment Required

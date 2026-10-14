@@ -11,9 +11,9 @@ import type { DPoPNonceStore } from '@aws/fiat-extension-for-x402';
  */
 export class MemoryNonceStore implements DPoPNonceStore {
   /**
-   * Ids are recorded before the payment token is verified, so anyone can add
-   * one. When this many are held and none has expired, every new proof is
-   * refused rather than an id forgotten early.
+   * Ids are recorded only for payment tokens the facilitator accepted, but a
+   * busy seller can still hold many. When this many are held and none has
+   * expired, every new proof is refused rather than an id forgotten early.
    */
   static readonly MAX_IDS = 100_000;
   private readonly seen = new Map<string, number>();
