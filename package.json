@@ -1,6 +1,6 @@
 {
   "name": "@aws/fiat-extension-for-x402",
-  "version": "1.0.0",
+  "version": "1.0.0-rc.1",
   "description": "AWS Marketplace Agentic Commerce payment schemes for the x402 protocol",
   "type": "module",
   "files": [
@@ -60,8 +60,7 @@
     "payment",
     "billing",
     "http-402",
-    "fiat",
-    "agent-pay"
+    "fiat"
   ],
   "author": "Amazon Web Services",
   "license": "Apache-2.0",
