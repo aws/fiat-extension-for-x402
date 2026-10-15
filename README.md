@@ -419,24 +419,6 @@ try {
 See [docs/security.md](docs/security.md) for more, and [SECURITY.md](SECURITY.md) to report an
 issue.
 
-## Migrating from `aws-agent-pay-x402` 0.1.0
-
-This package replaces the unscoped `aws-agent-pay-x402` 0.1.0 sources, which were never published to
-npm. See [CHANGELOG.md](CHANGELOG.md) for the full list of changes; in short:
-
-- Install `@aws/fiat-extension-for-x402`. Node.js 20.19 and `@x402/core` 2.23.0 or later are
-  required.
-- "Agent Pay" names are now "Agentic Commerce" names, for example `AgentPayError` is
-  `AgenticCommerceError` and `AgentPayFacilitatorClient` is `AgenticCommerceFacilitatorClient`. Also
-  renamed: `ServiceAgentPaySigner` is `QuoteSigner`, `KmsSignerConfig` is `KmsQuoteSignerConfig`,
-  `PAYMENT_JWT_ISSUER` is `PAYMENT_TOKEN_ISSUER` and `AGENT_PAY_SENTINEL_PAY_TO` is
-  `SENTINEL_PAY_TO`.
-- The `agent-pay` schemes are replaced by the `exact` schemes on network `aws:base`, and a
-  `sellerKeyResolver` is required to verify payments.
-- The buyer side and the Express middleware are removed: use x402's own middleware for your
-  framework. Endpoint discovery, the transaction ID helpers, the zod schemas and several constants
-  are removed too; the CHANGELOG lists every removed export.
-
 ## Versioning
 
 This package follows [semantic versioning](https://semver.org). The public API is every name
