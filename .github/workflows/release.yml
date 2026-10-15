@@ -126,4 +126,13 @@ jobs:
       - name: Publish to npm
         env:
           DIST_TAG: ${{ needs.build.outputs.dist-tag }}
-        run: npm publish dist-pack/*.tgz --access public --tag "$DIST_TAG" --ignore-scripts
+        # The path must start with "./": npm reads "dist-pack/<file>.tgz" as a
+        # GitHub "<owner>/<repo>" shorthand and tries to clone it.
+        run: |
+          shopt -s nullglob
+          tarballs=(./dist-pack/*.tgz)
+          if [ "${#tarballs[@]}" -ne 1 ]; then
+            echo "::error::Expected one package tarball in dist-pack/, found ${#tarballs[@]}"
+            exit 1
+          fi
+          npm publish "${tarballs[0]}" --access public --tag "$DIST_TAG" --ignore-scripts
