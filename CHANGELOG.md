@@ -7,7 +7,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The publi
 names exported from `@aws/fiat-extension-for-x402` and its `./agentic-commerce/exact` sub-path;
 removing or renaming any of them, or narrowing a supported range, needs a new major version.
 
-## [1.0.0] - Unreleased
+## [1.0.0] - 2026-10-16
 
 Initial release: the seller and facilitator roles of AWS Marketplace Agentic Commerce on x402, built
 on the stock `@x402/core` resource server and facilitator. Requires Node.js 20.19 or later and
