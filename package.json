@@ -1,6 +1,6 @@
 {
   "name": "@aws/fiat-extension-for-x402",
-  "version": "1.0.0-rc.3",
+  "version": "1.0.0",
   "description": "AWS Marketplace Agentic Commerce payment schemes for the x402 protocol",
   "type": "module",
   "files": [
