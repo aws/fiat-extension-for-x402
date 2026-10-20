@@ -7,6 +7,41 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The publi
 names exported from `@aws/fiat-extension-for-x402` and its `./agentic-commerce/exact` sub-path;
 removing or renaming any of them, or narrowing a supported range, needs a new major version.
 
+## [Unreleased]
+
+### Security
+
+- **The quote must be for this route.** The facilitator scheme and
+  `AgenticCommerceFacilitatorClient` now require the accepted quote's `iss`, `aud`, `payTo`,
+  `settlement` and `reference` to equal those of the quote the server signed for the request, so a
+  quote for another route, or from another service sharing the seller's key, is refused with
+  `invalid_quote` (`Quote does not match this route`). `VerificationRequirements` gains the
+  optional `routeQuote` for this check.
+- **No key fetch for a malformed or misdirected token.** `AgenticCommerceVerifier` checks the
+  payment token's shape, `alg`, `kid`, issuer, expiry, `payment_id` and quote before fetching any
+  key, and again after verifying its signature.
+- **The payment service JWKS is cached.** It is kept for a minute per verifier; a `kid` the cached
+  set lacks refetches it at most every 30 seconds, and concurrent fetches share one request. A
+  revoked service key is now refused within a minute rather than at once.
+- **JWKS responses are capped at 64 KiB.**
+
+### Changed
+
+- A payment token must have a `kid` in its header and a `payment_id` claim; one without either is
+  `invalid_payment`. Every token the payment service issues has both. `paymentId` is therefore
+  always set on a valid `VerificationResult`.
+
+### Documentation
+
+- [Payment replay](docs/security.md#payment-replay): verification is stateless, so a seller must
+  record each `paymentId` in a store shared by all its instances and accept each payment once.
+
+### Removed
+
+- The repository's `SECURITY.md` and Dependabot configuration, which the GitHub organization now
+  provides. Report a vulnerability through
+  [AWS vulnerability reporting](https://aws.amazon.com/security/vulnerability-reporting/).
+
 ## [1.0.0] - 2026-10-16
 
 Initial release: the seller and facilitator roles of AWS Marketplace Agentic Commerce on x402, built
@@ -64,4 +99,5 @@ on the stock `@x402/core` resource server and facilitator. Requires Node.js 20.1
 - An error for a JWK that cannot be imported names the key by its `kid` and never includes the
   key's members.
 
+[Unreleased]: https://github.com/aws/fiat-extension-for-x402/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/aws/fiat-extension-for-x402/releases/tag/v1.0.0

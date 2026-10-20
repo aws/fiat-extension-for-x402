@@ -1,7 +1,8 @@
 # Security Guide
 
 This page describes the protections in `@aws/fiat-extension-for-x402` and what a seller must do to
-keep them effective. To report a vulnerability, see [SECURITY.md](../SECURITY.md).
+keep them effective. To report a vulnerability, see
+[AWS vulnerability reporting](https://aws.amazon.com/security/vulnerability-reporting/).
 
 ## Keys
 
@@ -36,11 +37,43 @@ currency and product. Every failure rejects the payment; nothing fails open. The
 checks is in [sdk-guide.md](sdk-guide.md#51-payment-verification).
 
 - The quote comparison is constant-time (`secureCompare`).
-- The payment service JWKS is fetched on every verification, so a revoked service key stops being
-  accepted at once.
-- JWKS requests time out after 10 seconds and do not follow redirects, so the configured headers
-  (`jwksRequestHeaders`, `getAuthHeaders`) never reach another host; they are never sent to a seller
-  JWKS URL.
+- The quote must name the same route as the quote the server signed for the request: the same
+  `iss`, `aud`, `payTo`, `settlement` and `reference`. A quote for another route, or from another
+  service sharing the seller's key, is refused.
+- The token's shape, `alg`, `kid`, issuer, expiry, `payment_id` and quote are checked before any key
+  is fetched, so a malformed or misdirected token costs no network call.
+- The payment service JWKS is cached for a minute, so a revoked service key stops being accepted
+  within a minute. A token naming a `kid` the cached set lacks refetches it at most every 30
+  seconds, and concurrent fetches share one request.
+- JWKS requests time out after 10 seconds, refuse a body over 64 KiB and do not follow redirects,
+  so the configured headers (`jwksRequestHeaders`, `getAuthHeaders`) never reach another host; they
+  are never sent to a seller JWKS URL.
+
+## Payment replay
+
+Verification is stateless and `settle` is a no-op: the payment service captures the payment when it
+issues the payment token. The SDK keeps no record of the payments it has accepted, so one
+`PAYMENT-SIGNATURE` passes verification on every request until the earlier of the payment token's
+and the quote's `exp` (300 seconds by default). Without a record, one payment buys every request made
+with it in that window. A token bound to a key (`cnf.jkt`) needs a fresh DPoP proof per request, but
+its holder can make one each time.
+
+The SDK cannot keep that record for the seller: only a store shared by every instance of the seller
+rejects a payment replayed against another instance. The seller **must** accept each payment once:
+
+- **Record `paymentId` atomically.** Every valid payment token has a `payment_id`, returned as
+  `paymentId` by `AgenticCommerceVerifier.verify` and as the `transaction` of the settle response
+  (the `PAYMENT-RESPONSE` header). Before serving the request, insert it into a store shared by every
+  instance of the seller with a conditional write (for example a DynamoDB `PutItem` with
+  `attribute_not_exists`, or Redis `SET NX`), and refuse the request if it was already there.
+- **Keep it long enough.** Keep each id until `max(payment token exp, quote exp)` plus the clock
+  skew between the seller's instances, after which the token is refused anyway.
+- **Record it once the payment is valid.** Recording before verification lets a forged token block a
+  genuine payment id.
+
+This follows x402's own guidance for Solana, where a resource server or facilitator must likewise
+remember the transactions it has settled:
+[Duplicate Settlement Mitigation](https://github.com/coinbase/x402/blob/main/specs/schemes/exact/scheme_exact_svm.md#duplicate-settlement-mitigation-recommended).
 
 ## DPoP
 
@@ -85,10 +118,12 @@ What the seller must do:
 
 ## Common pitfalls
 
-1. **Using the token helpers to accept payments.** `verifyQuoteToken` and `verifyPaymentToken` check
+1. **Accepting a payment more than once.** Record each `paymentId` in a shared store; see
+   [Payment replay](#payment-replay).
+2. **Using the token helpers to accept payments.** `verifyQuoteToken` and `verifyPaymentToken` check
    one signature; only `AgenticCommerceVerifier` (through the facilitator) makes every check.
-2. **A seller JWKS URL you do not control.** The `jwksUrl` must be the seller's own, the one
+3. **A seller JWKS URL you do not control.** The `jwksUrl` must be the seller's own, the one
    registered for the listing.
-3. **One nonce store per instance.** Use a shared store.
-4. **Hard-coded keys or credentials.** Use KMS, environment configuration or a secrets manager, and
+4. **One nonce store per instance.** Use a shared store.
+5. **Hard-coded keys or credentials.** Use KMS, environment configuration or a secrets manager, and
    the default AWS credential chain.
