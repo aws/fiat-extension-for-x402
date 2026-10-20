@@ -10,7 +10,7 @@
  */
 
 import { createPublicKey, type KeyObject } from 'node:crypto';
-import { compactVerify, decodeProtectedHeader } from 'jose';
+import { base64url, compactVerify, decodeProtectedHeader } from 'jose';
 import {
   DEFAULT_PAYMENT_TOKEN_JWKS_BASE_URL,
   PAYMENT_TOKEN_ISSUER,
@@ -28,13 +28,18 @@ import {
   rstripSlashes,
 } from './json-value';
 
-// Seller keys (JWKS or KMS) are cached for an hour. The service's own keys are
-// fetched on every verification: its JWKS endpoint sends Cache-Control: no-store
-// so that a revoked key stops being accepted immediately.
+// Seller keys (JWKS or KMS) are cached for an hour.
 const SELLER_KEY_CACHE_TTL_MS = 3_600_000;
 
-// Timeout of every JWKS request.
+// The service's JWKS is cached briefly, so a revoked key stops being accepted
+// within a minute. A token naming a key the cached set lacks refetches it, at
+// most once per interval, so unknown kids cannot drive a fetch per request.
+const SERVICE_JWKS_CACHE_TTL_MS = 60_000;
+const SERVICE_JWKS_REFETCH_INTERVAL_MS = 30_000;
+
+// Timeout and maximum body size of every JWKS request.
 const JWKS_FETCH_TIMEOUT_MS = 10_000;
+const JWKS_MAX_BYTES = 64 * 1024;
 
 /** Reasons a payment is invalid. The DPoP reasons are reported by the server scheme. */
 export type AgenticCommerceInvalidReason =
@@ -72,7 +77,17 @@ export interface VerificationRequirements {
    * and `settlement.product_id` must equal it.
    */
   productId?: string;
+  /**
+   * The claims of the quote the server signed for this route. When given, the
+   * accepted quote's `iss`, `aud`, `payTo`, `settlement` and `reference` must
+   * equal them.
+   */
+  routeQuote?: Record<string, unknown>;
 }
+
+// Quote claims that name the route; the others change on every quote or are
+// checked on their own.
+const ROUTE_QUOTE_CLAIMS = ['iss', 'aud', 'payTo', 'settlement', 'reference'] as const;
 
 /** Headers sent with the payment-token JWKS request */
 export type JwksRequestHeaders =
@@ -114,18 +129,27 @@ function invalid(reason: AgenticCommerceInvalidReason, message: string): Verific
  *
  * Verification steps:
  *
- * 1. Verify the payment token's signature with the service's JWKS.
- * 2. Check its issuer is the service and it has not expired.
- * 3. Check the quote token embedded in it equals the quote in the
+ * 1. Check the payment token, still unverified, is a compact JWS with an
+ *    allowed `alg` and a `kid`, and make the claim checks of step 3. A token
+ *    failing these is rejected without fetching any key.
+ * 2. Verify the payment token's signature with the service's JWKS (cached
+ *    for a minute).
+ * 3. Check its issuer is the service, it has not expired, it carries a
+ *    `payment_id`, and the quote token embedded in it equals the quote in the
  *    requirements (constant-time comparison).
  * 4. Verify the quote token's signature with the seller's key, which the
  *    seller configures; it is never discovered from the token.
  * 5. Check the payment token's audience is the quote's issuer, and the quote
  *    has not expired.
  * 6. Check the quote's price matches the requirements' amount and currency
- *    and, when the requirements name the product, the quote's product.
+ *    and, when the requirements name the product or carry the route's own
+ *    quote, that the quote is for this route.
  *
  * DPoP binding (`cnf.jkt`) is not checked here.
+ *
+ * Verification is stateless: a payment token passes every time until it or
+ * its quote expires. The seller must record `paymentId` to accept each
+ * payment once; see docs/security.md.
  *
  * @example
  * ```typescript
@@ -140,6 +164,9 @@ export class AgenticCommerceVerifier {
   private readonly paymentTokenIssuer: string;
   private readonly sellerKeyResolver: SellerKeyResolver;
   private readonly sellerKeyCache = new Map<string, { value: unknown; time: number }>();
+  private serviceJwks: { jwks: unknown; time: number } | undefined;
+  private serviceJwksFetch: Promise<unknown> | undefined;
+  private serviceJwksFetchedAt = Number.NEGATIVE_INFINITY;
 
   /**
    * @param config - The seller key resolver and the payment-token JWKS options
@@ -172,34 +199,37 @@ export class AgenticCommerceVerifier {
       return invalid('invalid_quote', 'Missing quoteToken in payment requirements');
     }
 
+    // Checks on the unverified token first: a request failing them costs no
+    // key fetch.
+    let kid: string;
+    let unverifiedClaims: Record<string, unknown>;
+    try {
+      const header = unverifiedHeader(paymentToken);
+      if (typeof header.alg !== 'string' || !ALLOWED_ALGORITHMS.includes(header.alg)) {
+        throw new ValidationError(`Algorithm not allowed: ${displayText(header.alg)}`);
+      }
+      if (typeof header.kid !== 'string' || !header.kid) {
+        throw new ValidationError('Payment token has no kid');
+      }
+      kid = header.kid;
+      unverifiedClaims = unverifiedPayload(paymentToken);
+    } catch (error) {
+      return invalid('invalid_payment', `Payment token signature invalid: ${errorMessage(error)}`);
+    }
+    const early = this.checkPaymentClaims(unverifiedClaims, expectedQuoteToken);
+    if (early !== undefined) return early;
+
     let paymentClaims: Record<string, unknown>;
     try {
-      const headers =
-        typeof this.jwksRequestHeaders === 'function'
-          ? await this.jwksRequestHeaders()
-          : this.jwksRequestHeaders;
-      const paymentJwks = await fetchJwks(this.paymentTokenJwksUrl, headers);
+      const paymentJwks = await this.serviceJwksFor(kid);
       paymentClaims = await verifyWithJwks(paymentToken, paymentJwks);
     } catch (error) {
       return invalid('invalid_payment', `Payment token signature invalid: ${errorMessage(error)}`);
     }
-
+    const late = this.checkPaymentClaims(paymentClaims, expectedQuoteToken);
+    if (late !== undefined) return late;
+    const quoteToken = paymentClaims.quote_token as string;
     const now = Math.floor(Date.now() / 1000);
-    if (!looseEquals(paymentClaims.iss, this.paymentTokenIssuer)) {
-      return invalid('invalid_payment', 'Payment token issuer is not the payment service');
-    }
-    const exp = paymentClaims.exp;
-    if (!Number.isInteger(exp) || (exp as number) < now) {
-      return invalid('payment_expired', 'Payment token expired');
-    }
-
-    const quoteToken = paymentClaims.quote_token;
-    if (typeof quoteToken !== 'string' || !quoteToken) {
-      return invalid('invalid_quote', 'Missing quote token in payment token');
-    }
-    if (!secureCompare(quoteToken, displayText(expectedQuoteToken))) {
-      return invalid('invalid_quote', 'Payment token was issued for a different quote');
-    }
 
     let quoteClaims: Record<string, unknown>;
     try {
@@ -227,7 +257,7 @@ export class AgenticCommerceVerifier {
       return invalid('invalid_payment', 'Amount or currency mismatch');
     }
 
-    // x402 core does not match on the product, so bind it here.
+    // x402 core does not match on the product or the quote, so bind them here.
     if (requirements.productId !== undefined) {
       const settlement = quoteClaims.settlement;
       if (
@@ -238,13 +268,84 @@ export class AgenticCommerceVerifier {
         return invalid('invalid_payment', 'Quote is for a different product');
       }
     }
+    const routeQuote = requirements.routeQuote;
+    if (
+      routeQuote !== undefined &&
+      ROUTE_QUOTE_CLAIMS.some((name) => !looseEquals(quoteClaims[name], routeQuote[name]))
+    ) {
+      return invalid('invalid_quote', 'Quote does not match this route');
+    }
 
     return {
       isValid: true,
       payer: typeof paymentClaims.sub === 'string' ? paymentClaims.sub : undefined,
-      paymentId:
-        typeof paymentClaims.payment_id === 'string' ? paymentClaims.payment_id : undefined,
+      paymentId: paymentClaims.payment_id as string,
     };
+  }
+
+  /**
+   * The payment-token claim checks, made on the unverified claims before any
+   * key is fetched and again on the verified ones.
+   */
+  private checkPaymentClaims(
+    claims: Record<string, unknown>,
+    expectedQuoteToken: unknown
+  ): VerificationResult | undefined {
+    const now = Math.floor(Date.now() / 1000);
+    if (!looseEquals(claims.iss, this.paymentTokenIssuer)) {
+      return invalid('invalid_payment', 'Payment token issuer is not the payment service');
+    }
+    const exp = claims.exp;
+    if (!Number.isInteger(exp) || (exp as number) < now) {
+      return invalid('payment_expired', 'Payment token expired');
+    }
+    // The key a seller records to accept each payment once.
+    if (typeof claims.payment_id !== 'string' || !claims.payment_id) {
+      return invalid('invalid_payment', 'Missing payment_id in payment token');
+    }
+    const quoteToken = claims.quote_token;
+    if (typeof quoteToken !== 'string' || !quoteToken) {
+      return invalid('invalid_quote', 'Missing quote token in payment token');
+    }
+    if (!secureCompare(quoteToken, displayText(expectedQuoteToken))) {
+      return invalid('invalid_quote', 'Payment token was issued for a different quote');
+    }
+    return undefined;
+  }
+
+  /**
+   * The service's JWKS: the cached set while it is fresh and names `kid`,
+   * otherwise a new fetch, shared by concurrent callers. A `kid` the fresh set
+   * lacks refetches it at most once per refetch interval.
+   */
+  private serviceJwksFor(kid: string): Promise<unknown> {
+    const now = Date.now();
+    const cached = this.serviceJwks;
+    if (
+      cached !== undefined &&
+      now - cached.time < SERVICE_JWKS_CACHE_TTL_MS &&
+      (jwksHasKid(cached.jwks, kid) ||
+        now - this.serviceJwksFetchedAt < SERVICE_JWKS_REFETCH_INTERVAL_MS)
+    ) {
+      return Promise.resolve(cached.jwks);
+    }
+    if (this.serviceJwksFetch === undefined) {
+      this.serviceJwksFetchedAt = now;
+      this.serviceJwksFetch = (async () => {
+        try {
+          const headers =
+            typeof this.jwksRequestHeaders === 'function'
+              ? await this.jwksRequestHeaders()
+              : this.jwksRequestHeaders;
+          const jwks = await fetchJwks(this.paymentTokenJwksUrl, headers);
+          this.serviceJwks = { jwks, time: Date.now() };
+          return jwks;
+        } finally {
+          this.serviceJwksFetch = undefined;
+        }
+      })();
+    }
+    return this.serviceJwksFetch;
   }
 
   private async verifyQuote(quoteToken: string): Promise<Record<string, unknown>> {
@@ -323,7 +424,43 @@ async function fetchJwks(url: string, headers: Record<string, string>): Promise<
   if (response.status !== 200) {
     throw new ValidationError(`Failed to fetch JWKS from ${url}: HTTP ${response.status}`);
   }
-  return response.json();
+  return JSON.parse(new TextDecoder().decode(await readCapped(response, url)));
+}
+
+/** A JWKS response body, refused once it exceeds {@link JWKS_MAX_BYTES} */
+async function readCapped(response: Response, url: string): Promise<Uint8Array> {
+  const tooLarge = () => new ValidationError(`JWKS from ${url} exceeds ${JWKS_MAX_BYTES} bytes`);
+  if (Number(response.headers.get('content-length') ?? 0) > JWKS_MAX_BYTES) {
+    await response.body?.cancel();
+    throw tooLarge();
+  }
+  const reader: ReadableStreamDefaultReader<Uint8Array> | undefined = response.body?.getReader();
+  if (reader === undefined) return new Uint8Array();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > JWKS_MAX_BYTES) {
+      await reader.cancel();
+      throw tooLarge();
+    }
+    chunks.push(value);
+  }
+  const body = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return body;
+}
+
+/** Whether a JWKS has a key with this `kid` */
+function jwksHasKid(jwks: unknown, kid: string): boolean {
+  const keys = isPlainObject(jwks) ? jwks.keys : undefined;
+  return Array.isArray(keys) && keys.some((key) => isPlainObject(key) && looseEquals(key.kid, kid));
 }
 
 function unverifiedHeader(token: string): Record<string, unknown> {
@@ -335,6 +472,21 @@ function unverifiedHeader(token: string): Record<string, unknown> {
   } catch (error) {
     throw new JwtError(errorMessage(error));
   }
+}
+
+/** The claims of a compact JWS, unverified */
+function unverifiedPayload(token: string): Record<string, unknown> {
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    throw new JwtError('Not a compact JWS');
+  }
+  let payload: Uint8Array;
+  try {
+    payload = base64url.decode(parts[1]);
+  } catch (error) {
+    throw new JwtError(`Invalid payload padding: ${errorMessage(error)}`);
+  }
+  return parseClaims(payload);
 }
 
 /** Verify with the key named by `kid`; without a `kid`, with any key in the set. */

@@ -120,6 +120,6 @@ Every case pins behaviour that every SDK shares today, lenient or strict, so
 changing any outcome is a contract change. Cases named "lenient" are the ones
 a reviewer is most likely to want tightened (a digit-string `iat` is read as
 an integer; the quote `aud` is not checked). Others are deliberate choices
-too: a token without `payment_id` is valid and settles with an empty
-`transaction`, a price of `0` is accepted, a fractional `exp` is expired, and
-`htu` is compared exactly, with no URI normalisation.
+too: a payment token must have a `kid` and a `payment_id`, a price of `0` is
+accepted, a fractional `exp` is expired, and `htu` is compared exactly, with
+no URI normalisation.

@@ -171,24 +171,34 @@ token.
 `AgenticCommerceVerifier.verify(paymentToken, requirements)` never throws for an invalid payment; it
 returns `{ isValid: false, invalidReason, invalidMessage }`. In order:
 
-| #   | Check                                                                                           | Reason on failure |
-| --- | ----------------------------------------------------------------------------------------------- | ----------------- |
-| 1   | The requirements carry `extra.quoteToken`                                                       | `invalid_quote`   |
-| 2   | The payment token's signature verifies against the payment service JWKS (`paymentTokenJwksUrl`) | `invalid_payment` |
-| 3   | Its `iss` is `paymentTokenIssuer` (default `PAYMENT_TOKEN_ISSUER`)                              | `invalid_payment` |
-| 4   | Its `exp` is an integer and not in the past                                                     | `payment_expired` |
-| 5   | It has a top-level `quote_token`, equal (constant-time) to `extra.quoteToken`                   | `invalid_quote`   |
-| 6   | The quote's signature verifies with the configured `sellerKeyResolver`                          | `invalid_quote`   |
-| 7   | The payment token's `aud` is the quote's `iss`                                                  | `invalid_payment` |
-| 8   | The quote's `exp` is an integer and not in the past                                             | `quote_expired`   |
-| 9   | The quote's price amount and currency equal the requirements'                                   | `invalid_payment` |
-| 10  | With a product ID in the requirements, the quote's `payTo` and `settlement.product_id` equal it | `invalid_payment` |
+| #   | Check                                                                                                                | Reason on failure |
+| --- | -------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| 1   | The requirements carry `extra.quoteToken`                                                                            | `invalid_quote`   |
+| 2   | The payment token is a compact JWS whose header has an allowed `alg` and a `kid`                                     | `invalid_payment` |
+| 3   | Its `iss` is `paymentTokenIssuer` (default `PAYMENT_TOKEN_ISSUER`)                                                   | `invalid_payment` |
+| 4   | Its `exp` is an integer and not in the past                                                                          | `payment_expired` |
+| 5   | It has a `payment_id`                                                                                                | `invalid_payment` |
+| 6   | It has a top-level `quote_token`, equal (constant-time) to `extra.quoteToken`                                        | `invalid_quote`   |
+| 7   | Its signature verifies against the payment service JWKS (`paymentTokenJwksUrl`); then checks 3-6 again               | `invalid_payment` |
+| 8   | The quote's signature verifies with the configured `sellerKeyResolver`                                               | `invalid_quote`   |
+| 9   | The payment token's `aud` is the quote's `iss`                                                                       | `invalid_payment` |
+| 10  | The quote's `exp` is an integer and not in the past                                                                  | `quote_expired`   |
+| 11  | The quote's price amount and currency equal the requirements'                                                        | `invalid_payment` |
+| 12  | With a product ID in the requirements, the quote's `payTo` and `settlement.product_id` equal it                      | `invalid_payment` |
+| 13  | With the route's quote in the requirements, the quote's `iss`, `aud`, `payTo`, `settlement` and `reference` equal it | `invalid_quote`   |
 
-The facilitator scheme and `AgenticCommerceFacilitatorClient` pass the route's product ID, read from
-the quote the server signed for this request, so a quote for another product is refused. A payload
-without `paymentToken` is `invalid_payment`. Signatures are limited to `ALLOWED_ALGORITHMS`. Any
-error fetching a key, including a timeout (10 seconds), a redirect (not followed) or a non-200
-status, fails the check it belongs to.
+Checks 2 to 6 read the token before its signature is verified, so a request failing them costs no
+key fetch; they are made again once it is. The facilitator scheme and
+`AgenticCommerceFacilitatorClient` pass the route's product ID and quote, read from the quote the
+server signed for this request, so a quote for another product, another route or another service
+sharing the seller's key is refused. A payload without `paymentToken` is `invalid_payment`.
+Signatures are limited to `ALLOWED_ALGORITHMS`. Any error fetching a key, including a timeout (10
+seconds), a redirect (not followed), a non-200 status or a body over 64 KiB, fails the check it
+belongs to.
+
+Verification does not record payments: a valid payment token passes every time until it or its
+quote expires. To accept each payment once, see
+[security.md](security.md#payment-replay).
 
 ### 5.2 DPoP
 
@@ -241,11 +251,11 @@ The schemes and the verifier report invalid payments as results, not errors.
 
 ### 6.2 Caching
 
-| What                         | Cached                                                                |
-| ---------------------------- | --------------------------------------------------------------------- |
-| Seller JWKS (`type: 'jwks'`) | One hour, per verifier                                                |
-| Seller KMS public key        | One hour, per verifier                                                |
-| Payment service JWKS         | Not cached: fetched on every verification, so revocation is immediate |
+| What                         | Cached                                                                                                         |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Seller JWKS (`type: 'jwks'`) | One hour, per verifier                                                                                         |
+| Seller KMS public key        | One hour, per verifier                                                                                         |
+| Payment service JWKS         | One minute, per verifier; a `kid` it lacks refetches it at most every 30 seconds; concurrent fetches share one |
 
 ### 6.3 Constants
 

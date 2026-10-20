@@ -167,8 +167,9 @@ export function settleExactPayment(
  * core matches those against the server's while ignoring the quote token
  * (signed afresh for every 402), so the server's copy holds a newer quote than
  * the one the buyer paid for. The quote is signed by the seller, which the
- * verifier checks. v1 payloads have no `accepted` and v1 requirements name
- * the amount `maxAmountRequired`.
+ * verifier checks, and must name the same route as the server's quote. v1
+ * payloads have no `accepted` and v1 requirements name the amount
+ * `maxAmountRequired`.
  */
 function wireRequirements(
   payload: PaymentPayload,
@@ -178,27 +179,28 @@ function wireRequirements(
   const accepted = (payload as { accepted?: { extra?: unknown } | null }).accepted;
   const quoteSource: { extra?: unknown } = accepted ?? requirements;
   const quoteToken = isPlainObject(quoteSource.extra) ? quoteSource.extra.quoteToken : undefined;
+  const routeQuote = routeQuoteClaims(requirements);
   return {
     amount: server.amount ?? server.maxAmountRequired,
     asset: server.asset,
     extra: { quoteToken },
-    productId: routeProductId(requirements),
+    productId: typeof routeQuote.payTo === 'string' ? routeQuote.payTo : '',
+    routeQuote,
   };
 }
 
 /**
- * The route's product ID, read from the quote the server signed for this
- * request. The requirements come from the seller's own server (x402 core
- * passes its requirements, not the buyer's), so the quote is not re-verified.
- * An empty string, which no quote matches, when the server sent no quote.
+ * The claims of the quote the server signed for this request. The
+ * requirements come from the seller's own server (x402 core passes its
+ * requirements, not the buyer's), so the quote is not re-verified. Empty, so
+ * that no quote matches, when the server sent no quote.
  */
-function routeProductId(requirements: PaymentRequirements): string {
+function routeQuoteClaims(requirements: PaymentRequirements): Record<string, unknown> {
   const extra: unknown = requirements.extra;
   const serverQuote = isPlainObject(extra) ? extra.quoteToken : undefined;
   try {
-    const payTo = decodeJwt(String(serverQuote)).payTo;
-    return typeof payTo === 'string' ? payTo : '';
+    return decodeJwt(String(serverQuote));
   } catch {
-    return '';
+    return {};
   }
 }

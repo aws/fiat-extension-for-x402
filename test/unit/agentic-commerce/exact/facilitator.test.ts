@@ -20,6 +20,7 @@ import {
   jwksFetch,
 } from '../../../helpers/fake-payment-service';
 import { generateDPoPKeyPair } from '../../../helpers/dpop';
+import { toQuoteSigner } from '../../../helpers/jwt-signers';
 
 const ROUTE: PaymentRequirements = {
   scheme: 'exact',
@@ -128,6 +129,51 @@ describe('ExactAgenticCommerceFacilitatorScheme', () => {
         isValid: false,
         invalidReason: 'invalid_payment',
         invalidMessage: 'Quote is for a different product',
+      });
+    });
+
+    it('rejects a quote another service signed with the same key', async () => {
+      // Two services sharing one signing key: the payment token's aud is the
+      // other service, so only the route binding tells them apart.
+      const otherService = toQuoteSigner(
+        seller.privateKey,
+        seller.publicJwk,
+        'https://other.example.com'
+      );
+      const other = await enhancePaymentRequirements(ROUTE, otherService);
+      const token = await service.issue(quoteOf(other));
+      expect(await scheme.verify(payload(other, token), await offer())).toEqual({
+        isValid: false,
+        invalidReason: 'invalid_quote',
+        invalidMessage: 'Quote does not match this route',
+      });
+    });
+
+    it.each([
+      ['reference', { reference: 'OTHER' }],
+      ['settlement', { settlement: { product_id: 'prod-weather', note: 'x' } }],
+    ])('rejects a quote whose %s differs from the route quote', async (_name, extra) => {
+      const other = await offer({ ...ROUTE, extra: { ...ROUTE.extra, ...extra } });
+      const token = await service.issue(quoteOf(other));
+      expect(await scheme.verify(payload(other, token), await offer())).toEqual({
+        isValid: false,
+        invalidReason: 'invalid_quote',
+        invalidMessage: 'Quote does not match this route',
+      });
+    });
+
+    it('rejects a quote whose aud differs from the route quote', async () => {
+      const server = await offer();
+      const claims = jose.decodeJwt(quoteOf(server));
+      const forged = await new jose.SignJWT({ ...claims, aud: 'aws:other', jti: 'other' })
+        .setProtectedHeader({ alg: 'ES256', kid: 'seller-key' })
+        .sign(seller.privateKey);
+      const accepted = { ...server, extra: { ...server.extra, quoteToken: forged } };
+      const token = await service.issue(forged);
+      expect(await scheme.verify(payload(accepted, token), server)).toEqual({
+        isValid: false,
+        invalidReason: 'invalid_quote',
+        invalidMessage: 'Quote does not match this route',
       });
     });
 

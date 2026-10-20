@@ -269,18 +269,112 @@ describe('AgenticCommerceVerifier', () => {
   });
 
   describe('2. payment token signature (service JWKS)', () => {
-    it('fetches the service JWKS on every verification, with the configured headers', async () => {
+    it('fetches the service JWKS with the configured headers, and caches it', async () => {
       const quote = await sellerQuote();
       const token = await service.issue(quote);
       const v = verifier({ jwksRequestHeaders: { 'x-access': 'onboarding-key' } });
       await expectValid(token, wire(quote), v);
       await expectValid(token, wire(quote), v);
+      expect(fetchStub).toHaveBeenCalledTimes(1);
+      const [input, init] = fetchStub.mock.calls[0];
+      expect(requestUrl(input)).toBe(SERVICE_JWKS_URL);
+      expect(init?.headers).toEqual({ 'x-access': 'onboarding-key' });
+      expect(init?.signal).toBeInstanceOf(AbortSignal);
+    });
+
+    it('refetches the service JWKS once the cached copy is a minute old', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      const quote = await sellerQuote();
+      const v = verifier();
+      await expectValid(await service.issue(quote), wire(quote), v);
+      vi.advanceTimersByTime(59_000);
+      await expectValid(await service.issue(quote), wire(quote), v);
+      expect(fetchStub).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(2_000);
+      await expectValid(await service.issue(quote), wire(quote), v);
       expect(fetchStub).toHaveBeenCalledTimes(2);
-      for (const [input, init] of fetchStub.mock.calls) {
-        expect(requestUrl(input)).toBe(SERVICE_JWKS_URL);
-        expect(init?.headers).toEqual({ 'x-access': 'onboarding-key' });
-        expect(init?.signal).toBeInstanceOf(AbortSignal);
+    });
+
+    it('refetches for an unknown kid at most once every 30 seconds', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      const quote = await sellerQuote();
+      const v = verifier();
+      await expectValid(await service.issue(quote), wire(quote), v);
+      const unknown = await service.issue(quote, { header: { alg: 'ES384', kid: 'unknown' } });
+      for (let i = 0; i < 5; i++) {
+        await expectInvalid(
+          unknown,
+          wire(quote),
+          'invalid_payment',
+          'Payment token signature invalid: No matching key found in JWKS',
+          v
+        );
       }
+      // The first fetch was just now, so the unknown kid fetched nothing.
+      expect(fetchStub).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(31_000);
+      await v.verify(unknown, wire(quote));
+      await v.verify(unknown, wire(quote));
+      expect(fetchStub).toHaveBeenCalledTimes(2);
+    });
+
+    it('shares one fetch between concurrent verifications', async () => {
+      const quote = await sellerQuote();
+      const v = verifier();
+      const tokens = await Promise.all([1, 2, 3].map(() => service.issue(quote)));
+      const results = await Promise.all(tokens.map((token) => v.verify(token, wire(quote))));
+      expect(results.every((result) => result.isValid)).toBe(true);
+      expect(fetchStub).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not cache a failed fetch', async () => {
+      const quote = await sellerQuote();
+      const v = verifier();
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(() => Promise.resolve(new Response('{}', { status: 503 })))
+      );
+      expect((await v.verify(await service.issue(quote), wire(quote))).isValid).toBe(false);
+      vi.stubGlobal('fetch', fetchStub);
+      await expectValid(await service.issue(quote), wire(quote), v);
+    });
+
+    it('refuses a JWKS larger than 64 KiB', async () => {
+      const quote = await sellerQuote();
+      const padded = { ...service.jwks, padding: 'x'.repeat(64 * 1024) };
+      const headerSets: Record<string, string>[] = [{}, { 'content-length': '70000' }];
+      for (const headers of headerSets) {
+        vi.stubGlobal(
+          'fetch',
+          vi.fn(() =>
+            Promise.resolve(new Response(JSON.stringify(padded), { status: 200, headers }))
+          )
+        );
+        await expectInvalid(
+          await service.issue(quote),
+          wire(quote),
+          'invalid_payment',
+          `Payment token signature invalid: JWKS from ${SERVICE_JWKS_URL} exceeds 65536 bytes`
+        );
+      }
+    });
+
+    it.each([
+      ['not a JWS', () => 'garbage'],
+      ['a JWE-shaped token', () => 'a.b.c.d.e'],
+      ['a token with no kid', (q: string) => service.issue(q, { header: { alg: 'ES384' } })],
+      ['a token from another issuer', (q: string) => service.issue(q, { issuer: 'https://evil' })],
+      ['an expired token', (q: string) => service.issue(q, { expiresIn: -10 })],
+      [
+        'a token without payment_id',
+        (q: string) => service.issue(q, { claims: { payment_id: undefined } }),
+      ],
+      ['a token for another quote', () => service.issue('another-quote')],
+    ])('rejects %s without fetching any key', async (_name, make) => {
+      const quote = await sellerQuote();
+      const result = await verifier().verify(await make(quote), wire(quote));
+      expect(result.isValid).toBe(false);
+      expect(fetchStub).not.toHaveBeenCalled();
     });
 
     it('accepts headers from a function, called per fetch', async () => {
@@ -344,11 +438,14 @@ describe('AgenticCommerceVerifier', () => {
       );
     });
 
-    it('tries every key when the header has no kid', async () => {
-      const other = await ecKey('other-key', 'ES384');
-      vi.stubGlobal('fetch', jwksFetch({ [SERVICE_JWKS_URL]: { keys: [other.jwk, service.jwk] } }));
+    it('rejects a token whose header has no kid', async () => {
       const quote = await sellerQuote();
-      await expectValid(await service.issue(quote, { header: { alg: 'ES384' } }), wire(quote));
+      await expectInvalid(
+        await service.issue(quote, { header: { alg: 'ES384' } }),
+        wire(quote),
+        'invalid_payment',
+        'Payment token signature invalid: Payment token has no kid'
+      );
     });
 
     it('fails when the header alg is not allowed', async () => {
@@ -653,7 +750,7 @@ describe('AgenticCommerceVerifier', () => {
         );
         expect(sellerCalls).toHaveLength(1);
         expect(sellerCalls[0][1]?.headers).toEqual({});
-        expect(fetchStub).toHaveBeenCalledTimes(3);
+        expect(fetchStub).toHaveBeenCalledTimes(2);
       });
 
       it('fails when the seller JWKS cannot be fetched, and does not cache the failure', async () => {
