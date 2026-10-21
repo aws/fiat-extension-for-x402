@@ -162,13 +162,17 @@ async function startSeller(options: SellerOptions): Promise<Seller> {
   if (options.acceptEachPaymentOnce) {
     // The recipe in docs/security.md, with a Set for the shared store.
     const accepted = new Set<string>();
-    resourceServer.onAfterVerify(async ({ result }) => {
+    resourceServer.onAfterVerify(({ result }) => {
       const paymentId = result.extra?.paymentId;
       if (typeof paymentId !== 'string' || accepted.has(paymentId)) {
-        return { abort: true, reason: 'payment_replayed', message: 'Payment already used' };
+        return Promise.resolve({
+          abort: true as const,
+          reason: 'payment_replayed',
+          message: 'Payment already used',
+        });
       }
       accepted.add(paymentId);
-      return undefined;
+      return Promise.resolve();
     });
   }
 
