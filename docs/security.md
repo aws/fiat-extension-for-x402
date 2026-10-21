@@ -61,15 +61,33 @@ its holder can make one each time.
 The SDK cannot keep that record for the seller: only a store shared by every instance of the seller
 rejects a payment replayed against another instance. The seller **must** accept each payment once:
 
-- **Record `paymentId` atomically.** Every valid payment token has a `payment_id`, returned as
-  `paymentId` by `AgenticCommerceVerifier.verify` and as the `transaction` of the settle response
-  (the `PAYMENT-RESPONSE` header). Before serving the request, insert it into a store shared by every
-  instance of the seller with a conditional write (for example a DynamoDB `PutItem` with
-  `attribute_not_exists`, or Redis `SET NX`), and refuse the request if it was already there.
+- **Record `paymentId` atomically.** Every valid payment token has a `payment_id`. The `exact`
+  facilitator scheme returns it as `extra.paymentId` of the verify response, so an `onAfterVerify`
+  hook sees it before the request is served (`AgenticCommerceVerifier.verify` returns it as
+  `paymentId`). Insert it into a store shared by every instance of the seller with a conditional
+  write (for example a DynamoDB `PutItem` with `attribute_not_exists`, or Redis `SET NX`), and refuse
+  the request if it was already there. Use only this verified id: a `paymentId` in the payment
+  payload is set by the buyer and never checked.
 - **Keep it long enough.** Keep each id until `max(payment token exp, quote exp)` plus the clock
   skew between the seller's instances, after which the token is refused anyway.
 - **Record it once the payment is valid.** Recording before verification lets a forged token block a
   genuine payment id.
+
+For example, with an `onAfterVerify` hook on the `x402ResourceServer`, which refuses the request
+when it returns an abort:
+
+```typescript
+resourceServer.onAfterVerify(async ({ paymentPayload, result }) => {
+  const paymentId = result.extra?.paymentId; // verified by the facilitator
+  const token = decodeJwt(String(paymentPayload.payload.paymentToken));
+  const quote = decodeJwt(String(token.quote_token));
+  const expiresAt = Math.max(token.exp!, quote.exp!) + 60;
+  // claimOnce: your shared store's atomic "record unless present".
+  if (typeof paymentId !== 'string' || !(await claimOnce(paymentId, expiresAt))) {
+    return { abort: true, reason: 'payment_replayed', message: 'Payment already used' };
+  }
+});
+```
 
 This follows x402's own guidance for Solana, where a resource server or facilitator must likewise
 remember the transactions it has settled:

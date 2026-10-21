@@ -90,7 +90,23 @@ describe('ExactAgenticCommerceFacilitatorScheme', () => {
       expect(await scheme.verify(payload(accepted, token), server)).toEqual({
         isValid: true,
         payer: BUYER,
+        extra: { paymentId: jose.decodeJwt(token).payment_id },
       });
+    });
+
+    // A seller records this id to accept each payment once; the payload's own
+    // paymentId is the buyer's to set, so it must not be what is returned.
+    it("returns the token's verified payment_id, not the payload's paymentId", async () => {
+      const accepted = await offer();
+      const token = await service.issue(quoteOf(accepted));
+      const replayed = {
+        ...payload(accepted, token),
+        payload: { paymentToken: token, paymentId: 'awsmp-chosen-by-the-buyer' },
+      } as PaymentPayload;
+
+      const result = await scheme.verify(replayed, accepted);
+      expect(result.extra).toEqual({ paymentId: jose.decodeJwt(token).payment_id });
+      expect(result.extra?.paymentId).not.toBe('awsmp-chosen-by-the-buyer');
     });
 
     it.each([[undefined], [''], [42]])('rejects a paymentToken of %j', async (paymentToken) => {
@@ -202,6 +218,7 @@ describe('ExactAgenticCommerceFacilitatorScheme', () => {
       expect(await scheme.verify(v1Payload, v1Requirements)).toEqual({
         isValid: true,
         payer: BUYER,
+        extra: { paymentId: jose.decodeJwt(token).payment_id },
       });
     });
 
@@ -212,6 +229,7 @@ describe('ExactAgenticCommerceFacilitatorScheme', () => {
       expect(await scheme.verify(payload(accepted, token), accepted)).toEqual({
         isValid: true,
         payer: BUYER,
+        extra: { paymentId: jose.decodeJwt(token).payment_id },
       });
     });
   });

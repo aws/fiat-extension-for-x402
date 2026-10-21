@@ -131,6 +131,8 @@ interface SellerOptions {
   dpopNonceStore?: DPoPNonceStore;
   /** Take the protocol from X-Forwarded-Proto, as behind a TLS proxy */
   trustProxy?: boolean;
+  /** Accept each payment once, as docs/security.md tells sellers to */
+  acceptEachPaymentOnce?: boolean;
 }
 
 /** An Express app with the stock paymentMiddleware, listening on an ephemeral port */
@@ -157,6 +159,18 @@ async function startSeller(options: SellerOptions): Promise<Seller> {
     signer: options.signer,
     dpopNonceStore: options.dpopNonceStore,
   });
+  if (options.acceptEachPaymentOnce) {
+    // The recipe in docs/security.md, with a Set for the shared store.
+    const accepted = new Set<string>();
+    resourceServer.onAfterVerify(async ({ result }) => {
+      const paymentId = result.extra?.paymentId;
+      if (typeof paymentId !== 'string' || accepted.has(paymentId)) {
+        return { abort: true, reason: 'payment_replayed', message: 'Payment already used' };
+      }
+      accepted.add(paymentId);
+      return undefined;
+    });
+  }
 
   const app = express();
   if (options.trustProxy) app.set('trust proxy', 'loopback');
@@ -258,6 +272,7 @@ describe('a seller on the stock @x402/express paymentMiddleware', () => {
   let seller: Seller;
   let otherSeller: Seller;
   let replaySafeSeller: Seller;
+  let onceSeller: Seller;
   const sellers: Seller[] = [];
 
   /** How often the facilitator fetched the payment service's JWKS */
@@ -279,6 +294,7 @@ describe('a seller on the stock @x402/express paymentMiddleware', () => {
     seller = await start(own);
     otherSeller = await start(await sellerSigner('https://other.example.com'));
     replaySafeSeller = await start({ ...own, dpopNonceStore: new MemoryNonceStore() });
+    onceSeller = await start({ ...own, acceptEachPaymentOnce: true });
   });
 
   afterAll(async () => {
@@ -334,6 +350,38 @@ describe('a seller on the stock @x402/express paymentMiddleware', () => {
       });
       expect(settlement.transaction.startsWith('awsmp-')).toBe(true);
       expect(jwksFetches()).toBe(1);
+    });
+
+    it('lets an onAfterVerify hook accept each payment once by its verified id', async () => {
+      const accepted = (await offer(onceSeller, '/weather')).accepts[0];
+      const token = await service.issue(quoteOf(accepted));
+      await expectServed(
+        onceSeller,
+        await pay(onceSeller, '/weather', accepted, token),
+        '/weather'
+      );
+
+      // The same token again, then with a fresh buyer-chosen paymentId beside it.
+      for (const inner of [
+        { paymentToken: token },
+        { paymentToken: token, paymentId: 'awsmp-new' },
+      ]) {
+        onceSeller.served = 0;
+        onceSeller.verified = 0;
+        const payload: PaymentPayload = { x402Version: 2, accepted, payload: inner };
+        const replay = await realFetch(`${onceSeller.url}/weather`, {
+          headers: httpClient.encodePaymentSignatureHeader(payload),
+        });
+        // The facilitator accepts the token; the hook refuses it.
+        expect(replay.status).toBe(402);
+        const required = httpClient.getPaymentRequiredResponse(
+          (name) => replay.headers.get(name),
+          await replay.json()
+        );
+        expect(required.error).toBe('payment_replayed');
+        expect(onceSeller.verified).toBe(1);
+        expect(onceSeller.served).toBe(0);
+      }
     });
 
     it('rejects a payment for a cheaper route', async () => {

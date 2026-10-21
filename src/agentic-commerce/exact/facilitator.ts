@@ -106,6 +106,10 @@ export function paymentTokenOf(payload: DeepReadonly<PaymentPayload>): unknown {
  * Verify an `exact` payment; shared by the facilitator scheme and
  * `AgenticCommerceFacilitatorClient`.
  *
+ * A valid payment's verified id is returned as `extra.paymentId`, so an
+ * `onAfterVerify` hook can record it before the request is served. The
+ * payload's own `paymentId` is set by the buyer and never checked.
+ *
  * @internal
  */
 export async function verifyExactPayment(
@@ -129,7 +133,11 @@ export async function verifyExactPayment(
       invalidMessage: result.invalidMessage,
     };
   }
-  return result.payer === undefined ? { isValid: true } : { isValid: true, payer: result.payer };
+  return {
+    isValid: true,
+    ...(result.payer === undefined ? {} : { payer: result.payer }),
+    extra: { paymentId: result.paymentId },
+  };
 }
 
 /**

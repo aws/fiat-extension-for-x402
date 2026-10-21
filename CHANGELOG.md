@@ -11,6 +11,10 @@ removing or renaming any of them, or narrowing a supported range, needs a new ma
 
 ### Security
 
+- **The verified payment id reaches `onAfterVerify`.** The facilitator scheme and
+  `AgenticCommerceFacilitatorClient` return a valid payment's `payment_id` as `extra.paymentId` of
+  the verify response, so a seller can record it before serving the request (see
+  `docs/security.md`). The payment payload's own `paymentId` is set by the buyer and is not this id.
 - **The quote must be for this route.** The facilitator scheme and
   `AgenticCommerceFacilitatorClient` now require the accepted quote's `iss`, `aud`, `payTo`,
   `settlement` and `reference` to equal those of the quote the server signed for the request, so a

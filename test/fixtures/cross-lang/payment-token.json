@@ -76,7 +76,10 @@
     },
     "expectedVerify": {
       "isValid": true,
-      "payer": "123456789012"
+      "payer": "123456789012",
+      "extra": {
+        "paymentId": "awsmp-fixture-0001"
+      }
     },
     "expectedSettle": {
       "success": true,
