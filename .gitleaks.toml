@@ -1,0 +1,18 @@
+# Secret scanning (gitleaks, run by .github/workflows/secret-scan.yml).
+# The default rules, less the test vectors: no real secret is ever committed.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Test JWTs, signed with test keys derived from public labels (kid fixture-seller-1, fixture-service-1)"
+targetRules = ["jwt"]
+paths = [
+  '''^test/fixtures/cross-lang/[^/]+\.json$''',
+  '''^test/helpers/(fixed-vectors|cross-language-fixtures)\.ts$''',
+]
+
+[[allowlists]]
+description = "Truncated placeholder token in tests and docs: a JWT header followed by '...'"
+regexTarget = "line"
+regexes = ['''eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9\.\.\.''']

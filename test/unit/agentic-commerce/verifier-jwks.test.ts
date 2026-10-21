@@ -1,9 +1,9 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Key selection from a JWKS: with no `kid` every key is tried, a key that
- * cannot be loaded is skipped, and a JWKS that is not a set of JSON objects
- * fails.
+ * Key selection from a JWKS: every key with the token's `kid` is tried, a key
+ * that cannot be loaded is skipped, and a JWKS that is not a set of JSON
+ * objects fails.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -44,13 +44,15 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function verifyAgainst(jwks: unknown, header: Record<string, unknown> = { alg: 'ES384' }) {
+async function verifyAgainst(jwks: unknown, header?: Record<string, unknown>) {
   vi.stubGlobal('fetch', jwksFetch({ [SERVICE_JWKS_URL]: jwks }));
   const verifier = new AgenticCommerceVerifier({
     sellerKeyResolver: { type: 'static', publicJwk: seller.publicJwk },
     paymentTokenJwksUrl: SERVICE_JWKS_BASE_URL,
   });
-  const token = await service.issue(quote, { header: header as never });
+  const token = await service.issue(quote, {
+    header: (header ?? { alg: 'ES384', kid: service.jwk.kid }) as never,
+  });
   return verifier.verify(token, {
     amount: '0.10',
     asset: 'iso4217:USD',
@@ -72,24 +74,23 @@ describe('payment-token JWKS key selection', () => {
       { kty: 'RSA', n: 'AA', e: 'AQAB' },
       { kty: 'EC', x, y },
       { kty: 'OKP', crv: 'Ed25519', x: 'AA' },
-    ];
+    ].map((key) => ({ ...key, kid: service.jwk.kid }));
     expect(await verifyAgainst({ keys: [...unusable, service.jwk] })).toMatchObject({
       isValid: true,
     });
   });
 
   it('reports the last key error when no key verifies', async () => {
-    expect(await verifyAgainst({ keys: [{ kty: 'XX' }] })).toEqual({
+    expect(await verifyAgainst({ keys: [{ kty: 'XX', kid: service.jwk.kid }] })).toEqual({
       isValid: false,
       invalidReason: 'invalid_payment',
-      invalidMessage: 'Payment token signature invalid: JWK: invalid key material',
+      invalidMessage: `Payment token signature invalid: JWK ${service.jwk.kid}: invalid key material`,
     });
   });
 
   it.each([
     ['not an object', ['key'], 'JWKS must be a JSON object'],
     ['keys not a list', { keys: 'key' }, 'JWKS keys must be a list'],
-    ['a key not an object, with no kid', { keys: ['key'] }, 'JWKS keys must be JSON objects'],
     ['no keys', {}, 'No matching key found in JWKS'],
   ])('fails when the JWKS has %s', async (_name, jwks, message) => {
     expect(await verifyAgainst(jwks)).toMatchObject({

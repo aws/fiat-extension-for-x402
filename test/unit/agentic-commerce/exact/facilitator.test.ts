@@ -20,6 +20,7 @@ import {
   jwksFetch,
 } from '../../../helpers/fake-payment-service';
 import { generateDPoPKeyPair } from '../../../helpers/dpop';
+import { toQuoteSigner } from '../../../helpers/jwt-signers';
 
 const ROUTE: PaymentRequirements = {
   scheme: 'exact',
@@ -89,7 +90,23 @@ describe('ExactAgenticCommerceFacilitatorScheme', () => {
       expect(await scheme.verify(payload(accepted, token), server)).toEqual({
         isValid: true,
         payer: BUYER,
+        extra: { paymentId: jose.decodeJwt(token).payment_id },
       });
+    });
+
+    // A seller records this id to accept each payment once; the payload's own
+    // paymentId is the buyer's to set, so it must not be what is returned.
+    it("returns the token's verified payment_id, not the payload's paymentId", async () => {
+      const accepted = await offer();
+      const token = await service.issue(quoteOf(accepted));
+      const replayed = {
+        ...payload(accepted, token),
+        payload: { paymentToken: token, paymentId: 'awsmp-chosen-by-the-buyer' },
+      } as PaymentPayload;
+
+      const result = await scheme.verify(replayed, accepted);
+      expect(result.extra).toEqual({ paymentId: jose.decodeJwt(token).payment_id });
+      expect(result.extra?.paymentId).not.toBe('awsmp-chosen-by-the-buyer');
     });
 
     it.each([[undefined], [''], [42]])('rejects a paymentToken of %j', async (paymentToken) => {
@@ -131,6 +148,51 @@ describe('ExactAgenticCommerceFacilitatorScheme', () => {
       });
     });
 
+    it('rejects a quote another service signed with the same key', async () => {
+      // Two services sharing one signing key: the payment token's aud is the
+      // other service, so only the route binding tells them apart.
+      const otherService = toQuoteSigner(
+        seller.privateKey,
+        seller.publicJwk,
+        'https://other.example.com'
+      );
+      const other = await enhancePaymentRequirements(ROUTE, otherService);
+      const token = await service.issue(quoteOf(other));
+      expect(await scheme.verify(payload(other, token), await offer())).toEqual({
+        isValid: false,
+        invalidReason: 'invalid_quote',
+        invalidMessage: 'Quote does not match this route',
+      });
+    });
+
+    it.each([
+      ['reference', { reference: 'OTHER' }],
+      ['settlement', { settlement: { product_id: 'prod-weather', note: 'x' } }],
+    ])('rejects a quote whose %s differs from the route quote', async (_name, extra) => {
+      const other = await offer({ ...ROUTE, extra: { ...ROUTE.extra, ...extra } });
+      const token = await service.issue(quoteOf(other));
+      expect(await scheme.verify(payload(other, token), await offer())).toEqual({
+        isValid: false,
+        invalidReason: 'invalid_quote',
+        invalidMessage: 'Quote does not match this route',
+      });
+    });
+
+    it('rejects a quote whose aud differs from the route quote', async () => {
+      const server = await offer();
+      const claims = jose.decodeJwt(quoteOf(server));
+      const forged = await new jose.SignJWT({ ...claims, aud: 'aws:other', jti: 'other' })
+        .setProtectedHeader({ alg: 'ES256', kid: 'seller-key' })
+        .sign(seller.privateKey);
+      const accepted = { ...server, extra: { ...server.extra, quoteToken: forged } };
+      const token = await service.issue(forged);
+      expect(await scheme.verify(payload(accepted, token), server)).toEqual({
+        isValid: false,
+        invalidReason: 'invalid_quote',
+        invalidMessage: 'Quote does not match this route',
+      });
+    });
+
     it('fails closed when the server requirements carry no quote', async () => {
       const accepted = await offer();
       const token = await service.issue(quoteOf(accepted));
@@ -156,6 +218,7 @@ describe('ExactAgenticCommerceFacilitatorScheme', () => {
       expect(await scheme.verify(v1Payload, v1Requirements)).toEqual({
         isValid: true,
         payer: BUYER,
+        extra: { paymentId: jose.decodeJwt(token).payment_id },
       });
     });
 
@@ -166,6 +229,7 @@ describe('ExactAgenticCommerceFacilitatorScheme', () => {
       expect(await scheme.verify(payload(accepted, token), accepted)).toEqual({
         isValid: true,
         payer: BUYER,
+        extra: { paymentId: jose.decodeJwt(token).payment_id },
       });
     });
   });

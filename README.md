@@ -272,7 +272,7 @@ required, and the seller key is always the configured one, never one named or li
 Other options:
 
 - `paymentTokenJwksUrl`: base URL of the payment service's signing keys. Defaults to the production
-  endpoint. Those keys are fetched on every verification, so a revoked key stops working at once.
+  endpoint. Those keys are cached for a minute, so a revoked key stops working within a minute.
 - `jwksRequestHeaders`: extra headers for that request (an object, or a function returning one).
   They are never sent to a seller JWKS URL.
 - `paymentTokenIssuer`: the expected `iss` of payment tokens. Defaults to `PAYMENT_TOKEN_ISSUER`.
@@ -411,13 +411,16 @@ try {
 - Payment-token and quote signatures are limited to `ALLOWED_ALGORITHMS` (RS256, ES256, ES384,
   ES512). The list is frozen. DPoP proofs may also use PS256; `none` and HMAC are always refused.
 - Use HTTPS for the seller URL and every JWKS URL.
+- Accept each payment once: verification is stateless, so record every `paymentId` in a store
+  shared by all seller instances and refuse one already recorded. See
+  [Payment replay](docs/security.md#payment-replay).
 - Share one `DPoPNonceStore` across all seller instances, and keep the request URL the framework
   sees equal to the public URL.
 - Never call the facilitator outside `x402ResourceServer` for a request that may carry a DPoP-bound
   token, since only the server scheme's hook checks the proof.
 
-See [docs/security.md](docs/security.md) for more, and [SECURITY.md](SECURITY.md) to report an
-issue.
+See [docs/security.md](docs/security.md) for more. To report a vulnerability, see
+[AWS vulnerability reporting](https://aws.amazon.com/security/vulnerability-reporting/).
 
 ## Versioning
 

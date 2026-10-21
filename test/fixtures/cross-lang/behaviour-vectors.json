@@ -84,14 +84,14 @@
         }
       },
       {
-        "name": "no kid in the header (the service key is still found)",
+        "name": "no kid in the header (rejected before any key is fetched)",
         "paymentTokenHeader": {
           "kid": null
         },
         "expected": {
-          "isValid": true,
-          "payer": "123456789012",
-          "paymentId": "awsmp-fixture-0001"
+          "isValid": false,
+          "invalidReason": "invalid_payment",
+          "invalidMessage": "Payment token signature invalid: Payment token has no kid"
         }
       },
       {
@@ -150,19 +150,14 @@
         }
       },
       {
-        "name": "no payment_id (settle transaction is empty)",
+        "name": "no payment_id (the seller's single-use key is required)",
         "paymentTokenClaims": {
           "payment_id": null
         },
         "expected": {
-          "isValid": true,
-          "payer": "123456789012",
-          "settle": {
-            "success": true,
-            "payer": "123456789012",
-            "transaction": "",
-            "network": "aws:base"
-          }
+          "isValid": false,
+          "invalidReason": "invalid_payment",
+          "invalidMessage": "Missing payment_id in payment token"
         }
       },
       {

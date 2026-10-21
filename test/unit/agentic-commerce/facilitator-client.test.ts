@@ -91,7 +91,11 @@ describe('AgenticCommerceFacilitatorClient verify and settle', () => {
       payload: { paymentToken: token },
     } as PaymentPayload;
 
-    expect(await client().verify(payload, server)).toEqual({ isValid: true, payer: BUYER });
+    expect(await client().verify(payload, server)).toEqual({
+      isValid: true,
+      payer: BUYER,
+      extra: { paymentId: jose.decodeJwt(token).payment_id },
+    });
   });
 
   it('sends getAuthHeaders only to the payment-token JWKS host', async () => {
