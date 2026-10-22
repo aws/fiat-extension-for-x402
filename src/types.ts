@@ -153,16 +153,6 @@ export interface PaymentTokenPayload {
   };
 }
 
-/**
- * Agentic Commerce payload for x402 PaymentPayload
- */
-export interface AgenticCommercePayloadV2 {
-  /** Payment token (signed JWT from Agentic Commerce) */
-  paymentToken: string;
-  /** Payment ID from Agentic Commerce (format: awsmp-{UUIDv7}) */
-  paymentId: string;
-}
-
 // ============================================================================
 // DPoP Types
 // ============================================================================
@@ -280,56 +270,6 @@ export class SigningError extends AgenticCommerceError {
     this.name = 'SigningError';
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, SigningError);
-    }
-  }
-}
-
-/**
- * Error thrown when JWT signature verification fails
- */
-export class SignatureError extends AgenticCommerceError {
-  constructor(
-    message: string,
-    public tokenType: 'quote' | 'payment'
-  ) {
-    super(message, 'SIGNATURE_ERROR', { tokenType });
-    this.name = 'SignatureError';
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, SignatureError);
-    }
-  }
-}
-
-/**
- * Error thrown when a token has expired
- */
-export class ExpiryError extends AgenticCommerceError {
-  constructor(
-    message: string,
-    public expiry: number,
-    public currentTime: number
-  ) {
-    super(message, 'EXPIRY_ERROR', { expiry, currentTime });
-    this.name = 'ExpiryError';
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, ExpiryError);
-    }
-  }
-}
-
-/**
- * Error thrown when data values don't match expected values
- */
-export class MismatchError extends AgenticCommerceError {
-  constructor(
-    message: string,
-    public expected: unknown,
-    public actual: unknown
-  ) {
-    super(message, 'MISMATCH_ERROR', { expected, actual });
-    this.name = 'MismatchError';
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, MismatchError);
     }
   }
 }

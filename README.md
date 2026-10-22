@@ -376,9 +376,6 @@ Configuration errors throw. Every error class extends `AgenticCommerceError`, wh
 | ----------------- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
 | `ValidationError` | `VALIDATION_ERROR` | A scheme, verifier, client or `jwksDocument` is misconfigured, or a route price cannot be parsed              |
 | `SigningError`    | `SIGNING_ERROR`    | A quote signer is misconfigured, a PEM cannot be loaded, or the KMS `Sign` call fails or returns no signature |
-| `SignatureError`  | `SIGNATURE_ERROR`  | Not thrown by this package; for your own signature checks (`tokenType` is `'quote'` or `'payment'`)           |
-| `ExpiryError`     | `EXPIRY_ERROR`     | Not thrown by this package; for your own expiry checks (`expiry`, `currentTime`)                              |
-| `MismatchError`   | `MISMATCH_ERROR`   | Not thrown by this package; for your own checks of an expected value (`expected`, `actual`)                   |
 | `DPoPError`       | `DPOP_ERROR`       | `verifyDPoPProof` or `extractDPoPThumbprint` rejects a proof                                                  |
 
 When a PEM fails to load or the KMS `Sign` call fails, the original error is the `SigningError`'s

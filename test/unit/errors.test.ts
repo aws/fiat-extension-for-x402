@@ -1,15 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
-import {
-  AgenticCommerceError,
-  ValidationError,
-  SignatureError,
-  ExpiryError,
-  MismatchError,
-  DPoPError,
-  SigningError,
-} from '../../src/types';
+import { AgenticCommerceError, ValidationError, DPoPError, SigningError } from '../../src/types';
 
 describe('Error Types', () => {
   describe('AgenticCommerceError', () => {
@@ -45,63 +37,6 @@ describe('Error Types', () => {
       expect(error.message).toBe('Invalid format');
       expect(error.code).toBe('VALIDATION_ERROR');
       expect(error.details).toBeUndefined();
-    });
-  });
-
-  describe('SignatureError', () => {
-    it('should create signature error for quote token', () => {
-      const error = new SignatureError('Invalid signature', 'quote');
-      expect(error.message).toBe('Invalid signature');
-      expect(error.code).toBe('SIGNATURE_ERROR');
-      expect(error.tokenType).toBe('quote');
-      expect(error.details).toEqual({ tokenType: 'quote' });
-      expect(error.name).toBe('SignatureError');
-      expect(error instanceof AgenticCommerceError).toBe(true);
-    });
-
-    it('should create signature error for payment token', () => {
-      const error = new SignatureError('Invalid signature', 'payment');
-      expect(error.message).toBe('Invalid signature');
-      expect(error.tokenType).toBe('payment');
-      expect(error.details).toEqual({ tokenType: 'payment' });
-    });
-  });
-
-  describe('ExpiryError', () => {
-    it('should create expiry error with timestamps', () => {
-      const expiry = 1735689900;
-      const currentTime = 1735690000;
-      const error = new ExpiryError('Token expired', expiry, currentTime);
-      expect(error.message).toBe('Token expired');
-      expect(error.code).toBe('EXPIRY_ERROR');
-      expect(error.expiry).toBe(expiry);
-      expect(error.currentTime).toBe(currentTime);
-      expect(error.details).toEqual({ expiry, currentTime });
-      expect(error.name).toBe('ExpiryError');
-      expect(error instanceof AgenticCommerceError).toBe(true);
-    });
-  });
-
-  describe('MismatchError', () => {
-    it('should create mismatch error with expected and actual values', () => {
-      const expected = '0.15';
-      const actual = '0.20';
-      const error = new MismatchError('Amount mismatch', expected, actual);
-      expect(error.message).toBe('Amount mismatch');
-      expect(error.code).toBe('MISMATCH_ERROR');
-      expect(error.expected).toBe(expected);
-      expect(error.actual).toBe(actual);
-      expect(error.details).toEqual({ expected, actual });
-      expect(error.name).toBe('MismatchError');
-      expect(error instanceof AgenticCommerceError).toBe(true);
-    });
-
-    it('should handle complex objects in expected and actual', () => {
-      const expected = { amount: '0.15', currency: 'USD' };
-      const actual = { amount: '0.20', currency: 'USD' };
-      const error = new MismatchError('Price mismatch', expected, actual);
-      expect(error.expected).toEqual(expected);
-      expect(error.actual).toEqual(actual);
     });
   });
 
@@ -142,14 +77,7 @@ describe('Error Types', () => {
 
   describe('Error inheritance', () => {
     it('should allow catching all Agentic Commerce errors', () => {
-      const errors = [
-        new ValidationError('test'),
-        new SignatureError('test', 'quote'),
-        new ExpiryError('test', 123, 456),
-        new MismatchError('test', 'a', 'b'),
-        new DPoPError('test'),
-        new SigningError('test'),
-      ];
+      const errors = [new ValidationError('test'), new DPoPError('test'), new SigningError('test')];
 
       errors.forEach((error) => {
         expect(error instanceof AgenticCommerceError).toBe(true);
@@ -161,7 +89,7 @@ describe('Error Types', () => {
       const error = new ValidationError('test');
       expect(error instanceof ValidationError).toBe(true);
       expect(error instanceof AgenticCommerceError).toBe(true);
-      expect(error instanceof SignatureError).toBe(false);
+      expect(error instanceof SigningError).toBe(false);
     });
   });
 });

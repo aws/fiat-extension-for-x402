@@ -60,22 +60,13 @@ export type {
   QuoteTokenPrice,
   QuoteTokenPayload,
   PaymentTokenPayload,
-  AgenticCommercePayloadV2,
   DPoPProofPayload,
   DPoPVerificationOptions,
   DPoPNonceStore,
 } from './types';
 
 // Error classes
-export {
-  AgenticCommerceError,
-  ValidationError,
-  SignatureError,
-  SigningError,
-  ExpiryError,
-  MismatchError,
-  DPoPError,
-} from './types';
+export { AgenticCommerceError, ValidationError, SigningError, DPoPError } from './types';
 
 // Constants
 export {

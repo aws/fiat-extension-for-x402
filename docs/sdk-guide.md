@@ -242,9 +242,6 @@ All error classes extend `AgenticCommerceError` (with `code` and optional `detai
 | ----------------- | ------------------ | -------------------------------------------------------------------------------------------------- |
 | `ValidationError` | `VALIDATION_ERROR` | Misconfiguration of a scheme, the verifier, a client or `jwksDocument`; an unparseable route price |
 | `SigningError`    | `SIGNING_ERROR`    | Quote signer misconfiguration, a PEM that cannot be loaded, a failed KMS `Sign` (`cause` set)      |
-| `SignatureError`  | `SIGNATURE_ERROR`  | Not thrown by the package; for your own signature checks (`tokenType`)                             |
-| `ExpiryError`     | `EXPIRY_ERROR`     | Not thrown by the package; for your own expiry checks (`expiry`, `currentTime`)                    |
-| `MismatchError`   | `MISMATCH_ERROR`   | Not thrown by the package; for your own checks (`expected`, `actual`)                              |
 | `DPoPError`       | `DPOP_ERROR`       | `verifyDPoPProof` / `extractDPoPThumbprint` reject a proof                                         |
 
 The schemes and the verifier report invalid payments as results, not errors.

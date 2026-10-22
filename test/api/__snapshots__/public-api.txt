@@ -6,7 +6,6 @@ interface AgenticCommerceFacilitatorAuthConfig
 class AgenticCommerceFacilitatorClient
 interface AgenticCommerceFacilitatorClientConfig
 type AgenticCommerceInvalidReason
-interface AgenticCommercePayloadV2
 interface AgenticCommercePaymentExtra
 interface AgenticCommerceSettlement
 interface AgenticCommerceSupport
@@ -22,7 +21,6 @@ class ExactAgenticCommerceFacilitatorScheme
 interface ExactAgenticCommerceFacilitatorSchemeConfig
 class ExactAgenticCommerceServerScheme
 interface ExactAgenticCommerceServerSchemeConfig
-class ExpiryError
 interface FromPemOptions
 class InProcessFacilitatorClient
 type JwksRequestHeaders
@@ -33,7 +31,6 @@ class KmsQuoteSigner
 interface KmsQuoteSignerConfig
 interface KmsSellerKeyResolver
 class LocalQuoteSigner
-class MismatchError
 const PAYMENT_TOKEN_ISSUER
 interface PaymentTokenPayload
 interface QuoteSigner
@@ -45,7 +42,6 @@ const SENTINEL_PAY_TO
 type SellerKeyResolver
 type SettlementCycle
 type SettlementMethod
-class SignatureError
 class SigningError
 interface StaticSellerKeyResolver
 class ValidationError

@@ -24,9 +24,6 @@ describe('Agentic Commerce Package Exports', () => {
   it('should export error classes', () => {
     expect(AgenticCommerce.AgenticCommerceError).toBeDefined();
     expect(AgenticCommerce.ValidationError).toBeDefined();
-    expect(AgenticCommerce.SignatureError).toBeDefined();
-    expect(AgenticCommerce.ExpiryError).toBeDefined();
-    expect(AgenticCommerce.MismatchError).toBeDefined();
     expect(AgenticCommerce.DPoPError).toBeDefined();
   });
 

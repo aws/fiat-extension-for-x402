@@ -13,7 +13,7 @@ import type {
   SchemeNetworkClient,
 } from '@x402/core/types';
 import { SCHEME_EXACT } from '../../src/constants';
-import type { AgenticCommercePaymentExtra, AgenticCommercePayloadV2 } from '../../src/types';
+import type { AgenticCommercePaymentExtra } from '../../src/types';
 import type { CreatePaymentRequest, FakePaymentService } from './fake-payment-service';
 
 export class FakeBuyerScheme implements SchemeNetworkClient {
@@ -39,7 +39,7 @@ export class FakeBuyerScheme implements SchemeNetworkClient {
       clientToken: crypto.randomUUID(),
       dpopJwk: this.config.dpopJwk,
     });
-    const payload: AgenticCommercePayloadV2 = {
+    const payload: { paymentToken: string; paymentId: string } = {
       paymentToken: result.paymentToken,
       paymentId: result.paymentId,
     };
