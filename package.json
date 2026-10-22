@@ -84,7 +84,7 @@
     "@arethetypeswrong/cli": "0.18.5",
     "@eslint/js": "9.39.5",
     "@types/express": "^5.0.6",
-    "@types/node": "20.19.43",
+    "@types/node": "24.19.1",
     "@vitest/coverage-v8": "4.1.11",
     "@x402/core": ">=2.23.0 <3",
     "@x402/express": ">=2.23.0 <3",
