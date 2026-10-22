@@ -87,12 +87,7 @@ export {
 } from './constants';
 
 // Utilities
-export {
-  decodeQuoteToken,
-  verifyQuoteToken,
-  verifyPaymentToken,
-  parseMoneyToDecimal,
-} from './utils';
+export { decodeQuoteToken, parseMoneyToDecimal } from './utils';
 
 // Security utilities
 export { ALLOWED_ALGORITHMS, secureCompare, validateUrl } from './security';

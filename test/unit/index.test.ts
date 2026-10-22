@@ -38,8 +38,6 @@ describe('Agentic Commerce Package Exports', () => {
 
   it('should export utility functions', () => {
     expect(AgenticCommerce.decodeQuoteToken).toBeDefined();
-    expect(AgenticCommerce.verifyQuoteToken).toBeDefined();
-    expect(AgenticCommerce.verifyPaymentToken).toBeDefined();
     expect(AgenticCommerce.parseMoneyToDecimal).toBeDefined();
   });
 });

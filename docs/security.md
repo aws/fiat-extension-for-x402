@@ -138,8 +138,8 @@ What the seller must do:
 
 1. **Accepting a payment more than once.** Record each `paymentId` in a shared store; see
    [Payment replay](#payment-replay).
-2. **Using the token helpers to accept payments.** `verifyQuoteToken` and `verifyPaymentToken` check
-   one signature; only `AgenticCommerceVerifier` (through the facilitator) makes every check.
+2. **Decoding instead of verifying.** `decodeQuoteToken` checks nothing; only
+   `AgenticCommerceVerifier` (through the facilitator) verifies a payment.
 3. **A seller JWKS URL you do not control.** The `jwksUrl` must be the seller's own, the one
    registered for the listing.
 4. **One nonce store per instance.** Use a shared store.

@@ -242,8 +242,8 @@ All error classes extend `AgenticCommerceError` (with `code` and optional `detai
 | ----------------- | ------------------ | -------------------------------------------------------------------------------------------------- |
 | `ValidationError` | `VALIDATION_ERROR` | Misconfiguration of a scheme, the verifier, a client or `jwksDocument`; an unparseable route price |
 | `SigningError`    | `SIGNING_ERROR`    | Quote signer misconfiguration, a PEM that cannot be loaded, a failed KMS `Sign` (`cause` set)      |
-| `SignatureError`  | `SIGNATURE_ERROR`  | `verifyQuoteToken` / `verifyPaymentToken` reject a token (`tokenType`)                             |
-| `ExpiryError`     | `EXPIRY_ERROR`     | `verifyQuoteToken` / `verifyPaymentToken` get a correctly signed, expired token                    |
+| `SignatureError`  | `SIGNATURE_ERROR`  | Not thrown by the package; for your own signature checks (`tokenType`)                             |
+| `ExpiryError`     | `EXPIRY_ERROR`     | Not thrown by the package; for your own expiry checks (`expiry`, `currentTime`)                    |
 | `MismatchError`   | `MISMATCH_ERROR`   | Not thrown by the package; for your own checks (`expected`, `actual`)                              |
 | `DPoPError`       | `DPOP_ERROR`       | `verifyDPoPProof` / `extractDPoPThumbprint` reject a proof                                         |
 
@@ -270,8 +270,8 @@ The schemes and the verifier report invalid payments as results, not errors.
 
 ### 6.4 Lower-level helpers
 
-`decodeQuoteToken`, `verifyQuoteToken` and `verifyPaymentToken` decode or verify a single token.
-They do not make the checks of section 5.1, so do not use them to accept a payment.
+`decodeQuoteToken` decodes a quote token without verifying it, so do not use it to accept a payment:
+only `AgenticCommerceVerifier` makes the checks of section 5.1.
 `parseMoneyToDecimal`, `secureCompare` and `validateUrl` are general price-parsing, comparison and
 URL utilities; the documented setup does not need them.
 

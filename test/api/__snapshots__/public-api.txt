@@ -60,8 +60,6 @@ function registerExactAgenticCommerceServer
 function secureCompare
 function validateUrl
 function verifyDPoPProof
-function verifyPaymentToken
-function verifyQuoteToken
 
 [./agentic-commerce/exact]
 class ExactAgenticCommerceFacilitatorScheme

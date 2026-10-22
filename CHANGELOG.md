@@ -9,6 +9,12 @@ removing or renaming any of them, or narrowing a supported range, needs a new ma
 
 ## [Unreleased]
 
+### Removed
+
+- `verifyQuoteToken` and `verifyPaymentToken`. They checked a token's signature but not its issuer,
+  audience or quote, and nothing in the SDK used them. Verify payments with
+  `AgenticCommerceVerifier`, through the `exact` facilitator scheme.
+
 ### Security
 
 - **The verified payment id reaches `onAfterVerify`.** The facilitator scheme and
