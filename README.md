@@ -372,14 +372,11 @@ Verification never throws for an invalid payment.
 
 Configuration errors throw. Every error class extends `AgenticCommerceError`, which has a `code`:
 
-| Class             | Code               | Thrown when                                                                                                    |
-| ----------------- | ------------------ | -------------------------------------------------------------------------------------------------------------- |
-| `ValidationError` | `VALIDATION_ERROR` | A scheme, verifier, client or `jwksDocument` is misconfigured, or a route price cannot be parsed               |
-| `SigningError`    | `SIGNING_ERROR`    | A quote signer is misconfigured, a PEM cannot be loaded, or the KMS `Sign` call fails or returns no signature  |
-| `SignatureError`  | `SIGNATURE_ERROR`  | `verifyQuoteToken` or `verifyPaymentToken` rejects a signature (`tokenType` is `'quote'` or `'payment'`)       |
-| `ExpiryError`     | `EXPIRY_ERROR`     | `verifyQuoteToken` or `verifyPaymentToken` gets a correctly signed but expired token (`expiry`, `currentTime`) |
-| `MismatchError`   | `MISMATCH_ERROR`   | Not thrown by this package; for your own checks of an expected value (`expected`, `actual`)                    |
-| `DPoPError`       | `DPOP_ERROR`       | `verifyDPoPProof` or `extractDPoPThumbprint` rejects a proof                                                   |
+| Class             | Code               | Thrown when                                                                                                   |
+| ----------------- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `ValidationError` | `VALIDATION_ERROR` | A scheme, verifier, client or `jwksDocument` is misconfigured, or a route price cannot be parsed              |
+| `SigningError`    | `SIGNING_ERROR`    | A quote signer is misconfigured, a PEM cannot be loaded, or the KMS `Sign` call fails or returns no signature |
+| `DPoPError`       | `DPOP_ERROR`       | `verifyDPoPProof` or `extractDPoPThumbprint` rejects a proof                                                  |
 
 When a PEM fails to load or the KMS `Sign` call fails, the original error is the `SigningError`'s
 `cause`. A malformed DER signature from KMS is a plain `Error`, and an error from the signing

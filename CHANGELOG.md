@@ -9,6 +9,18 @@ removing or renaming any of them, or narrowing a supported range, needs a new ma
 
 ## [Unreleased]
 
+### Removed
+
+- `verifyQuoteToken` and `verifyPaymentToken`. They checked a token's signature but not its issuer,
+  audience or quote, and nothing in the SDK used them. Verify payments with
+  `AgenticCommerceVerifier`, through the `exact` facilitator scheme.
+- `SignatureError`, `ExpiryError` and `MismatchError`, which nothing in the SDK threw, and the
+  unused `AgenticCommercePayloadV2` type. A payment's id is the verified `payment_id` of its token
+  (`extra.paymentId` of the verify response), not a field of the payment payload.
+- The repository's `SECURITY.md` and Dependabot configuration, which the GitHub organization now
+  provides. Report a vulnerability through
+  [AWS vulnerability reporting](https://aws.amazon.com/security/vulnerability-reporting/).
+
 ### Security
 
 - **The verified payment id reaches `onAfterVerify`.** The facilitator scheme and
@@ -39,12 +51,6 @@ removing or renaming any of them, or narrowing a supported range, needs a new ma
 
 - [Payment replay](docs/security.md#payment-replay): verification is stateless, so a seller must
   record each `paymentId` in a store shared by all its instances and accept each payment once.
-
-### Removed
-
-- The repository's `SECURITY.md` and Dependabot configuration, which the GitHub organization now
-  provides. Report a vulnerability through
-  [AWS vulnerability reporting](https://aws.amazon.com/security/vulnerability-reporting/).
 
 ## [1.0.0] - 2026-10-16
 

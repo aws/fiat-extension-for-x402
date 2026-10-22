@@ -60,22 +60,13 @@ export type {
   QuoteTokenPrice,
   QuoteTokenPayload,
   PaymentTokenPayload,
-  AgenticCommercePayloadV2,
   DPoPProofPayload,
   DPoPVerificationOptions,
   DPoPNonceStore,
 } from './types';
 
 // Error classes
-export {
-  AgenticCommerceError,
-  ValidationError,
-  SignatureError,
-  SigningError,
-  ExpiryError,
-  MismatchError,
-  DPoPError,
-} from './types';
+export { AgenticCommerceError, ValidationError, SigningError, DPoPError } from './types';
 
 // Constants
 export {
@@ -87,12 +78,7 @@ export {
 } from './constants';
 
 // Utilities
-export {
-  decodeQuoteToken,
-  verifyQuoteToken,
-  verifyPaymentToken,
-  parseMoneyToDecimal,
-} from './utils';
+export { decodeQuoteToken, parseMoneyToDecimal } from './utils';
 
 // Security utilities
 export { ALLOWED_ALGORITHMS, secureCompare, validateUrl } from './security';

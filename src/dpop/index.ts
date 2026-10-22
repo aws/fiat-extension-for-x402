@@ -8,6 +8,3 @@
  */
 
 export { verifyDPoPProof, extractDPoPThumbprint, computeJWKThumbprint } from './verification';
-
-// Re-export types
-export type { DPoPProofPayload, DPoPVerificationOptions, DPoPNonceStore } from '../types';

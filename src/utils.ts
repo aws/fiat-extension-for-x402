@@ -5,14 +5,7 @@
  */
 
 import * as jose from 'jose';
-import { ALLOWED_ALGORITHMS } from './security';
-import {
-  QuoteTokenPayload,
-  PaymentTokenPayload,
-  ValidationError,
-  SignatureError,
-  ExpiryError,
-} from './types';
+import { QuoteTokenPayload, ValidationError } from './types';
 
 /**
  * Decode a quote token without verification
@@ -25,61 +18,6 @@ export function decodeQuoteToken(token: string): QuoteTokenPayload {
   } catch (error) {
     throw new ValidationError('Invalid quote token format', { error });
   }
-}
-
-/**
- * Verify a JWT signed with one of ALLOWED_ALGORITHMS. jose checks `exp`
- * after the signature, so an expired token here is genuine: ExpiryError.
- * Any other failure is a SignatureError.
- */
-async function verifyToken(
-  token: string,
-  publicKey: jose.JWK | jose.KeyLike,
-  kind: 'quote' | 'payment'
-): Promise<jose.JWTPayload> {
-  const label = kind === 'quote' ? 'Quote token' : 'Payment token';
-  try {
-    const { payload } = await jose.jwtVerify(token, publicKey, {
-      algorithms: [...ALLOWED_ALGORITHMS],
-    });
-    return payload;
-  } catch (error) {
-    if (error instanceof jose.errors.JWTExpired) {
-      const now = Math.floor(Date.now() / 1000);
-      throw new ExpiryError(`${label} expired`, error.payload.exp ?? now, now);
-    }
-    throw new SignatureError(`${label} signature verification failed`, kind);
-  }
-}
-
-/**
- * Verify a quote token signature
- * @param token - Quote token JWT
- * @param publicKey - Public key for verification
- * @returns Verified quote token payload
- * @throws ExpiryError if the token is genuine but expired; SignatureError otherwise
- */
-export async function verifyQuoteToken(
-  token: string,
-  publicKey: jose.JWK | jose.KeyLike
-): Promise<QuoteTokenPayload> {
-  const payload = await verifyToken(token, publicKey, 'quote');
-  return payload as unknown as QuoteTokenPayload;
-}
-
-/**
- * Verify a payment token signature
- * @param token - Payment token JWT
- * @param publicKey - Public key for verification
- * @returns Verified payment token payload
- * @throws ExpiryError if the token is genuine but expired; SignatureError otherwise
- */
-export async function verifyPaymentToken(
-  token: string,
-  publicKey: jose.JWK | jose.KeyLike
-): Promise<PaymentTokenPayload> {
-  const payload = await verifyToken(token, publicKey, 'payment');
-  return payload as unknown as PaymentTokenPayload;
 }
 
 // Money amounts in route prices: a string such as "$1.50" or "1.50 USD", a
