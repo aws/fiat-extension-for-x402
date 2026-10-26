@@ -408,9 +408,10 @@ try {
 - Payment-token and quote signatures are limited to `ALLOWED_ALGORITHMS` (RS256, ES256, ES384,
   ES512). The list is frozen. DPoP proofs may also use PS256; `none` and HMAC are always refused.
 - Use HTTPS for the seller URL and every JWKS URL.
-- Accept each payment once: verification is stateless, so record every `paymentId` in a store
-  shared by all seller instances and refuse one already recorded. See
-  [Payment replay](docs/security.md#payment-replay).
+- Accept each payment once: verification is stateless, so record the `payment_id` claim of each
+  verified payment token (`extra.paymentId` of the verify response) in a store shared by all seller
+  instances and refuse one already recorded. Never key on the `paymentId` in the payment payload:
+  the buyer sets it and nothing checks it. See [Payment replay](docs/security.md#payment-replay).
 - Share one `DPoPNonceStore` across all seller instances, and keep the request URL the framework
   sees equal to the public URL.
 - Never call the facilitator outside `x402ResourceServer` for a request that may carry a DPoP-bound

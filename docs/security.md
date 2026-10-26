@@ -61,13 +61,16 @@ its holder can make one each time.
 The SDK cannot keep that record for the seller: only a store shared by every instance of the seller
 rejects a payment replayed against another instance. The seller **must** accept each payment once:
 
-- **Record `paymentId` atomically.** Every valid payment token has a `payment_id`. The `exact`
+- **Record the verified `payment_id` atomically.** Every valid payment token has a `payment_id`. The `exact`
   facilitator scheme returns it as `extra.paymentId` of the verify response, so an `onAfterVerify`
   hook sees it before the request is served (`AgenticCommerceVerifier.verify` returns it as
   `paymentId`). Insert it into a store shared by every instance of the seller with a conditional
   write (for example a DynamoDB `PutItem` with `attribute_not_exists`, or Redis `SET NX`), and refuse
-  the request if it was already there. Use only this verified id: a `paymentId` in the payment
-  payload is set by the buyer and never checked.
+  the request if it was already there.
+- **Take the id from the verified payment token only.** Key the check on the `payment_id` claim of
+  the payment token the facilitator verified, never on the `paymentId` in the payment payload: the
+  buyer sets that and the SDK does not check it, so a replay with a new value there passes the
+  check.
 - **Keep it long enough.** Keep each id until `max(payment token exp, quote exp)` plus the clock
   skew between the seller's instances, after which the token is refused anyway.
 - **Record it once the payment is valid.** Recording before verification lets a forged token block a

@@ -91,7 +91,8 @@ Buyer                       Seller (resource server)          Payment service
    `maxTimeoutSeconds` the quote's lifetime.
 2. The buyer obtains a payment token for the quote from the payment service, which captures the
    payment and embeds the quote in the token (`quote_token`).
-3. The buyer retries with the payment payload `{ paymentToken, paymentId }`. x402 rebuilds the
+3. The buyer retries with the payment payload `{ paymentToken, paymentId }`. Only `paymentToken` is
+   verified; the payload's `paymentId` is the buyer's and is never checked. x402 rebuilds the
    requirements for the route, which signs a new quote; `quoteToken` is a dynamic extra field, so
    the buyer's accepted requirements still match.
 4. Before calling the facilitator, x402 runs the server scheme's `onBeforeVerify` hook, which checks
@@ -197,7 +198,8 @@ seconds), a redirect (not followed), a non-200 status or a body over 64 KiB, fai
 belongs to.
 
 Verification does not record payments: a valid payment token passes every time until it or its
-quote expires. To accept each payment once, see
+quote expires. To accept each payment once, record the `payment_id` claim of the verified payment
+token (`extra.paymentId` of the verify response), never the payload's `paymentId`; see
 [security.md](security.md#payment-replay).
 
 ### 5.2 DPoP
