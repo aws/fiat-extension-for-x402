@@ -1,5 +1,5 @@
 {
-  "description": "TEST KEYS ONLY. Every key here is a deterministic test key derived from a public label by the rule in keys.json; none is a secret, and none may be used outside tests. The quote an exact server scheme returns from enhancePaymentRequirements, signed with the seller key.",
+  "description": "TEST KEYS ONLY. Every key here is a deterministic test key derived from a public label by the rule in keys.json; none is a secret, and none may be used outside tests. The quote an exact server scheme returns from enhancePaymentRequirements, signed with the seller key. quoteToken predates the scheme and network claims and is still accepted; mintedQuoteToken is what enhancePaymentRequirements signs today.",
   "formatVersion": 1,
   "now": 1790000000,
   "jti": "00000000-0000-4000-8000-000000000001",
@@ -43,5 +43,7 @@
     "kid": "fixture-seller-1",
     "typ": "JWT"
   },
-  "payloadJson": "{\"iss\":\"https://seller.example.com\",\"aud\":\"aws:marketplace\",\"iat\":1790000000,\"exp\":1790000300,\"jti\":\"00000000-0000-4000-8000-000000000001\",\"price\":{\"amount\":\"0.10\",\"currency\":\"USD\"},\"payTo\":\"prod-fixture123\",\"reference\":\"RESOURCE\",\"settlement\":{\"mode\":\"immediate\",\"product_id\":\"prod-fixture123\"},\"description\":\"Weather\"}"
+  "payloadJson": "{\"iss\":\"https://seller.example.com\",\"aud\":\"aws:marketplace\",\"iat\":1790000000,\"exp\":1790000300,\"jti\":\"00000000-0000-4000-8000-000000000001\",\"price\":{\"amount\":\"0.10\",\"currency\":\"USD\"},\"payTo\":\"prod-fixture123\",\"reference\":\"RESOURCE\",\"settlement\":{\"mode\":\"immediate\",\"product_id\":\"prod-fixture123\"},\"description\":\"Weather\"}",
+  "mintedQuoteToken": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImZpeHR1cmUtc2VsbGVyLTEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlbGxlci5leGFtcGxlLmNvbSIsImF1ZCI6ImF3czptYXJrZXRwbGFjZSIsImlhdCI6MTc5MDAwMDAwMCwiZXhwIjoxNzkwMDAwMzAwLCJqdGkiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJwcmljZSI6eyJhbW91bnQiOiIwLjEwIiwiY3VycmVuY3kiOiJVU0QifSwic2NoZW1lIjoiZXhhY3QiLCJuZXR3b3JrIjoiYXdzOmJhc2UiLCJwYXlUbyI6InByb2QtZml4dHVyZTEyMyIsInJlZmVyZW5jZSI6IlJFU09VUkNFIiwic2V0dGxlbWVudCI6eyJtb2RlIjoiaW1tZWRpYXRlIiwicHJvZHVjdF9pZCI6InByb2QtZml4dHVyZTEyMyJ9LCJkZXNjcmlwdGlvbiI6IldlYXRoZXIifQ.Ok9Eg7LVNGAhCHNHTMafMk910Ni_qt4KCFejnBPDBRE6Y8rTILSsORNYBspMk0WWqlQf9DIaV94zGBEWm2hwJw",
+  "mintedPayloadJson": "{\"iss\":\"https://seller.example.com\",\"aud\":\"aws:marketplace\",\"iat\":1790000000,\"exp\":1790000300,\"jti\":\"00000000-0000-4000-8000-000000000001\",\"price\":{\"amount\":\"0.10\",\"currency\":\"USD\"},\"scheme\":\"exact\",\"network\":\"aws:base\",\"payTo\":\"prod-fixture123\",\"reference\":\"RESOURCE\",\"settlement\":{\"mode\":\"immediate\",\"product_id\":\"prod-fixture123\"},\"description\":\"Weather\"}"
 }

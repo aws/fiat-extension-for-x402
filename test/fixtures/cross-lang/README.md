@@ -49,8 +49,11 @@ the fixed tokens; add a new fixture instead.
 - `input`, `output`: `enhancePaymentRequirements` input and output.
   `output.extra.quoteToken` is `quoteToken`.
 - `quoteToken`, `header`, `payloadJson`: the fixed quote token, its decoded
-  protected header, and its payload exactly as signed. A quote minted from
-  `input` at `now` with `jti` has this header and these payload bytes.
+  protected header, and its payload exactly as signed. It was signed before
+  quotes carried `scheme` and `network`, and a verifier still accepts it.
+- `mintedQuoteToken`, `mintedPayloadJson`: the quote minted from `input` at
+  `now` with `jti` today, signed with the seller key: it has `header` and
+  these payload bytes, which add `scheme` and `network` after `price`.
 
 `payment-token.json`
 - `token`, `header`, `claims`: the fixed payment token and its decoded parts.

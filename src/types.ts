@@ -109,6 +109,10 @@ export interface QuoteTokenPayload {
   jti: string;
   /** Price (single or multiple currency options) */
   price: QuoteTokenPrice | QuoteTokenPrice[];
+  /** x402 scheme of the payment requirements the quote was signed for, for example `exact` */
+  scheme?: string;
+  /** x402 network of the payment requirements the quote was signed for, for example `aws:base` */
+  network?: string;
   /** Payment recipient - seller's Agentic Commerce ID */
   payTo: string;
   /** Product/service reference identifier */

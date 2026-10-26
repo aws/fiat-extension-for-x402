@@ -59,6 +59,18 @@ export const QUOTE_OUTPUT = {
   extra: { description: 'Weather', settlement: { mode: 'immediate' }, quoteToken: QUOTE_TOKEN },
 } as const;
 
+/**
+ * The quote enhancePaymentRequirements mints from QUOTE_INPUT at FIXED_NOW
+ * with FIXED_JTI today. QUOTE_TOKEN predates the `scheme` and `network`
+ * claims; this one carries them.
+ */
+export const MINTED_QUOTE_TOKEN =
+  'eyJhbGciOiJFUzI1NiIsImtpZCI6ImZpeHR1cmUtc2VsbGVyLTEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlbGxlci5leGFtcGxlLmNvbSIsImF1ZCI6ImF3czptYXJrZXRwbGFjZSIsImlhdCI6MTc5MDAwMDAwMCwiZXhwIjoxNzkwMDAwMzAwLCJqdGkiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJwcmljZSI6eyJhbW91bnQiOiIwLjEwIiwiY3VycmVuY3kiOiJVU0QifSwic2NoZW1lIjoiZXhhY3QiLCJuZXR3b3JrIjoiYXdzOmJhc2UiLCJwYXlUbyI6InByb2QtZml4dHVyZTEyMyIsInJlZmVyZW5jZSI6IlJFU09VUkNFIiwic2V0dGxlbWVudCI6eyJtb2RlIjoiaW1tZWRpYXRlIiwicHJvZHVjdF9pZCI6InByb2QtZml4dHVyZTEyMyJ9LCJkZXNjcmlwdGlvbiI6IldlYXRoZXIifQ.Ok9Eg7LVNGAhCHNHTMafMk910Ni_qt4KCFejnBPDBRE6Y8rTILSsORNYBspMk0WWqlQf9DIaV94zGBEWm2hwJw';
+
+/** The quote payload of MINTED_QUOTE_TOKEN, byte for byte */
+export const MINTED_QUOTE_PAYLOAD_JSON =
+  '{"iss":"https://seller.example.com","aud":"aws:marketplace","iat":1790000000,"exp":1790000300,"jti":"00000000-0000-4000-8000-000000000001","price":{"amount":"0.10","currency":"USD"},"scheme":"exact","network":"aws:base","payTo":"prod-fixture123","reference":"RESOURCE","settlement":{"mode":"immediate","product_id":"prod-fixture123"},"description":"Weather"}';
+
 /** The quote payload of QUOTE_TOKEN, byte for byte */
 export const QUOTE_PAYLOAD_JSON =
   '{"iss":"https://seller.example.com","aud":"aws:marketplace","iat":1790000000,"exp":1790000300,"jti":"00000000-0000-4000-8000-000000000001","price":{"amount":"0.10","currency":"USD"},"payTo":"prod-fixture123","reference":"RESOURCE","settlement":{"mode":"immediate","product_id":"prod-fixture123"},"description":"Weather"}';

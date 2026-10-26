@@ -38,7 +38,8 @@ checks is in [sdk-guide.md](sdk-guide.md#51-payment-verification).
 
 - The quote comparison is constant-time (`secureCompare`).
 - The quote must name the same route as the quote the server signed for the request: the same
-  `iss`, `aud`, `payTo`, `settlement` and `reference`. A quote for another route, or from another
+  `iss`, `aud`, `payTo`, `settlement` and `reference`, and the same `scheme` and `network` when it
+  names them. A quote for another route, or from another
   service sharing the seller's key, is refused.
 - The token's shape, `alg`, `kid`, issuer, expiry, `payment_id` and quote are checked before any key
   is fetched, so a malformed or misdirected token costs no network call.

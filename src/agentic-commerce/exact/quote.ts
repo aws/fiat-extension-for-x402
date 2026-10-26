@@ -98,6 +98,10 @@ export async function enhancePaymentRequirements(
       amount,
       currency: asset.slice('iso4217:'.length),
     },
+    // The payment the quote is for, so the payment service, which sees only
+    // the quote, can check it.
+    scheme: requirements.scheme,
+    network: requirements.network,
     payTo: productId,
     reference: isTruthy(extra.reference) ? extra.reference : 'RESOURCE',
     settlement,

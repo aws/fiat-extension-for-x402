@@ -15,6 +15,8 @@ import { ValidationError } from '../../../../src/types';
 import {
   FIXED_JTI,
   FIXED_NOW,
+  MINTED_QUOTE_PAYLOAD_JSON,
+  MINTED_QUOTE_TOKEN,
   QUOTE_INPUT,
   QUOTE_OUTPUT,
   QUOTE_PAYLOAD_JSON,
@@ -81,8 +83,8 @@ describe('enhancePaymentRequirements: the fixed quote vector', () => {
     const enhanced = await enhanceFixture();
     const [, payload] = (enhanced.extra as { quoteToken: string }).quoteToken.split('.');
 
-    expect(Buffer.from(payload, 'base64url').toString('utf8')).toBe(QUOTE_PAYLOAD_JSON);
-    expect(payload).toBe(QUOTE_TOKEN.split('.')[1]);
+    expect(Buffer.from(payload, 'base64url').toString('utf8')).toBe(MINTED_QUOTE_PAYLOAD_JSON);
+    expect(payload).toBe(MINTED_QUOTE_TOKEN.split('.')[1]);
   });
 
   it('the fixture quote verifies with the fixture seller key', async () => {
@@ -111,6 +113,8 @@ describe('enhancePaymentRequirements: quote claims', () => {
       'exp',
       'jti',
       'price',
+      'scheme',
+      'network',
       'payTo',
       'reference',
       'settlement',
@@ -121,6 +125,8 @@ describe('enhancePaymentRequirements: quote claims', () => {
       iat: FIXED_NOW,
       exp: FIXED_NOW + DEFAULT_QUOTE_VALIDITY_SECONDS,
       price: { amount: '0.10', currency: 'USD' },
+      scheme: 'exact',
+      network: 'aws:base',
       payTo: 'seller-1',
       reference: 'RESOURCE',
       settlement: { product_id: 'seller-1' },
@@ -129,6 +135,14 @@ describe('enhancePaymentRequirements: quote claims', () => {
     expect(claims.jti).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
     );
+  });
+
+  it("signs the requirements' own scheme and network, not fixed values", async () => {
+    const signer = recordingSigner();
+
+    await enhancePaymentRequirements(requirements({ network: 'aws:other' }), signer);
+
+    expect(signer.signed[0]).toMatchObject({ scheme: 'exact', network: 'aws:other' });
   });
 
   it('gives each quote a fresh jti', async () => {

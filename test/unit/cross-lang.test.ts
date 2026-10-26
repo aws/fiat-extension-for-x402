@@ -73,6 +73,8 @@ interface QuoteFile {
   quoteToken: string;
   header: Json;
   payloadJson: string;
+  mintedQuoteToken: string;
+  mintedPayloadJson: string;
 }
 interface DPoPOptions extends Json {
   htm: string;
@@ -279,6 +281,8 @@ describe('shared wire fixtures: file format', () => {
   it('matches the fixed vectors the other unit tests use', () => {
     expect(quote.quoteToken).toBe(fixedVectors.QUOTE_TOKEN);
     expect(quote.payloadJson).toBe(fixedVectors.QUOTE_PAYLOAD_JSON);
+    expect(quote.mintedQuoteToken).toBe(fixedVectors.MINTED_QUOTE_TOKEN);
+    expect(quote.mintedPayloadJson).toBe(fixedVectors.MINTED_QUOTE_PAYLOAD_JSON);
     expect(quote.input).toEqual(fixedVectors.QUOTE_INPUT);
     expect(quote.output).toEqual(fixedVectors.QUOTE_OUTPUT);
     expect(payment.token).toBe(fixedVectors.PAYMENT_TOKEN);
@@ -327,6 +331,18 @@ describe('shared wire fixtures: quote.json', () => {
     await expect(jose.compactVerify(quote.quoteToken, key)).resolves.toBeDefined();
   });
 
+  it('the minted quote token has the documented header and payload bytes, with scheme and network', async () => {
+    expect(segment(quote.mintedQuoteToken, 0)).toEqual(quote.header);
+    const payloadBytes = Buffer.from(quote.mintedQuoteToken.split('.')[1], 'base64url');
+    expect(payloadBytes.toString('utf8')).toBe(quote.mintedPayloadJson);
+    expect(JSON.parse(quote.mintedPayloadJson)).toMatchObject({
+      scheme: quote.input.scheme,
+      network: quote.input.network,
+    });
+    const key = await jose.importJWK(keys.keys.seller.publicJwk, 'ES256');
+    await expect(jose.compactVerify(quote.mintedQuoteToken, key)).resolves.toBeDefined();
+  });
+
   it('enhancePaymentRequirements turns the input into the output, with the same payload bytes', async () => {
     atTime(quote.now);
     vi.spyOn(webcrypto, 'randomUUID').mockReturnValue(
@@ -343,7 +359,7 @@ describe('shared wire fixtures: quote.json', () => {
     });
     expect(segment(quoteToken as string, 0)).toEqual(quote.header);
     expect(Buffer.from((quoteToken as string).split('.')[1], 'base64url').toString('utf8')).toBe(
-      quote.payloadJson
+      quote.mintedPayloadJson
     );
     const key = await jose.importJWK(keys.keys.seller.publicJwk, 'ES256');
     await expect(jose.compactVerify(quoteToken as string, key)).resolves.toBeDefined();

@@ -222,7 +222,8 @@ that it matches the key and that the JWK is the key's public half.
 ## Routes
 
 Set each route's `payTo` to your **AWS Marketplace product ID**. The server scheme signs it into the
-quote as `payTo` and as `settlement.product_id`. On the wire, `payTo` is replaced by the placeholder
+quote as `payTo` and as `settlement.product_id`, with the route's `scheme` and `network`. On the
+wire, `payTo` is replaced by the placeholder
 `SENTINEL_PAY_TO` (`urn:x402:agentic-commerce:see-quote`); the signed quote carries the real value.
 
 Other quote details come from the route's `extra`:

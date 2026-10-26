@@ -117,6 +117,8 @@ key's `kid` in the header:
   "exp": 1760000300,
   "jti": "550e8400-e29b-41d4-a716-446655440000",
   "price": { "amount": "0.01", "currency": "USD" },
+  "scheme": "exact",
+  "network": "aws:base",
   "payTo": "prod-example123",
   "reference": "weather-v1",
   "settlement": { "product_id": "prod-example123" },
@@ -127,6 +129,9 @@ key's `kid` in the header:
 
 - `iss` is the signer's service URL. `jti` is a random UUID.
 - `exp` is `iat` plus the route's `maxTimeoutSeconds`, or 300 seconds.
+- `scheme` and `network` are the route's, so the payment service, which sees only the quote, can
+  check what kind of payment it was priced for. Quotes signed by SDK 1.0.0 lack them and are still
+  accepted; a quote that names them must name the route's.
 - `payTo` and `settlement.product_id` are the route's `payTo`, the AWS Marketplace product ID.
   `extra.settlement`, when the route sets one, is copied in, and a `product_id` in it must equal
   `payTo`.
@@ -172,21 +177,22 @@ token.
 `AgenticCommerceVerifier.verify(paymentToken, requirements)` never throws for an invalid payment; it
 returns `{ isValid: false, invalidReason, invalidMessage }`. In order:
 
-| #   | Check                                                                                                                | Reason on failure |
-| --- | -------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| 1   | The requirements carry `extra.quoteToken`                                                                            | `invalid_quote`   |
-| 2   | The payment token is a compact JWS whose header has an allowed `alg` and a `kid`                                     | `invalid_payment` |
-| 3   | Its `iss` is `paymentTokenIssuer` (default `PAYMENT_TOKEN_ISSUER`)                                                   | `invalid_payment` |
-| 4   | Its `exp` is an integer and not in the past                                                                          | `payment_expired` |
-| 5   | It has a `payment_id`                                                                                                | `invalid_payment` |
-| 6   | It has a top-level `quote_token`, equal (constant-time) to `extra.quoteToken`                                        | `invalid_quote`   |
-| 7   | Its signature verifies against the payment service JWKS (`paymentTokenJwksUrl`); then checks 3-6 again               | `invalid_payment` |
-| 8   | The quote's signature verifies with the configured `sellerKeyResolver`                                               | `invalid_quote`   |
-| 9   | The payment token's `aud` is the quote's `iss`                                                                       | `invalid_payment` |
-| 10  | The quote's `exp` is an integer and not in the past                                                                  | `quote_expired`   |
-| 11  | The quote's price amount and currency equal the requirements'                                                        | `invalid_payment` |
-| 12  | With a product ID in the requirements, the quote's `payTo` and `settlement.product_id` equal it                      | `invalid_payment` |
-| 13  | With the route's quote in the requirements, the quote's `iss`, `aud`, `payTo`, `settlement` and `reference` equal it | `invalid_quote`   |
+| #   | Check                                                                                                                                                                         | Reason on failure |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| 1   | The requirements carry `extra.quoteToken`                                                                                                                                     | `invalid_quote`   |
+| 2   | The payment token is a compact JWS whose header has an allowed `alg` and a `kid`                                                                                              | `invalid_payment` |
+| 3   | Its `iss` is `paymentTokenIssuer` (default `PAYMENT_TOKEN_ISSUER`)                                                                                                            | `invalid_payment` |
+| 4   | Its `exp` is an integer and not in the past                                                                                                                                   | `payment_expired` |
+| 5   | It has a `payment_id`                                                                                                                                                         | `invalid_payment` |
+| 6   | It has a top-level `quote_token`, equal (constant-time) to `extra.quoteToken`                                                                                                 | `invalid_quote`   |
+| 7   | Its signature verifies against the payment service JWKS (`paymentTokenJwksUrl`); then checks 3-6 again                                                                        | `invalid_payment` |
+| 8   | The quote's signature verifies with the configured `sellerKeyResolver`                                                                                                        | `invalid_quote`   |
+| 9   | The payment token's `aud` is the quote's `iss`                                                                                                                                | `invalid_payment` |
+| 10  | The quote's `exp` is an integer and not in the past                                                                                                                           | `quote_expired`   |
+| 11  | The quote's price amount and currency equal the requirements'                                                                                                                 | `invalid_payment` |
+| 12  | A quote that names a `scheme` or `network` names the requirements'                                                                                                            | `invalid_quote`   |
+| 13  | With a product ID in the requirements, the quote's `payTo` and `settlement.product_id` equal it                                                                               | `invalid_payment` |
+| 14  | With the route's quote in the requirements, the quote's `iss`, `aud`, `payTo`, `settlement` and `reference` equal it, and so do its `scheme` and `network` when it names them | `invalid_quote`   |
 
 Checks 2 to 6 read the token before its signature is verified, so a request failing them costs no
 key fetch; they are made again once it is. The facilitator scheme and

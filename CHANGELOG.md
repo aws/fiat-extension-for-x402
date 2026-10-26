@@ -9,6 +9,14 @@ removing or renaming any of them, or narrowing a supported range, needs a new ma
 
 ## [1.0.1] - 2026-10-26
 
+### Added
+
+- Quotes carry the route's `scheme` and `network` (for example `exact` and `aws:base`), so the
+  payment service, which receives only the quote, can check what kind of payment a quote was priced
+  for. The verifier refuses a quote that names another scheme or network than the requirements
+  with `invalid_quote` (`Quote is for a different scheme or network`), and route binding compares
+  them too. Quotes without them, as SDK 1.0.0 signs, are still accepted.
+
 ### Removed
 
 - `verifyQuoteToken` and `verifyPaymentToken`. They checked a token's signature but not its issuer,

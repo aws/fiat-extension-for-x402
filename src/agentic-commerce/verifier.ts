@@ -70,6 +70,16 @@ export interface VerificationRequirements {
   amount?: string;
   /** The asset the server requires, for example `iso4217:USD` */
   asset?: string;
+  /**
+   * The x402 scheme the server requires, for example `exact`. When given, a
+   * quote that names a scheme must name this one.
+   */
+  scheme?: string;
+  /**
+   * The x402 network the server requires, for example `aws:base`. When given,
+   * a quote that names a network must name this one.
+   */
+  network?: string;
   /** `extra.quoteToken` is the quote the buyer accepted */
   extra?: Record<string, unknown>;
   /**
@@ -80,7 +90,7 @@ export interface VerificationRequirements {
   /**
    * The claims of the quote the server signed for this route. When given, the
    * accepted quote's `iss`, `aud`, `payTo`, `settlement` and `reference` must
-   * equal them.
+   * equal them, and so must its `scheme` and `network` when it names them.
    */
   routeQuote?: Record<string, unknown>;
 }
@@ -88,6 +98,10 @@ export interface VerificationRequirements {
 // Quote claims that name the route; the others change on every quote or are
 // checked on their own.
 const ROUTE_QUOTE_CLAIMS = ['iss', 'aud', 'payTo', 'settlement', 'reference'] as const;
+
+// Quote claims naming the payment it is for. A quote signed before they were
+// added has neither; one that names them must name the server's.
+const PAYMENT_KIND_CLAIMS = ['scheme', 'network'] as const;
 
 /** Headers sent with the payment-token JWKS request */
 export type JwksRequestHeaders =
@@ -257,6 +271,16 @@ export class AgenticCommerceVerifier {
       return invalid('invalid_payment', 'Amount or currency mismatch');
     }
 
+    for (const name of PAYMENT_KIND_CLAIMS) {
+      if (
+        quoteClaims[name] !== undefined &&
+        requirements[name] !== undefined &&
+        !looseEquals(quoteClaims[name], requirements[name])
+      ) {
+        return invalid('invalid_quote', 'Quote is for a different scheme or network');
+      }
+    }
+
     // x402 core does not match on the product or the quote, so bind them here.
     if (requirements.productId !== undefined) {
       const settlement = quoteClaims.settlement;
@@ -271,7 +295,11 @@ export class AgenticCommerceVerifier {
     const routeQuote = requirements.routeQuote;
     if (
       routeQuote !== undefined &&
-      ROUTE_QUOTE_CLAIMS.some((name) => !looseEquals(quoteClaims[name], routeQuote[name]))
+      (ROUTE_QUOTE_CLAIMS.some((name) => !looseEquals(quoteClaims[name], routeQuote[name])) ||
+        PAYMENT_KIND_CLAIMS.some(
+          (name) =>
+            quoteClaims[name] !== undefined && !looseEquals(quoteClaims[name], routeQuote[name])
+        ))
     ) {
       return invalid('invalid_quote', 'Quote does not match this route');
     }

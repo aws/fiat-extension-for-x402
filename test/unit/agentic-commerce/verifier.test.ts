@@ -976,6 +976,52 @@ describe('AgenticCommerceVerifier', () => {
     });
   });
 
+  describe('10b. scheme and network against the requirements', () => {
+    const route = { scheme: 'exact', network: 'aws:base' };
+
+    it('the seller signs the scheme and network into the quote', async () => {
+      expect(jose.decodeJwt(await sellerQuote())).toMatchObject(route);
+    });
+
+    it('passes when the quote names the required scheme and network', async () => {
+      const quote = await sellerQuote();
+      await expectValid(await service.issue(quote), wire(quote, route));
+    });
+
+    it.each([
+      ['another scheme', { scheme: 'upto' }],
+      ['another network', { network: 'aws:other' }],
+    ])('fails when the quote names %s', async (_name, claims) => {
+      const quote = await customQuote({ ...route, ...claims });
+      await expectInvalid(
+        await service.issue(quote),
+        wire(quote, route),
+        'invalid_quote',
+        'Quote is for a different scheme or network'
+      );
+    });
+
+    it('passes a quote signed before quotes named them', async () => {
+      const quote = await customQuote();
+      await expectValid(await service.issue(quote), wire(quote, route));
+    });
+
+    it('is not checked when the requirements name neither', async () => {
+      const quote = await customQuote({ scheme: 'upto', network: 'aws:other' });
+      await expectValid(await service.issue(quote), wire(quote));
+    });
+
+    it('binds them to the route quote too', async () => {
+      const quote = await customQuote({ ...route, network: 'aws:other' });
+      await expectInvalid(
+        await service.issue(quote),
+        wire(quote, { routeQuote: jose.decodeJwt(await customQuote(route)) }),
+        'invalid_quote',
+        'Quote does not match this route'
+      );
+    });
+  });
+
   describe('11. product', () => {
     it('passes when the quote is for the route product', async () => {
       const quote = await sellerQuote();
