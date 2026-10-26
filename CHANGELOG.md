@@ -7,7 +7,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The publi
 names exported from `@aws/fiat-extension-for-x402` and its `./agentic-commerce/exact` sub-path;
 removing or renaming any of them, or narrowing a supported range, needs a new major version.
 
-## [Unreleased]
+## [1.0.1] - 2026-10-26
 
 ### Removed
 
@@ -109,5 +109,5 @@ on the stock `@x402/core` resource server and facilitator. Requires Node.js 20.1
 - An error for a JWK that cannot be imported names the key by its `kid` and never includes the
   key's members.
 
-[Unreleased]: https://github.com/aws/fiat-extension-for-x402/compare/v1.0.0...HEAD
+[1.0.1]: https://github.com/aws/fiat-extension-for-x402/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/aws/fiat-extension-for-x402/releases/tag/v1.0.0
