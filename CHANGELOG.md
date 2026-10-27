@@ -7,15 +7,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The publi
 names exported from `@aws/fiat-extension-for-x402` and its `./agentic-commerce/exact` sub-path;
 removing or renaming any of them, or narrowing a supported range, needs a new major version.
 
-## [1.0.1] - 2026-10-26
+## [1.0.1] - 2026-10-27
+
+The removals below are unused helpers left from the private beta; none of them is on the path a
+seller or facilitator uses to accept a payment.
 
 ### Added
 
 - Quotes carry the route's `scheme` and `network` (for example `exact` and `aws:base`), so the
   payment service, which receives only the quote, can check what kind of payment a quote was priced
-  for. The verifier refuses a quote that names another scheme or network than the requirements
-  with `invalid_quote` (`Quote is for a different scheme or network`), and route binding compares
-  them too. Quotes without them, as SDK 1.0.0 signs, are still accepted.
+  for. Both are required. `enhancePaymentRequirements` signs only `exact` quotes and throws a
+  `ValidationError` for another scheme or a missing network. The verifier refuses a quote without
+  them, or naming another scheme or network than the requirements, with `invalid_quote`
+  (`Quote is for a different scheme or network`); direct callers of `verify` must pass `scheme` and
+  `network`. Route binding compares them too. Quotes signed by SDK 1.0.0, which lack them, are
+  refused.
 
 ### Removed
 
@@ -25,8 +31,7 @@ removing or renaming any of them, or narrowing a supported range, needs a new ma
 - `SignatureError`, `ExpiryError` and `MismatchError`, which nothing in the SDK threw, and the
   unused `AgenticCommercePayloadV2` type. A payment's id is the verified `payment_id` of its token
   (`extra.paymentId` of the verify response), not a field of the payment payload.
-- The repository's `SECURITY.md` and Dependabot configuration, which the GitHub organization now
-  provides. Report a vulnerability through
+- The repository's `SECURITY.md` and Dependabot configuration. Report a vulnerability through
   [AWS vulnerability reporting](https://aws.amazon.com/security/vulnerability-reporting/).
 
 ### Security
@@ -36,8 +41,8 @@ removing or renaming any of them, or narrowing a supported range, needs a new ma
   the verify response, so a seller can record it before serving the request (see
   `docs/security.md`). The payment payload's own `paymentId` is set by the buyer and is not this id.
 - **The quote must be for this route.** The facilitator scheme and
-  `AgenticCommerceFacilitatorClient` now require the accepted quote's `iss`, `aud`, `payTo`,
-  `settlement` and `reference` to equal those of the quote the server signed for the request, so a
+  `AgenticCommerceFacilitatorClient` now require the accepted quote's `iss`, `aud`, `scheme`,
+  `network`, `payTo`, `settlement` and `reference` to equal those of the quote the server signed for the request, so a
   quote for another route, or from another service sharing the seller's key, is refused with
   `invalid_quote` (`Quote does not match this route`). `VerificationRequirements` gains the
   optional `routeQuote` for this check.

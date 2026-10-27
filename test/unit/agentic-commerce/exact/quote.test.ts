@@ -15,8 +15,6 @@ import { ValidationError } from '../../../../src/types';
 import {
   FIXED_JTI,
   FIXED_NOW,
-  MINTED_QUOTE_PAYLOAD_JSON,
-  MINTED_QUOTE_TOKEN,
   QUOTE_INPUT,
   QUOTE_OUTPUT,
   QUOTE_PAYLOAD_JSON,
@@ -83,8 +81,8 @@ describe('enhancePaymentRequirements: the fixed quote vector', () => {
     const enhanced = await enhanceFixture();
     const [, payload] = (enhanced.extra as { quoteToken: string }).quoteToken.split('.');
 
-    expect(Buffer.from(payload, 'base64url').toString('utf8')).toBe(MINTED_QUOTE_PAYLOAD_JSON);
-    expect(payload).toBe(MINTED_QUOTE_TOKEN.split('.')[1]);
+    expect(Buffer.from(payload, 'base64url').toString('utf8')).toBe(QUOTE_PAYLOAD_JSON);
+    expect(payload).toBe(QUOTE_TOKEN.split('.')[1]);
   });
 
   it('the fixture quote verifies with the fixture seller key', async () => {
@@ -143,6 +141,27 @@ describe('enhancePaymentRequirements: quote claims', () => {
     await enhancePaymentRequirements(requirements({ network: 'aws:other' }), signer);
 
     expect(signer.signed[0]).toMatchObject({ scheme: 'exact', network: 'aws:other' });
+  });
+
+  // Only `exact` quotes are minted, and both claims are required: the payment
+  // service checks them on every quote.
+  it.each([
+    ['no scheme', { scheme: undefined }, "scheme must be 'exact', got null"],
+    ['another scheme', { scheme: 'upto' }, `scheme must be 'exact', got "upto"`],
+    [
+      'a scheme that is not a string',
+      { scheme: ['exact'] },
+      `scheme must be 'exact', got ["exact"]`,
+    ],
+    ['no network', { network: undefined }, 'network must be a non-empty string'],
+    ['an empty network', { network: '  ' }, 'network must be a non-empty string'],
+    ['a network that is not a string', { network: 8453 }, 'network must be a non-empty string'],
+  ])('rejects requirements with %s, signing nothing', async (_name, overrides, message) => {
+    const signer = recordingSigner();
+    await expect(enhancePaymentRequirements(requirements(overrides), signer)).rejects.toThrow(
+      new ValidationError(`Cannot sign quote token: ${message}`)
+    );
+    expect(signer.signed).toEqual([]);
   });
 
   it('gives each quote a fresh jti', async () => {

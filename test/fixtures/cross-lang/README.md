@@ -1,9 +1,10 @@
 # Shared wire fixtures (TEST KEYS ONLY)
 
 These files are the wire contract of the AWS Marketplace Agentic Commerce
-`exact` scheme. Every SDK implementation of the scheme carries the same files,
-byte for byte, and runs them in its own test suite. A change to any file here
-is a change to the wire contract: make it in every SDK at once.
+`exact` scheme, written so that any SDK implementation of the scheme could
+carry the same files byte for byte and run them in its own test suite. Today
+they are this repository's own: no other SDK consumes them yet. A change to
+any file here is a change to the wire contract.
 
 The tokens and the proof are fixed bytes. ECDSA signatures are randomised, so
 re-signing produces different bytes that are equally valid: never regenerate
@@ -47,19 +48,24 @@ the fixed tokens; add a new fixture instead.
 - `now`, `jti`: the clock and the quote `jti` while the quote is signed.
 - `signer`: the key (`seller`), `kid` and `serviceUrl` of the quote signer.
 - `input`, `output`: `enhancePaymentRequirements` input and output.
-  `output.extra.quoteToken` is `quoteToken`.
+  `output.extra.quoteToken` is `quoteToken`; a fresh signature differs, so
+  compare the payload bytes, not the token.
 - `quoteToken`, `header`, `payloadJson`: the fixed quote token, its decoded
-  protected header, and its payload exactly as signed. It was signed before
-  quotes carried `scheme` and `network`, and a verifier still accepts it.
-- `mintedQuoteToken`, `mintedPayloadJson`: the quote minted from `input` at
-  `now` with `jti` today, signed with the seller key: it has `header` and
-  these payload bytes, which add `scheme` and `network` after `price`.
+  protected header, and its payload exactly as `enhancePaymentRequirements`
+  signs it from `input` at `now` with `jti`. It carries `scheme` and `network`
+  right after `price`.
+- `legacyQuoteToken`, `legacyPayloadJson`: the quote this file carried before
+  quotes named `scheme` and `network`. It has the same `header`; a verifier
+  refuses it now.
 
 `payment-token.json`
 - `token`, `header`, `claims`: the fixed payment token and its decoded parts.
 - `verify`: verify `token` against `requirements` at `now`, with the seller's
   `publicJwk` as the seller key, the service JWKS, and `paymentTokenIssuer` as
   the payment token issuer (also the SDK default). The result is `expected`.
+- `legacyToken`, `legacyVerify`: the payment token for `legacyQuoteToken`, and
+  its verification, which is refused with `invalid_quote` because the quote
+  names no `scheme` or `network`.
 - `facilitator`: at `now`, the facilitator's verify of `paymentPayload`
   against `requirements` returns `expectedVerify` (an x402 `VerifyResponse`),
   and its settle returns `expectedSettle` (an x402 `SettleResponse`).

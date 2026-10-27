@@ -38,9 +38,10 @@ checks is in [sdk-guide.md](sdk-guide.md#51-payment-verification).
 
 - The quote comparison is constant-time (`secureCompare`).
 - The quote must name the same route as the quote the server signed for the request: the same
-  `iss`, `aud`, `payTo`, `settlement` and `reference`, and the same `scheme` and `network` when it
-  names them. A quote for another route, or from another
-  service sharing the seller's key, is refused.
+  `iss`, `aud`, `scheme`, `network`, `payTo`, `settlement` and `reference`. A quote for another
+  route, or from another service sharing the seller's key, is refused.
+- Every quote carries `scheme` and `network`, signed by the seller, and they must equal the
+  requirements'. A quote without them is refused, so the payment service can rely on them too.
 - The token's shape, `alg`, `kid`, issuer, expiry, `payment_id` and quote are checked before any key
   is fetched, so a malformed or misdirected token costs no network call.
 - The payment service JWKS is cached for a minute, so a revoked service key stops being accepted

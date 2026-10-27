@@ -71,13 +71,13 @@ export interface VerificationRequirements {
   /** The asset the server requires, for example `iso4217:USD` */
   asset?: string;
   /**
-   * The x402 scheme the server requires, for example `exact`. When given, a
-   * quote that names a scheme must name this one.
+   * The x402 scheme the server requires, for example `exact`. Required: the
+   * quote's `scheme` must equal it.
    */
   scheme?: string;
   /**
-   * The x402 network the server requires, for example `aws:base`. When given,
-   * a quote that names a network must name this one.
+   * The x402 network the server requires, for example `aws:base`. Required:
+   * the quote's `network` must equal it.
    */
   network?: string;
   /** `extra.quoteToken` is the quote the buyer accepted */
@@ -89,18 +89,26 @@ export interface VerificationRequirements {
   productId?: string;
   /**
    * The claims of the quote the server signed for this route. When given, the
-   * accepted quote's `iss`, `aud`, `payTo`, `settlement` and `reference` must
-   * equal them, and so must its `scheme` and `network` when it names them.
+   * accepted quote's `iss`, `aud`, `scheme`, `network`, `payTo`, `settlement`
+   * and `reference` must equal them.
    */
   routeQuote?: Record<string, unknown>;
 }
 
 // Quote claims that name the route; the others change on every quote or are
 // checked on their own.
-const ROUTE_QUOTE_CLAIMS = ['iss', 'aud', 'payTo', 'settlement', 'reference'] as const;
+const ROUTE_QUOTE_CLAIMS = [
+  'iss',
+  'aud',
+  'scheme',
+  'network',
+  'payTo',
+  'settlement',
+  'reference',
+] as const;
 
-// Quote claims naming the payment it is for. A quote signed before they were
-// added has neither; one that names them must name the server's.
+// Quote claims naming the payment it is for. Every quote carries both, and they
+// must equal the server's.
 const PAYMENT_KIND_CLAIMS = ['scheme', 'network'] as const;
 
 /** Headers sent with the payment-token JWKS request */
@@ -155,9 +163,10 @@ function invalid(reason: AgenticCommerceInvalidReason, message: string): Verific
  *    seller configures; it is never discovered from the token.
  * 5. Check the payment token's audience is the quote's issuer, and the quote
  *    has not expired.
- * 6. Check the quote's price matches the requirements' amount and currency
- *    and, when the requirements name the product or carry the route's own
- *    quote, that the quote is for this route.
+ * 6. Check the quote's price matches the requirements' amount and currency,
+ *    its `scheme` and `network` equal the requirements' (both required), and,
+ *    when the requirements name the product or carry the route's own quote,
+ *    that the quote is for this route.
  *
  * DPoP binding (`cnf.jkt`) is not checked here.
  *
@@ -272,10 +281,11 @@ export class AgenticCommerceVerifier {
     }
 
     for (const name of PAYMENT_KIND_CLAIMS) {
+      const required = requirements[name];
       if (
-        quoteClaims[name] !== undefined &&
-        requirements[name] !== undefined &&
-        !looseEquals(quoteClaims[name], requirements[name])
+        typeof required !== 'string' ||
+        typeof quoteClaims[name] !== 'string' ||
+        quoteClaims[name] !== required
       ) {
         return invalid('invalid_quote', 'Quote is for a different scheme or network');
       }
@@ -295,11 +305,7 @@ export class AgenticCommerceVerifier {
     const routeQuote = requirements.routeQuote;
     if (
       routeQuote !== undefined &&
-      (ROUTE_QUOTE_CLAIMS.some((name) => !looseEquals(quoteClaims[name], routeQuote[name])) ||
-        PAYMENT_KIND_CLAIMS.some(
-          (name) =>
-            quoteClaims[name] !== undefined && !looseEquals(quoteClaims[name], routeQuote[name])
-        ))
+      ROUTE_QUOTE_CLAIMS.some((name) => !looseEquals(quoteClaims[name], routeQuote[name]))
     ) {
       return invalid('invalid_quote', 'Quote does not match this route');
     }

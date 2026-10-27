@@ -181,6 +181,72 @@
           "invalidReason": "invalid_quote",
           "invalidMessage": "Quote token signature invalid: The token is not yet valid (nbf)"
         }
+      },
+      {
+        "name": "quote has no scheme (scheme and network are required)",
+        "quoteClaims": {
+          "scheme": null
+        },
+        "expected": {
+          "isValid": false,
+          "invalidReason": "invalid_quote",
+          "invalidMessage": "Quote is for a different scheme or network"
+        }
+      },
+      {
+        "name": "quote has no network",
+        "quoteClaims": {
+          "network": null
+        },
+        "expected": {
+          "isValid": false,
+          "invalidReason": "invalid_quote",
+          "invalidMessage": "Quote is for a different scheme or network"
+        }
+      },
+      {
+        "name": "quote for another scheme",
+        "quoteClaims": {
+          "scheme": "upto"
+        },
+        "expected": {
+          "isValid": false,
+          "invalidReason": "invalid_quote",
+          "invalidMessage": "Quote is for a different scheme or network"
+        }
+      },
+      {
+        "name": "quote for another network",
+        "quoteClaims": {
+          "network": "aws:other"
+        },
+        "expected": {
+          "isValid": false,
+          "invalidReason": "invalid_quote",
+          "invalidMessage": "Quote is for a different scheme or network"
+        }
+      },
+      {
+        "name": "requirements name no scheme",
+        "requirements": {
+          "scheme": null
+        },
+        "expected": {
+          "isValid": false,
+          "invalidReason": "invalid_quote",
+          "invalidMessage": "Quote is for a different scheme or network"
+        }
+      },
+      {
+        "name": "requirements name no network",
+        "requirements": {
+          "network": null
+        },
+        "expected": {
+          "isValid": false,
+          "invalidReason": "invalid_quote",
+          "invalidMessage": "Quote is for a different scheme or network"
+        }
       }
     ]
   },
@@ -239,7 +305,7 @@
             "htm": "GET",
             "htu": "https://seller.example.com/weather",
             "iat": 1790000000,
-            "ath": "3Ot2l6R3W8rB47ia2TJzd3q1OGBBjO2z0aY6qag75zE"
+            "ath": "WgWBJoSgVymqWbOjszRQVYmdbnQFP-gD4Z_OQSN7SIc"
           }
         }
       },
@@ -254,7 +320,7 @@
             "htm": "GET",
             "htu": "https://seller.example.com/weather",
             "iat": 1790000015,
-            "ath": "3Ot2l6R3W8rB47ia2TJzd3q1OGBBjO2z0aY6qag75zE"
+            "ath": "WgWBJoSgVymqWbOjszRQVYmdbnQFP-gD4Z_OQSN7SIc"
           }
         }
       },

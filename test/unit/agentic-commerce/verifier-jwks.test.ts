@@ -56,6 +56,8 @@ async function verifyAgainst(jwks: unknown, header?: Record<string, unknown>) {
   return verifier.verify(token, {
     amount: '0.10',
     asset: 'iso4217:USD',
+    scheme: 'exact',
+    network: 'aws:base',
     extra: { quoteToken: quote },
   });
 }
