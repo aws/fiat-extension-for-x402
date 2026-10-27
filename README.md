@@ -222,7 +222,9 @@ that it matches the key and that the JWK is the key's public half.
 ## Routes
 
 Set each route's `payTo` to your **AWS Marketplace product ID**. The server scheme signs it into the
-quote as `payTo` and as `settlement.product_id`. On the wire, `payTo` is replaced by the placeholder
+quote as `payTo` and as `settlement.product_id`, with the route's `scheme` (only `exact`) and
+`network`, which are required on every quote. On the
+wire, `payTo` is replaced by the placeholder
 `SENTINEL_PAY_TO` (`urn:x402:agentic-commerce:see-quote`); the signed quote carries the real value.
 
 Other quote details come from the route's `extra`:
@@ -408,9 +410,10 @@ try {
 - Payment-token and quote signatures are limited to `ALLOWED_ALGORITHMS` (RS256, ES256, ES384,
   ES512). The list is frozen. DPoP proofs may also use PS256; `none` and HMAC are always refused.
 - Use HTTPS for the seller URL and every JWKS URL.
-- Accept each payment once: verification is stateless, so record every `paymentId` in a store
-  shared by all seller instances and refuse one already recorded. See
-  [Payment replay](docs/security.md#payment-replay).
+- Accept each payment once: verification is stateless, so record the `payment_id` claim of each
+  verified payment token (`extra.paymentId` of the verify response) in a store shared by all seller
+  instances and refuse one already recorded. Never key on the `paymentId` in the payment payload:
+  the buyer sets it and nothing checks it. See [Payment replay](docs/security.md#payment-replay).
 - Share one `DPoPNonceStore` across all seller instances, and keep the request URL the framework
   sees equal to the public URL.
 - Never call the facilitator outside `x402ResourceServer` for a request that may carry a DPoP-bound

@@ -12,6 +12,7 @@ import type { QuoteSigner } from '../../signers/protocol';
 import {
   DEFAULT_QUOTE_VALIDITY_SECONDS,
   QUOTE_TOKEN_AUDIENCE,
+  SCHEME_EXACT,
   SENTINEL_PAY_TO,
 } from '../../constants';
 import { ValidationError, type QuoteTokenPayload } from '../../types';
@@ -37,9 +38,13 @@ const OPTIONAL_QUOTE_CLAIMS = ['description', 'dimensions', 'support', 'terms'] 
  * @param requirements - Base x402 payment requirements
  * @param signer - Signer for the quote token. Its service URL becomes `iss`.
  * @returns The enhanced payment requirements
+ * The requirements' `scheme` and `network` are signed into the quote too, so
+ * the payment service, which sees only the quote, can check what it pays for.
+ *
  * @throws ValidationError if the signer's service URL or `payTo` is empty, the
- *   amount or asset is not one `parsePrice` returns, or
- *   `extra.settlement.product_id` disagrees with `payTo`
+ *   scheme is not `exact`, the network is empty, the amount or asset is not
+ *   one `parsePrice` returns, or `extra.settlement.product_id` disagrees with
+ *   `payTo`
  */
 export async function enhancePaymentRequirements(
   requirements: PaymentRequirements,
@@ -53,6 +58,17 @@ export async function enhancePaymentRequirements(
         'Configure a non-empty serviceUrl on the signer; it becomes the quote ' +
         "token's 'iss' claim, which the service requires."
     );
+  }
+
+  // The payment the quote is for. Only `exact` quotes are minted.
+  if (requirements.scheme !== SCHEME_EXACT) {
+    throw new ValidationError(
+      `Cannot sign quote token: scheme must be '${SCHEME_EXACT}', got ${JSON.stringify(requirements.scheme ?? null)}`
+    );
+  }
+  const network: unknown = requirements.network;
+  if (typeof network !== 'string' || !stripWhitespace(network)) {
+    throw new ValidationError('Cannot sign quote token: network must be a non-empty string');
   }
 
   // The price is checked again where it is signed, for a caller that skips
@@ -98,6 +114,10 @@ export async function enhancePaymentRequirements(
       amount,
       currency: asset.slice('iso4217:'.length),
     },
+    // The payment the quote is for, so the payment service, which sees only
+    // the quote, can check it.
+    scheme: SCHEME_EXACT,
+    network,
     payTo: productId,
     reference: isTruthy(extra.reference) ? extra.reference : 'RESOURCE',
     settlement,

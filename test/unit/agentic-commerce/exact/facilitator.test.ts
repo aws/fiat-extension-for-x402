@@ -193,6 +193,36 @@ describe('ExactAgenticCommerceFacilitatorScheme', () => {
       });
     });
 
+    it("passes the server's scheme and network to the verifier", async () => {
+      const verify = vi.spyOn(scheme.verifier, 'verify');
+      const server = await offer();
+      const token = await service.issue(quoteOf(server));
+      expect(await scheme.verify(payload(server, token), server)).toMatchObject({ isValid: true });
+      expect(verify).toHaveBeenCalledWith(
+        token,
+        expect.objectContaining({ scheme: 'exact', network: 'aws:base' })
+      );
+    });
+
+    it('rejects a quote for another network on the same route', async () => {
+      // x402 core matches the accepted network against the server's; the quote's
+      // own network claim is what the payment service sees.
+      const other = await enhancePaymentRequirements(
+        { ...ROUTE, network: 'aws:other' },
+        seller.signer
+      );
+      const accepted = {
+        ...(await offer()),
+        extra: { ...ROUTE.extra, quoteToken: quoteOf(other) },
+      };
+      const token = await service.issue(quoteOf(other));
+      expect(await scheme.verify(payload(accepted, token), await offer())).toEqual({
+        isValid: false,
+        invalidReason: 'invalid_quote',
+        invalidMessage: 'Quote is for a different scheme or network',
+      });
+    });
+
     it('fails closed when the server requirements carry no quote', async () => {
       const accepted = await offer();
       const token = await service.issue(quoteOf(accepted));

@@ -87,6 +87,8 @@ async function customQuote(
     exp: now + 300,
     jti: 'quote-1',
     price: { amount: '0.10', currency: 'USD' },
+    scheme: 'exact',
+    network: 'aws:base',
     payTo: PRODUCT,
     reference: 'RESOURCE',
     settlement: { product_id: PRODUCT },
@@ -99,7 +101,14 @@ async function customQuote(
 }
 
 function wire(quoteToken: unknown, overrides: VerificationRequirements = {}) {
-  return { amount: '0.10', asset: 'iso4217:USD', extra: { quoteToken }, ...overrides };
+  return {
+    amount: '0.10',
+    asset: 'iso4217:USD',
+    scheme: 'exact',
+    network: 'aws:base',
+    extra: { quoteToken },
+    ...overrides,
+  };
 }
 
 async function expectValid(token: string, requirements: VerificationRequirements, v = verifier()) {
@@ -976,6 +985,89 @@ describe('AgenticCommerceVerifier', () => {
     });
   });
 
+  describe('10b. scheme and network against the requirements', () => {
+    const route = { scheme: 'exact', network: 'aws:base' };
+
+    it('the seller signs the scheme and network into the quote', async () => {
+      expect(jose.decodeJwt(await sellerQuote())).toMatchObject(route);
+    });
+
+    it('passes when the quote names the required scheme and network', async () => {
+      const quote = await sellerQuote();
+      await expectValid(await service.issue(quote), wire(quote, route));
+    });
+
+    it.each([
+      ['another scheme', { scheme: 'upto' }],
+      ['another network', { network: 'aws:other' }],
+    ])('fails when the quote names %s', async (_name, claims) => {
+      const quote = await customQuote({ ...route, ...claims });
+      await expectInvalid(
+        await service.issue(quote),
+        wire(quote, route),
+        'invalid_quote',
+        'Quote is for a different scheme or network'
+      );
+    });
+
+    it.each([
+      ['no scheme', { scheme: undefined }],
+      ['no network', { network: undefined }],
+      [
+        'neither, as quotes signed before they were added',
+        { scheme: undefined, network: undefined },
+      ],
+      ['a scheme that is not a string', { scheme: ['exact'] }],
+    ])('fails when the quote has %s', async (_name, claims) => {
+      const quote = await customQuote(claims);
+      await expectInvalid(
+        await service.issue(quote),
+        wire(quote, route),
+        'invalid_quote',
+        'Quote is for a different scheme or network'
+      );
+    });
+
+    it.each([
+      ['no scheme', { scheme: undefined }],
+      ['no network', { network: undefined }],
+    ])('fails when the requirements have %s', async (_name, requirements) => {
+      const quote = await sellerQuote();
+      await expectInvalid(
+        await service.issue(quote),
+        wire(quote, requirements),
+        'invalid_quote',
+        'Quote is for a different scheme or network'
+      );
+    });
+
+    // A quote from a server older than its facilitator, or the reverse: one
+    // side has the claims and the other does not, so the quote does not match.
+    it.each([
+      ['the route quote lacks them', { scheme: undefined, network: undefined }, {}],
+      ['the paid quote lacks them', {}, { scheme: undefined, network: undefined }],
+    ])('fails route binding when %s', async (_name, routeClaims, paidClaims) => {
+      const quote = await customQuote(paidClaims);
+      const routeQuote = jose.decodeJwt(await customQuote(routeClaims));
+      const requirements = wire(quote, { routeQuote });
+      // Leave only route binding to fail when the paid quote has the claims.
+      const result = await verifier().verify(await service.issue(quote), requirements);
+      expect(result).toMatchObject({ isValid: false, invalidReason: 'invalid_quote' });
+    });
+
+    it('binds them to the route quote too', async () => {
+      const quote = await customQuote(route);
+      await expectInvalid(
+        await service.issue(quote),
+        wire(quote, {
+          routeQuote: jose.decodeJwt(await customQuote({ ...route, network: 'aws:other' })),
+        }),
+        'invalid_quote',
+        'Quote does not match this route'
+      );
+    });
+  });
+
   describe('11. product', () => {
     it('passes when the quote is for the route product', async () => {
       const quote = await sellerQuote();
@@ -1030,6 +1122,8 @@ describe('AgenticCommerceVerifier', () => {
         await v.verify(fixtures.PAYMENT_TOKEN, {
           amount: '0.10',
           asset: 'iso4217:USD',
+          scheme: 'exact',
+          network: 'aws:base',
           extra: { quoteToken: fixtures.QUOTE_TOKEN },
           productId: 'prod-fixture123',
         })

@@ -114,6 +114,8 @@ async function signThenVerify(
   const result = await verifier.verify(await service.issue(quoteToken), {
     amount: '0.10',
     asset: 'iso4217:USD',
+    scheme: enhanced.scheme,
+    network: enhanced.network,
     extra: enhanced.extra,
   });
   return { result, quoteToken, fetchStub };

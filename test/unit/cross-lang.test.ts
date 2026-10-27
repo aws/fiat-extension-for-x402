@@ -73,6 +73,8 @@ interface QuoteFile {
   quoteToken: string;
   header: Json;
   payloadJson: string;
+  legacyQuoteToken: string;
+  legacyPayloadJson: string;
 }
 interface DPoPOptions extends Json {
   htm: string;
@@ -96,6 +98,12 @@ interface PaymentTokenFile {
     requirements: Json;
     expectedVerify: Json;
     expectedSettle: Json;
+  };
+  legacyToken: string;
+  legacyVerify: {
+    now: number;
+    requirements: Json & { extra: Json };
+    expected: Json;
   };
 }
 interface DPoPProofFile {
@@ -279,6 +287,9 @@ describe('shared wire fixtures: file format', () => {
   it('matches the fixed vectors the other unit tests use', () => {
     expect(quote.quoteToken).toBe(fixedVectors.QUOTE_TOKEN);
     expect(quote.payloadJson).toBe(fixedVectors.QUOTE_PAYLOAD_JSON);
+    expect(quote.legacyQuoteToken).toBe(fixedVectors.LEGACY_QUOTE_TOKEN);
+    expect(quote.legacyPayloadJson).toBe(fixedVectors.LEGACY_QUOTE_PAYLOAD_JSON);
+    expect(payment.legacyToken).toBe(fixedVectors.LEGACY_PAYMENT_TOKEN);
     expect(quote.input).toEqual(fixedVectors.QUOTE_INPUT);
     expect(quote.output).toEqual(fixedVectors.QUOTE_OUTPUT);
     expect(payment.token).toBe(fixedVectors.PAYMENT_TOKEN);
@@ -319,12 +330,26 @@ describe('shared wire fixtures: keys.json', () => {
 });
 
 describe('shared wire fixtures: quote.json', () => {
-  it('the fixed quote token has the documented header and exact payload bytes', async () => {
+  it('the fixed quote token has the documented header and exact payload bytes, with scheme and network', async () => {
     expect(segment(quote.quoteToken, 0)).toEqual(quote.header);
     const payloadBytes = Buffer.from(quote.quoteToken.split('.')[1], 'base64url');
     expect(payloadBytes.toString('utf8')).toBe(quote.payloadJson);
+    expect(JSON.parse(quote.payloadJson)).toMatchObject({
+      scheme: quote.input.scheme,
+      network: quote.input.network,
+    });
     const key = await jose.importJWK(keys.keys.seller.publicJwk, 'ES256');
     await expect(jose.compactVerify(quote.quoteToken, key)).resolves.toBeDefined();
+  });
+
+  it('the legacy quote token is signed but names no scheme or network', async () => {
+    expect(segment(quote.legacyQuoteToken, 0)).toEqual(quote.header);
+    const payloadBytes = Buffer.from(quote.legacyQuoteToken.split('.')[1], 'base64url');
+    expect(payloadBytes.toString('utf8')).toBe(quote.legacyPayloadJson);
+    expect(JSON.parse(quote.legacyPayloadJson)).not.toHaveProperty('scheme');
+    expect(JSON.parse(quote.legacyPayloadJson)).not.toHaveProperty('network');
+    const key = await jose.importJWK(keys.keys.seller.publicJwk, 'ES256');
+    await expect(jose.compactVerify(quote.legacyQuoteToken, key)).resolves.toBeDefined();
   });
 
   it('enhancePaymentRequirements turns the input into the output, with the same payload bytes', async () => {
@@ -366,6 +391,15 @@ describe('shared wire fixtures: payment-token.json', () => {
         payment.verify.expected
       );
     }
+  });
+
+  it('the verifier refuses the legacy token, whose quote names no scheme or network', async () => {
+    atTime(payment.legacyVerify.now);
+    serveServiceJwks();
+    expect(segment(payment.legacyToken, 1)).toMatchObject({ quote_token: quote.legacyQuoteToken });
+    expect(await verifier().verify(payment.legacyToken, payment.legacyVerify.requirements)).toEqual(
+      payment.legacyVerify.expected
+    );
   });
 
   it('the facilitator verifies and settles it', async () => {

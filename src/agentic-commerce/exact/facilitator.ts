@@ -191,6 +191,8 @@ function wireRequirements(
   return {
     amount: server.amount ?? server.maxAmountRequired,
     asset: server.asset,
+    scheme: server.scheme,
+    network: server.network,
     extra: { quoteToken },
     productId: typeof routeQuote.payTo === 'string' ? routeQuote.payTo : '',
     routeQuote,

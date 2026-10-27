@@ -38,8 +38,10 @@ checks is in [sdk-guide.md](sdk-guide.md#51-payment-verification).
 
 - The quote comparison is constant-time (`secureCompare`).
 - The quote must name the same route as the quote the server signed for the request: the same
-  `iss`, `aud`, `payTo`, `settlement` and `reference`. A quote for another route, or from another
-  service sharing the seller's key, is refused.
+  `iss`, `aud`, `scheme`, `network`, `payTo`, `settlement` and `reference`. A quote for another
+  route, or from another service sharing the seller's key, is refused.
+- Every quote carries `scheme` and `network`, signed by the seller, and they must equal the
+  requirements'. A quote without them is refused, so the payment service can rely on them too.
 - The token's shape, `alg`, `kid`, issuer, expiry, `payment_id` and quote are checked before any key
   is fetched, so a malformed or misdirected token costs no network call.
 - The payment service JWKS is cached for a minute, so a revoked service key stops being accepted
@@ -61,13 +63,16 @@ its holder can make one each time.
 The SDK cannot keep that record for the seller: only a store shared by every instance of the seller
 rejects a payment replayed against another instance. The seller **must** accept each payment once:
 
-- **Record `paymentId` atomically.** Every valid payment token has a `payment_id`. The `exact`
+- **Record the verified `payment_id` atomically.** Every valid payment token has a `payment_id`. The `exact`
   facilitator scheme returns it as `extra.paymentId` of the verify response, so an `onAfterVerify`
   hook sees it before the request is served (`AgenticCommerceVerifier.verify` returns it as
   `paymentId`). Insert it into a store shared by every instance of the seller with a conditional
   write (for example a DynamoDB `PutItem` with `attribute_not_exists`, or Redis `SET NX`), and refuse
-  the request if it was already there. Use only this verified id: a `paymentId` in the payment
-  payload is set by the buyer and never checked.
+  the request if it was already there.
+- **Take the id from the verified payment token only.** Key the check on the `payment_id` claim of
+  the payment token the facilitator verified, never on the `paymentId` in the payment payload: the
+  buyer sets that and the SDK does not check it, so a replay with a new value there passes the
+  check.
 - **Keep it long enough.** Keep each id until `max(payment token exp, quote exp)` plus the clock
   skew between the seller's instances, after which the token is refused anyway.
 - **Record it once the payment is valid.** Recording before verification lets a forged token block a
