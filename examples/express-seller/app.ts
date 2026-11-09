@@ -83,17 +83,20 @@ export function createSellerApp(options: SellerAppOptions): Express {
     res.json(jwks);
   });
 
+  // Express answers HEAD with the GET handler, and @x402/core before 2.29
+  // matches the method exactly, so there the route protects GET only. From
+  // 2.29 a GET route covers HEAD too. Refuse HEAD ahead of the payment
+  // middleware, so every supported @x402/core answers it the same way.
+  app.head('/weather', (_req, res) => {
+    res.set('Allow', 'GET').sendStatus(405);
+  });
+
   // Express 4 ignores the promise a handler returns, so pass a rejection on.
   const payments = paymentMiddleware(routes, resourceServer);
   app.use((req, res, next) => {
     payments(req, res, next).catch(next);
   });
 
-  // x402 matches the method exactly, so the route protects GET only, but
-  // Express answers HEAD with the GET handler. Refuse HEAD instead.
-  app.head('/weather', (_req, res) => {
-    res.set('Allow', 'GET').sendStatus(405);
-  });
   app.get('/weather', (_req, res) => {
     // A paid response must never be served from a shared cache.
     res.set('Cache-Control', 'private, no-store');
