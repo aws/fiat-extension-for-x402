@@ -84,13 +84,13 @@ const payments = paymentMiddleware(
 );
 
 const app = express();
+// Express answers HEAD with the GET handler: refuse it, ahead of the payment middleware.
+app.head('/weather', (_req, res) => {
+  res.set('Allow', 'GET').sendStatus(405);
+});
 // Express 4 ignores the promise a handler returns, so pass a rejection on.
 app.use((req, res, next) => {
   payments(req, res, next).catch(next);
-});
-// x402 protects GET only, but Express answers HEAD with the GET handler: refuse it.
-app.head('/weather', (_req, res) => {
-  res.set('Allow', 'GET').sendStatus(405);
 });
 app.get('/weather', (_req, res) => {
   res.json({ temperatureF: 58 });
@@ -250,10 +250,11 @@ const weather: RouteConfig = {
 };
 ```
 
-x402 matches a route's method exactly. Express (like several frameworks) answers `HEAD` with the
-`GET` handler, so refuse or protect `HEAD` for every paid `GET` route, as the quick start does: add
-an `app.head` for each one, or key the route `'* /path'` so that every method, `HEAD` included,
-pays.
+`@x402/core` before 2.29 matches a route's method exactly; from 2.29 a `GET` route also covers
+`HEAD`. Express (like several frameworks) answers `HEAD` with the `GET` handler, so refuse or
+protect `HEAD` for every paid `GET` route, as the quick start does: add an `app.head` for each one
+ahead of the payment middleware, or key the route `'* /path'` so that every method, `HEAD`
+included, pays.
 
 The 402's `maxTimeoutSeconds` equals the quote's lifetime. x402 builds the requirements again on the
 buyer's paid retry, which signs a new quote token; the scheme declares `quoteToken` a dynamic field,
