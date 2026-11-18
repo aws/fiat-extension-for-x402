@@ -7,6 +7,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The publi
 names exported from `@aws/fiat-extension-for-x402` and its `./agentic-commerce/exact` sub-path;
 removing or renaming any of them, or narrowing a supported range, needs a new major version.
 
+## [1.0.2] - 2026-11-18
+
+No change to the SDK's code: dependency and documentation updates only.
+
+### Changed
+
+- Development dependencies: eslint 10.15.0 and typescript-eslint 8.73.0, which take minimatch 11
+  (fixes [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249)); vitest 4.1.12;
+  and the `@x402/core` and `@x402/express` the tests run on, now 2.30.0. None of them is installed
+  with the package, and the supported `@x402/core` range is unchanged (`>=2.23.0 <3`).
+
+### Documentation
+
+- The quick start and the Express example refuse `HEAD` ahead of the payment middleware.
+  `@x402/core` before 2.29 matches a route's method exactly; from 2.29 a `GET` route also covers
+  `HEAD`, so placed first the refusal answers `HEAD` the same way on every supported version.
+
 ## [1.0.1] - 2026-10-27
 
 The removals below are unused helpers left from the private beta; none of them is on the path a
@@ -122,5 +139,6 @@ on the stock `@x402/core` resource server and facilitator. Requires Node.js 20.1
 - An error for a JWK that cannot be imported names the key by its `kid` and never includes the
   key's members.
 
+[1.0.2]: https://github.com/aws/fiat-extension-for-x402/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/aws/fiat-extension-for-x402/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/aws/fiat-extension-for-x402/releases/tag/v1.0.0
